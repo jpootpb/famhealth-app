@@ -13,12 +13,19 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function getStockStatus(current: number, minimum: number): { label: string; color: string; badgeClass: string } {
+export interface StockStatusResult {
+  status: 'depleted' | 'low' | 'ok';
+  label: string;
+  color: string;
+  badgeClass: string;
+}
+
+export function getStockStatus(current: number, minimum: number): StockStatusResult {
   if (current <= 0) {
-    return { label: 'Out of Stock (0)', color: '#dc2626', badgeClass: 'badge-red' };
+    return { status: 'depleted', label: 'Out of Stock (0)', color: '#dc2626', badgeClass: 'badge-red' };
   }
   if (current <= minimum) {
-    return { label: 'Low Stock (' + current + ')', color: '#d97706', badgeClass: 'badge-yellow' };
+    return { status: 'low', label: 'Low Stock (' + current + ')', color: '#d97706', badgeClass: 'badge-yellow' };
   }
-  return { label: 'In Stock (' + current + ')', color: '#16a34a', badgeClass: 'badge-green' };
+  return { status: 'ok', label: 'In Stock (' + current + ')', color: '#16a34a', badgeClass: 'badge-green' };
 }

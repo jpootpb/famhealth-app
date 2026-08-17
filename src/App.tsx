@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Header } from './components/layout/Header';
 import { DailyTimeline } from './components/timeline/DailyTimeline';
+import { MedicationList } from './components/medications/MedicationList';
 import { useApp } from './context/AppContext';
 import {
   Calendar,
@@ -8,8 +9,7 @@ import {
   Activity,
   FileText,
   DollarSign,
-  CalendarDays,
-  FileCheck
+  CalendarDays
 } from 'lucide-react';
 
 export default function App() {
@@ -87,13 +87,7 @@ export default function App() {
         )}
 
         {activeTab === 'medications' && (
-          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-            <Pill size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Medication Inventory</h3>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-              Medication form & stock traffic light controls will load here in Task 6.
-            </p>
-          </div>
+          <MedicationList />
         )}
 
         {activeTab === 'vitals' && (

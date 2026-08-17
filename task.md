@@ -53,7 +53,7 @@
 ---
 
 ### - [x] Task 5: Daily Medication Timeline with Fractional Pill Badges & Stock Deduction
-- **Status:** `COMPLETED & VERIFIED`
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `73f70f1`)
 - **Skills Applied:**
   - 🎨 `frontend-ui-engineering`: High-legibility daily checklist in `src/components/timeline/DailyTimeline.tsx`, date picker (Today / Yesterday / Tomorrow), progress bar of completed doses, time-of-day slots (Morning, Afternoon, Evening, Night), and fractional badges (1 pill, 1/2 pill, 1/4 pill).
   - 🧱 `incremental-implementation`: 1-click dose confirmation with instant stock decrement and low-stock notification triggers.
@@ -62,16 +62,18 @@
 
 ---
 
-### - [ ] Task 6: Medication Modal Form & Inventory Management with Stock Traffic Lights
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 6: Medication Modal Form & Inventory Management with Stock Traffic Lights
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🎨 `frontend-ui-engineering`: Guided modal form for configuring complex dosing frequencies in under 1 minute.
-  - 🛠️ `source-driven-development`: Stock status badges (Green: Safe / Yellow: Low Stock / Red: Critical/Depleted).
+  - 🎨 `frontend-ui-engineering`: `MedicationList.tsx` inventory cabinet with stock summary counters (Safe / Low stock / Depleted) and rapid restock (+30 units / +15 units).
+  - 🛠️ `source-driven-development`: `MedicationModal.tsx` form supporting all complex dosing rules (Daily fixed, Alternate days, Every N days, Temporary hourly with end dates or days duration).
+  - 🧪 `test-driven-development`: Unit test suite in `tests/medicationInventory.test.ts` (2/2 tests passed).
+- **Verification:** 15/15 tests passed across 6 suites & `npm run build` clean in 1.07s.
 
 ---
 
 ### - [ ] Task 7: Desktop Web Notifications & 1-Click WhatsApp Delegation
-- **Status:** `PENDING`
+- **Status:** `NEXT IN QUEUE`
 - **Skills Applied:**
   - 🛠️ `source-driven-development`: MDN Web Notifications API (`Notification.requestPermission`, `new Notification`).
   - 📱 `source-driven-development`: WHATWG URL encoding for universal WhatsApp delegation (`wa.me/?text=...`).
