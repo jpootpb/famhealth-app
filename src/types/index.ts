@@ -38,6 +38,8 @@ export interface Medication {
   name: string;
   presentation: string; // tablet, capsule, ml, etc.
   indication?: string;
+  laboratory?: string; // Brand or Lab manufacturer (e.g. MSD, Silanes, Farmacias del Ahorro)
+  imageUrl?: string; // Photo of medicine box / blister pack (Base64 data URL)
   frequency: FrequencyRule;
   currentStock: number;
   minimumStockAlert: number;

@@ -7,7 +7,7 @@
 
 ---
 
-## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 3 Advanced Enhancements Completed)
+## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 4 Advanced Enhancements Completed)
 
 ### - [x] Task 1: Scaffolding, TypeScript, Design Tokens & Vitest Harness
 - **Status:** `COMPLETED & VERIFIED` (Git Commit: `69ec57a`)
@@ -93,11 +93,12 @@
 
 ---
 
-### - [x] Advanced Enhancements: Expiration Dates, Caregiver Shifts & Family Dose Notifications
+### - [x] Advanced Enhancements: Expiration Dates, Shifts, Family Alerts & Box Photos
 - **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🧪 `test-driven-development`: `tests/caregiverDoseNotifications.test.ts` with 6 dedicated test cases.
+  - 🧪 `test-driven-development`: `tests/caregiverDoseNotifications.test.ts` & `tests/medicationPhoto.test.ts` (8 dedicated tests).
   - 📅 **Enhancement 1 (Expiration Dates):** `expirationDate` on medications with traffic light indicators (Expired / Expiring Soon in 30d / Valid).
   - 👥 **Enhancement 2 (Caregiver Shifts):** Auto-resolution of on-duty caregivers (`morning`, `evening`, `night`, `isDefaultCaregiver`) with smart pre-selection in WhatsApp.
   - 📲 **Enhancement 3 (Family Dose Confirmation Notifications):** 1-Click WhatsApp administration alert with caregiver signature (`administeredBy`) and real-time daily progress.
-- **Verification:** 35/35 tests passed across 13 suites & `npm run build` clean in 1.16s.
+  - 📸 **Enhancement 4 (Box Photos & Laboratory Brands):** `imageUrl` and `laboratory` fields with camera photo capture/upload, offline Base64 persistence, inline timeline thumbnails, and click-to-zoom modal.
+- **Verification:** 37/37 tests passed across 14 suites & `npm run build` clean in 1.15s.

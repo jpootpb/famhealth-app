@@ -14,7 +14,9 @@ import {
   Send,
   Plus,
   Share2,
-  UserCheck
+  UserCheck,
+  Building2,
+  X
 } from 'lucide-react';
 import {
   getDailyDoseSlots,
@@ -30,6 +32,7 @@ interface DailyTimelineProps {
 export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedication }) => {
   const { activePatient, medications, doseLogs, toggleDoseTaken, families } = useApp();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   // Determine current on-duty caregiver
   const currentShiftCaregiver = getCurrentShiftCaregiver(families, new Date());
@@ -120,7 +123,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '1rem',
+          padding: '0.875rem 1rem',
           backgroundColor: isTaken ? 'var(--bg-secondary)' : '#ffffff',
           borderColor: isTaken ? 'var(--success)' : 'var(--border-color)',
           transition: 'all 0.2s ease',
@@ -149,6 +152,25 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
             )}
           </button>
 
+          {/* Photo Thumbnail */}
+          {med.imageUrl && (
+            <img
+              src={med.imageUrl}
+              alt={med.name}
+              onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || 'Box Photo'})` })}
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: 'var(--radius-sm)',
+                objectFit: 'cover',
+                cursor: 'pointer',
+                border: '1px solid var(--border-color)',
+                flexShrink: 0
+              }}
+              title="Click to view full medicine box"
+            />
+          )}
+
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span
@@ -166,6 +188,12 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
                 {formatDose(slot.dose, med.presentation)}
               </span>
 
+              {med.laboratory && (
+                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
+                  {med.laboratory}
+                </span>
+              )}
+
               {med.expirationDate && expStatus.status !== 'valid' && (
                 <span className={`badge ${expStatus.badgeClass}`} style={{ fontSize: '0.65rem' }}>
                   ⚠️ {expStatus.label}
@@ -173,12 +201,12 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               )}
             </div>
 
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
               ⏰ <strong>{slot.time}</strong> {slot.instruction ? `• ${slot.instruction}` : med.indication ? `• ${med.indication}` : ''}
             </div>
 
             {isTaken && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '0.25rem', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '0.2rem', fontWeight: 600 }}>
                 ✓ Administered {log?.actualTakenTime ? `at ${log.actualTakenTime}` : ''} {log?.administeredBy ? `by ${log.administeredBy}` : ''}
               </div>
             )}
@@ -366,6 +394,29 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Box Photo Zoom Modal */}
+      {zoomImage && (
+        <div className="modal-backdrop" onClick={() => setZoomImage(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '500px', textAlign: 'center', padding: '1rem' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <strong style={{ fontSize: '1rem' }}>{zoomImage.title}</strong>
+              <button className="btn btn-secondary btn-sm" onClick={() => setZoomImage(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <img
+              src={zoomImage.url}
+              alt={zoomImage.title}
+              style={{ maxWidth: '100%', maxHeight: '420px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+            />
+          </div>
         </div>
       )}
     </div>

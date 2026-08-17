@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Medication, FrequencyType, DoseSlot } from '../../types';
-import { X, Plus, Trash2, Pill, Clock, Calendar, AlertCircle } from 'lucide-react';
+import {
+  X,
+  Plus,
+  Trash2,
+  Pill,
+  Clock,
+  Calendar,
+  AlertCircle,
+  Camera,
+  Image as ImageIcon,
+  Building2
+} from 'lucide-react';
 import { formatDateIso } from '../../utils/frequencyEngine';
 
 interface MedicationModalProps {
@@ -20,6 +31,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [name, setName] = useState('');
   const [presentation, setPresentation] = useState('tablet');
   const [indication, setIndication] = useState('');
+  const [laboratory, setLaboratory] = useState('');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [currentStock, setCurrentStock] = useState<number>(30);
   const [minimumStockAlert, setMinimumStockAlert] = useState<number>(5);
   const [unitCost, setUnitCost] = useState<number | ''>('');
@@ -43,6 +56,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setName(medicationToEdit.name);
       setPresentation(medicationToEdit.presentation);
       setIndication(medicationToEdit.indication || '');
+      setLaboratory(medicationToEdit.laboratory || '');
+      setImageUrl(medicationToEdit.imageUrl || '');
       setCurrentStock(medicationToEdit.currentStock);
       setMinimumStockAlert(medicationToEdit.minimumStockAlert);
       setUnitCost(medicationToEdit.unitCost || '');
@@ -57,6 +72,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setName('');
       setPresentation('tablet');
       setIndication('');
+      setLaboratory('');
+      setImageUrl('');
       setCurrentStock(30);
       setMinimumStockAlert(5);
       setUnitCost('');
@@ -72,6 +89,19 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   }, [medicationToEdit, isOpen]);
 
   if (!isOpen || !activePatient) return null;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAddDoseSlot = () => {
     setDoseSlots(prev => [...prev, { time: '20:00', dose: 1, instruction: 'With dinner' }]);
@@ -104,6 +134,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       name: name.trim(),
       presentation,
       indication: indication.trim() || undefined,
+      laboratory: laboratory.trim() || undefined,
+      imageUrl: imageUrl || undefined,
       currentStock: Number(currentStock) || 0,
       minimumStockAlert: Number(minimumStockAlert) || 3,
       unitCost: unitCost ? Number(unitCost) : undefined,
@@ -135,7 +167,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content"
-        style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}
+        style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -186,36 +218,131 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Indication / Medical Purpose</label>
+              <label className="form-label">Laboratory / Brand Manufacturer</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Diabetes control, Blood thinner"
-                value={indication}
-                onChange={e => setIndication(e.target.value)}
+                placeholder="e.g. Silanes, Bayer, Genérico GI, Sanofi"
+                value={laboratory}
+                onChange={e => setLaboratory(e.target.value)}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">Box Expiration Date (Fecha de Caducidad)</label>
+              <label className="form-label">Indication / Medical Purpose</label>
               <input
-                type="date"
+                type="text"
                 className="form-input"
-                value={expirationDate}
-                onChange={e => setExpirationDate(e.target.value)}
-                title="Printed expiration date on medication package"
+                placeholder="e.g. Diabetes control, Blood pressure"
+                value={indication}
+                onChange={e => setIndication(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Stock & Inventory */}
+          {/* Photo Upload & Live Thumbnail */}
+          <div
+            className="card"
+            style={{
+              padding: '1rem',
+              backgroundColor: 'var(--bg-secondary)',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+              {imageUrl ? (
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={imageUrl}
+                    alt="Medicine Box Preview"
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: 'var(--radius-md)',
+                      objectFit: 'cover',
+                      border: '2px solid var(--primary)'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      backgroundColor: 'var(--danger)',
+                      color: '#fff',
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px'
+                    }}
+                    title="Remove Photo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: '#e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#94a3b8'
+                  }}
+                >
+                  <Camera size={26} />
+                </div>
+              )}
+
+              <div>
+                <strong style={{ fontSize: '0.875rem', display: 'block' }}>
+                  Photo of Medicine Box / Blister Pack
+                </strong>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Helps caregivers & patients identify the exact box and brand visually.
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                className="btn btn-secondary btn-sm"
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+              >
+                <Camera size={14} /> {imageUrl ? 'Change Photo' : 'Upload / Take Photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Stock, Expiration & Cost Settings */}
           <div className="card" style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <AlertCircle size={16} color="var(--primary)" /> Inventory & Restock Settings
+              <AlertCircle size={16} color="var(--primary)" /> Inventory & Expiration Settings
             </h3>
-            <div className="grid-3">
+            <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Current Stock</label>
+                <label className="form-label">Current Stock Count</label>
                 <input
                   type="number"
                   className="form-input"
@@ -233,6 +360,18 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   min="1"
                   value={minimumStockAlert}
                   onChange={e => setMinimumStockAlert(Number(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="grid-2">
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Box Expiration Date (Caducidad)</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={expirationDate}
+                  onChange={e => setExpirationDate(e.target.value)}
                 />
               </div>
 

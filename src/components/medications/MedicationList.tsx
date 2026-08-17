@@ -10,7 +10,9 @@ import {
   CheckCircle2,
   PackagePlus,
   Clock,
-  Calendar
+  Building2,
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/formatters';
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
@@ -20,6 +22,7 @@ export const MedicationList: React.FC = () => {
   const { activePatient, medications, updateMedication, deleteMedication } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState<Medication | null>(null);
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   if (!activePatient) {
     return (
@@ -80,7 +83,7 @@ export const MedicationList: React.FC = () => {
             {activePatient.name}'s Medication Cabinet
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Track active prescriptions, expiration dates, recurrence rules, and pharmacy stock traffic lights.
+            Track active prescriptions, box photos, laboratory brands, expiration dates, and stock alerts.
           </p>
         </div>
 
@@ -189,16 +192,56 @@ export const MedicationList: React.FC = () => {
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.625rem' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                        {med.name}
-                      </h3>
-                      {med.indication && (
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                          {med.indication}
-                        </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {med.imageUrl ? (
+                        <img
+                          src={med.imageUrl}
+                          alt={med.name}
+                          onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || 'Box Photo'})` })}
+                          style={{
+                            width: '52px',
+                            height: '52px',
+                            borderRadius: 'var(--radius-md)',
+                            objectFit: 'cover',
+                            cursor: 'pointer',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: 'var(--shadow-sm)'
+                          }}
+                          title="Click to zoom medicine box"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '52px',
+                            height: '52px',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
+                          <Pill size={24} />
+                        </div>
                       )}
+
+                      <div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                          {med.name}
+                        </h3>
+                        {med.laboratory && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600 }}>
+                            <Building2 size={12} /> {med.laboratory}
+                          </div>
+                        )}
+                        {med.indication && (
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                            {med.indication}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
@@ -305,6 +348,29 @@ export const MedicationList: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         medicationToEdit={medicationToEdit}
       />
+
+      {/* Box Photo Zoom Modal */}
+      {zoomImage && (
+        <div className="modal-backdrop" onClick={() => setZoomImage(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '500px', textAlign: 'center', padding: '1rem' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <strong style={{ fontSize: '1rem' }}>{zoomImage.title}</strong>
+              <button className="btn btn-secondary btn-sm" onClick={() => setZoomImage(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <img
+              src={zoomImage.url}
+              alt={zoomImage.title}
+              style={{ maxWidth: '100%', maxHeight: '420px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
