@@ -52,17 +52,18 @@
 
 ---
 
-### - [ ] Task 5: Daily Medication Timeline with Fractional Pill Badges & Stock Deduction
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 5: Daily Medication Timeline with Fractional Pill Badges & Stock Deduction
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
   - 🎨 `frontend-ui-engineering`: High-legibility daily checklist in `src/components/timeline/DailyTimeline.tsx`, date picker (Today / Yesterday / Tomorrow), progress bar of completed doses, time-of-day slots (Morning, Afternoon, Evening, Night), and fractional badges (1 pill, 1/2 pill, 1/4 pill).
   - 🧱 `incremental-implementation`: 1-click dose confirmation with instant stock decrement and low-stock notification triggers.
-  - 🧪 `test-driven-development`: Unit tests in `tests/dailyTimeline.test.ts`.
+  - 🧪 `test-driven-development`: Unit tests in `tests/dailyTimeline.test.ts` (2/2 tests passed).
+- **Verification:** 13/13 tests passed across 5 suites & `npm run build` clean in 1.07s.
 
 ---
 
 ### - [ ] Task 6: Medication Modal Form & Inventory Management with Stock Traffic Lights
-- **Status:** `PENDING`
+- **Status:** `NEXT IN QUEUE`
 - **Skills Applied:**
   - 🎨 `frontend-ui-engineering`: Guided modal form for configuring complex dosing frequencies in under 1 minute.
   - 🛠️ `source-driven-development`: Stock status badges (Green: Safe / Yellow: Low Stock / Red: Critical/Depleted).

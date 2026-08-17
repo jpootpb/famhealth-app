@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { Header } from './components/layout/Header';
+import { DailyTimeline } from './components/timeline/DailyTimeline';
 import { useApp } from './context/AppContext';
+import {
+  Calendar,
+  Pill,
+  Activity,
+  FileText,
+  DollarSign,
+  CalendarDays,
+  FileCheck
+} from 'lucide-react';
 
 export default function App() {
   const { activePatient } = useApp();
@@ -11,16 +21,120 @@ export default function App() {
       <Header onPrintReport={() => window.print()} />
 
       <main className="main-content">
-        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-              {activePatient ? `${activePatient.name}'s Dashboard` : 'Family Dashboard'}
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-              {activePatient?.primaryDiagnosis || 'Select a patient profile to start monitoring.'}
+        {/* Navigation Tabs */}
+        <nav
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            overflowX: 'auto',
+            paddingBottom: '0.5rem',
+            marginBottom: '1.5rem',
+            borderBottom: '1px solid var(--border-color)'
+          }}
+        >
+          <button
+            onClick={() => setActiveTab('timeline')}
+            className={`btn btn-sm ${activeTab === 'timeline' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
+          >
+            <Calendar size={16} /> Daily Timeline
+          </button>
+
+          <button
+            onClick={() => setActiveTab('medications')}
+            className={`btn btn-sm ${activeTab === 'medications' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
+          >
+            <Pill size={16} /> Medications & Stock
+          </button>
+
+          <button
+            onClick={() => setActiveTab('vitals')}
+            className={`btn btn-sm ${activeTab === 'vitals' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
+          >
+            <Activity size={16} /> Vitals & Campaigns
+          </button>
+
+          <button
+            onClick={() => setActiveTab('studies')}
+            className={`btn btn-sm ${activeTab === 'studies' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
+          >
+            <FileText size={16} /> Lab Studies & Archive
+          </button>
+
+          <button
+            onClick={() => setActiveTab('appointments')}
+            className={`btn btn-sm ${activeTab === 'appointments' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
+          >
+            <CalendarDays size={16} /> Appointments
+          </button>
+
+          <button
+            onClick={() => setActiveTab('expenses')}
+            className={`btn btn-sm ${activeTab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
+          >
+            <DollarSign size={16} /> Expenses & Split
+          </button>
+        </nav>
+
+        {/* Tab Views */}
+        {activeTab === 'timeline' && (
+          <DailyTimeline onOpenAddMedication={() => setActiveTab('medications')} />
+        )}
+
+        {activeTab === 'medications' && (
+          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
+            <Pill size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Medication Inventory</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              Medication form & stock traffic light controls will load here in Task 6.
             </p>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'vitals' && (
+          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
+            <Activity size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Vitals & 3-Day Campaigns</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              Glucose, Blood Pressure, and Campaign logs will load here in Task 8.
+            </p>
+          </div>
+        )}
+
+        {activeTab === 'studies' && (
+          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
+            <FileText size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Digital Lab Studies Archive</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              Digital PDF and lab photo archive will load here in Task 9.
+            </p>
+          </div>
+        )}
+
+        {activeTab === 'appointments' && (
+          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
+            <CalendarDays size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Doctor Appointments Schedule</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              Specialist consultation agenda will load here in Task 9.
+            </p>
+          </div>
+        )}
+
+        {activeTab === 'expenses' && (
+          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
+            <DollarSign size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Health Expense Splitter</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              Family cost sharing calculator will load here in Task 11.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );
