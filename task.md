@@ -73,7 +73,7 @@
 ---
 
 ### - [x] Task 7: Desktop Web Notifications & 1-Click WhatsApp Delegation
-- **Status:** `COMPLETED & VERIFIED`
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `88771d0`)
 - **Skills Applied:**
   - 🛠️ `source-driven-development`: MDN Web Notifications API (`Notification.requestPermission`, background interval checking scheduled medication times every minute).
   - 📱 `source-driven-development`: WHATWG URL encoding for universal WhatsApp delegation (`wa.me/?text=...`) with structured agenda, checkmarks for taken/pending doses, and Caregiver Pass URL.
@@ -83,16 +83,17 @@
 
 ---
 
-### - [ ] Task 8: Vitals Log (Glucose, BP, SpO2) & 3-Day Monitoring Campaigns
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 8: Vitals Log (Glucose, BP, SpO2) & 3-Day Monitoring Campaigns
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🧪 `test-driven-development`: Average calculations and clinical range validations.
-  - 🎨 `frontend-ui-engineering`: Fast input for Glucose (fasting/postprandial), Blood Pressure, Heart Rate, and SpO2 with 3-day challenge progress bar.
+  - 🧪 `test-driven-development`: Unit tests in `tests/vitalsCampaign.test.ts` (3/3 tests passed) testing clinical classifications and 3-day challenge completion algorithms.
+  - 🎨 `frontend-ui-engineering`: `VitalsView.tsx` with 3-day challenge progress bar, fast vital entry (Glucose fasting/postprandial, BP systolic/diastolic, SpO2/pulse), summary stats cards, and historical records.
+- **Verification:** 20/20 tests passed across 8 suites & `npm run build` clean in 1.07s.
 
 ---
 
 ### - [ ] Task 9: Digital Lab Studies Archive & Appointments Schedule
-- **Status:** `PENDING`
+- **Status:** `NEXT IN QUEUE`
 - **Skills Applied:**
   - 🛠️ `source-driven-development`: MDN File API & FileReader for safe local document previews (PDF/Images).
   - 🎨 `frontend-ui-engineering`: Studies gallery viewer and medical appointments agenda.
