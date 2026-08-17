@@ -63,7 +63,7 @@
 ---
 
 ### - [x] Task 6: Medication Modal Form & Inventory Management with Stock Traffic Lights
-- **Status:** `COMPLETED & VERIFIED`
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `e2cab08`)
 - **Skills Applied:**
   - 🎨 `frontend-ui-engineering`: `MedicationList.tsx` inventory cabinet with stock summary counters (Safe / Low stock / Depleted) and rapid restock (+30 units / +15 units).
   - 🛠️ `source-driven-development`: `MedicationModal.tsx` form supporting all complex dosing rules (Daily fixed, Alternate days, Every N days, Temporary hourly with end dates or days duration).
@@ -72,16 +72,19 @@
 
 ---
 
-### - [ ] Task 7: Desktop Web Notifications & 1-Click WhatsApp Delegation
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 7: Desktop Web Notifications & 1-Click WhatsApp Delegation
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🛠️ `source-driven-development`: MDN Web Notifications API (`Notification.requestPermission`, `new Notification`).
-  - 📱 `source-driven-development`: WHATWG URL encoding for universal WhatsApp delegation (`wa.me/?text=...`).
+  - 🛠️ `source-driven-development`: MDN Web Notifications API (`Notification.requestPermission`, background interval checking scheduled medication times every minute).
+  - 📱 `source-driven-development`: WHATWG URL encoding for universal WhatsApp delegation (`wa.me/?text=...`) with structured agenda, checkmarks for taken/pending doses, and Caregiver Pass URL.
+  - 🎨 `frontend-ui-engineering`: `WhatsAppModal.tsx` with date picker, contact picker from family list, live preview box, copy to clipboard button, and direct WhatsApp Web/App launcher.
+  - 🧪 `test-driven-development`: Unit test suite in `tests/whatsappSharing.test.ts` (2/2 tests passed).
+- **Verification:** 17/17 tests passed across 7 suites & `npm run build` clean in 1.05s.
 
 ---
 
 ### - [ ] Task 8: Vitals Log (Glucose, BP, SpO2) & 3-Day Monitoring Campaigns
-- **Status:** `PENDING`
+- **Status:** `NEXT IN QUEUE`
 - **Skills Applied:**
   - 🧪 `test-driven-development`: Average calculations and clinical range validations.
   - 🎨 `frontend-ui-engineering`: Fast input for Glucose (fasting/postprandial), Blood Pressure, Heart Rate, and SpO2 with 3-day challenge progress bar.

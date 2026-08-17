@@ -43,7 +43,7 @@ export function buildWhatsAppSummary(
     lines.push('_No medications scheduled for today._');
   } else {
     dailyDoses.forEach(item => {
-      const check = item.taken ? '[DONE]' : '[PENDING]s';
+      const check = item.taken ? '[DONE]' : '[PENDING]';
       lines.push(check + ' *' + item.time + '* -> ' + item.medName + ' (' + item.doseText + ')');
     });
   }
@@ -54,7 +54,8 @@ export function buildWhatsAppSummary(
     lines.push('');
   }
 
-  lines.push('_Caregiver Pass:_ ' + window.location.origin + '?mode=pass&apatientId=' + patient.id);
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://famhealth.app';
+  lines.push('_Caregiver Pass:_ ' + origin + '?mode=pass&patientId=' + patient.id);
   lines.push('_FamHealth PWA_');
 
   return lines.join('\n');
@@ -62,6 +63,9 @@ export function buildWhatsAppSummary(
 
 export function shareViaWhatsApp(text: string, phone: string = ''): void {
   const encoded = encodeURIComponent(text);
-  const url = phone ? 'https://wa.me/' + phone + '?text=' + encoded : 'https://wa.me/?text=' + encoded;
-  window.open(url, '_blank');
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const url = cleanPhone ? 'https://wa.me/' + cleanPhone + '?text=' + encoded : 'https://wa.me/?text=' + encoded;
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank');
+  }
 }

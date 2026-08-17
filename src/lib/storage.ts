@@ -1,85 +1,105 @@
-import { INITIAL_PATIENTS, INITIAL_MEDICATIONS, INITIAL_VITALS, INITIAL_FAMILIES, INITIAL_EXPENSES, INITIAL_APPOINTMENTS, INITIAL_STUDIES } from './demoData';
-import { Patient, Medication, DoseLog, VitalSign, FamilyMember, HealthExpense, MedicalAppointment, MedicalStudy, MonitoringCampaign } from '../types';
+import {
+  initialPatients,
+  initialMedications,
+  initialDoseLogs,
+  initialVitals,
+  initialCampaigns,
+  initialFamilies,
+  initialExpenses,
+  initialAppointments,
+  initialStudies
+} from './demoData';
+import {
+  Patient,
+  Medication,
+  DoseLog,
+  VitalSign,
+  MonitoringCampaign,
+  FamilyMember,
+  HealthExpense,
+  MedicalAppointment,
+  MedicalStudy
+} from '../types';
 
 const STORAGE_KEYS = {
-  PATIENTS: 'famhealth_patients_v1',
-  MEDICATIONS: 'famhealth_medications_v1',
-  DOSE_LOGS: 'famhealth_dose_logs_v1',
-  VITALS: 'famhealth_vitals_v1',
-  CAMPAIGNS: 'famhealth_campaigns_v1',
-  FAMILIES: 'famhealth_families_v1',
-  EXPENSES: 'famhealth_expenses_v1',
-  APPOINTMENTS: 'famhealth_appointments_v1',
-  STUDIES: 'famhealth_studies_v1',
-  ACTIVE_PATIENT: 'famhealth_active_patient_v1'
+  PATIENTS: 'famhealth_patients',
+  ACTIVE_PATIENT_ID: 'famhealth_active_patient_id',
+  MEDICATIONS: 'famhealth_medications',
+  DOSE_LOGS: 'famhealth_dose_logs',
+  VITALS: 'famhealth_vitals',
+  CAMPAIGNS: 'famhealth_campaigns',
+  FAMILIES: 'famhealth_families',
+  EXPENSES: 'famhealth_expenses',
+  APPOINTMENTS: 'famhealth_appointments',
+  STUDIES: 'famhealth_studies'
 };
 
-function getOrInit<T>(key: string, defaultData: T): T {
+function safeGet<T>(key: string, fallback: T): T {
   try {
-    if (typeof localStorage === 'undefined') return defaultData;
+    if (typeof localStorage === 'undefined') return fallback;
     const raw = localStorage.getItem(key);
-    if (!raw) {
-      localStorage.setItem(key, JSON.stringify(defaultData));
-      return defaultData;
-    }
+    if (!raw) return fallback;
     return JSON.parse(raw) as T;
-  } catch (e) {
-    console.error('Error reading storage for ' + key, e);
-    return defaultData;
+  } catch (err) {
+    console.error(`Error loading storage key ${key}:`, err);
+    return fallback;
   }
 }
 
-function save<T>(key: string, data: T): void {
+function safeSet<T>(key: string, value: T): void {
   try {
     if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.error('Error saving storage for ' + key, e);
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.error(`Error saving storage key ${key}:`, err);
   }
 }
 
 export const LocalStore = {
-  getPatients: () => getOrInit<Patient[]>(STORAGE_KEYS.PATIENTS, INITIAL_PATIENTS),
-  savePatients: (data: Patient[]) => save(STORAGE_KEYS.PATIENTS, data),
+  // Patients
+  getPatients: (): Patient[] => safeGet<Patient[]>(STORAGE_KEYS.PATIENTS, initialPatients),
+  savePatients: (patients: Patient[]) => safeSet(STORAGE_KEYS.PATIENTS, patients),
 
-  getMedications: () => getOrInit<Medication[]>(STORAGE_KEYS.MEDICATIONS, INITIAL_MEDICATIONS),
-  saveMedications: (data: Medication[]) => save(STORAGE_KEYS.MEDICATIONS, data),
+  getActivePatientId: (): string => {
+    return safeGet<string>(STORAGE_KEYS.ACTIVE_PATIENT_ID, 'patient-grandfather');
+  },
+  setActivePatientId: (id: string) => safeSet(STORAGE_KEYS.ACTIVE_PATIENT_ID, id),
 
-  getDoseLogs: () => getOrInit<DoseLog[]>(STORAGE_KEYS.DOSE_LOGS, []),
-  saveDoseLogs: (data: DoseLog[]) => save(STORAGE_KEYS.DOSE_LOGS, data),
+  // Medications
+  getMedications: (): Medication[] => safeGet<Medication[]>(STORAGE_KEYS.MEDICATIONS, initialMedications),
+  saveMedications: (meds: Medication[]) => safeSet(STORAGE_KEYS.MEDICATIONS, meds),
 
-  getVitals: () => getOrInit<VitalSign[]>(STORAGE_KEYS.VITALS, INITIAL_VITALS),
-  saveVitals: (data: VitalSign[]) => save(STORAGE_KEYS.VITALS, data),
+  // Dose Logs
+  getDoseLogs: (): DoseLog[] => safeGet<DoseLog[]>(STORAGE_KEYS.DOSE_LOGS, initialDoseLogs),
+  saveDoseLogs: (logs: DoseLog[]) => safeSet(STORAGE_KEYS.DOSE_LOGS, logs),
 
-  getCampaigns: () => getOrInit<MonitoringCampaign[]>(STORAGE_KEYS.CAMPAIGNS, [
-    {
-      id: 'camp-1',
-      patientId: 'patient-grandfather',
-      name: 'Glucose & Blood Pressure Monitoring (3 Days)',
-      vitalTypes: ['glucose', 'blood_pressure'],
-      startDate: '2026-08-16',
-      durationDays: 3,
-      checksPerDay: 2,
-      targetNotes: 'Control requested by Dr. Mendoza before checkup',
-      isActive: true
-    }
-  ]),
-  saveCampaigns: (data: MonitoringCampaign[]) => save(STORAGE_KEYS.CAMPAIGNS, data),
+  // Vitals
+  getVitals: (): VitalSign[] => safeGet<VitalSign[]>(STORAGE_KEYS.VITALS, initialVitals),
+  saveVitals: (vitals: VitalSign[]) => safeSet(STORAGE_KEYS.VITALS, vitals),
 
-  getFamilies: () => getOrInit<FamilyMember[]>(STORAGE_KEYS.FAMILIES, INITIAL_FAMILIES),
-  saveFamilies: (data: FamilyMember[]) => save(STORAGE_KEYS.FAMILIES, data),
+  // Campaigns
+  getCampaigns: (): MonitoringCampaign[] => safeGet<MonitoringCampaign[]>(STORAGE_KEYS.CAMPAIGNS, initialCampaigns),
+  saveCampaigns: (campaigns: MonitoringCampaign[]) => safeSet(STORAGE_KEYS.CAMPAIGNS, campaigns),
 
-  getExpenses: () => getOrInit<HealthExpense[]>(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES),
-  saveExpenses: (data: HealthExpense[]) => save(STORAGE_KEYS.EXPENSES, data),
+  // Families
+  getFamilies: (): FamilyMember[] => safeGet<FamilyMember[]>(STORAGE_KEYS.FAMILIES, initialFamilies),
+  saveFamilies: (families: FamilyMember[]) => safeSet(STORAGE_KEYS.FAMILIES, families),
 
-  getAppointments: () => getOrInit<MedicalAppointment[]>(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS),
-  saveAppointments: (data: MedicalAppointment[]) => save(STORAGE_KEYS.APPOINTMENTS, data),
+  // Expenses
+  getExpenses: (): HealthExpense[] => safeGet<HealthExpense[]>(STORAGE_KEYS.EXPENSES, initialExpenses),
+  saveExpenses: (expenses: HealthExpense[]) => safeSet(STORAGE_KEYS.EXPENSES, expenses),
 
-  getStudies: () => getOrInit<MedicalStudy[]>(STORAGE_KEYS.STUDIES, INITIAL_STUDIES),
-  saveStudies: (data: MedicalStudy[]) => save(STORAGE_KEYS.STUDIES, data),
+  // Appointments
+  getAppointments: (): MedicalAppointment[] => safeGet<MedicalAppointment[]>(STORAGE_KEYS.APPOINTMENTS, initialAppointments),
+  saveAppointments: (appointments: MedicalAppointment[]) => safeSet(STORAGE_KEYS.APPOINTMENTS, appointments),
 
-  getActivePatientId: () => (typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.ACTIVE_PATIENT) : null) || 'patient-grandfather',
-  setActivePatientId: (id: string) => {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEYS.ACTIVE_PATIENT, id);
+  // Studies
+  getStudies: (): MedicalStudy[] => safeGet<MedicalStudy[]>(STORAGE_KEYS.STUDIES, initialStudies),
+  saveStudies: (studies: MedicalStudy[]) => safeSet(STORAGE_KEYS.STUDIES, studies),
+
+  // Full Reset
+  resetToDefaults: () => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.clear();
   }
 };

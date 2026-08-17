@@ -6,7 +6,7 @@ export interface Patient {
   age?: number;
   type: PatientType;
   primaryDiagnosis?: string;
-  treatmentStartDate?: string; // YYYY-MM-DD
+  treatmentStartDate?: string;
   durationDays?: number;
   notes?: string;
 }
@@ -50,23 +50,23 @@ export interface DoseLog {
   medicationId: string;
   patientId: string;
   date: string; // YYYY-MM-DD
-  scheduledTime: string; // HI:MM
-  actualTakenTime: string;
+  scheduledTime: string; // HH:MM
+  actualTakenTime?: string; // HH:MM
   dose: number;
   taken: boolean;
+  notes?: string;
 }
 
-export type VitalType = 'glucose' | 'blood_pressure' | 'oxygen_saturation';
+export type VitalType = 'glucose' | 'blood_pressure' | 'spo2' | 'weight' | 'heart_rate';
 
 export interface VitalSign {
   id: string;
   patientId: string;
   type: VitalType;
-  primaryValue: number; // mg/dL, systolic, or SpO2
-  secondaryValue?: number; // diastolic
-  pulse?: number;
-  context?: string; // Fasting, Postprandial, Resting, etc.
-  dateTime: string; // ISO
+  value: number; // For BP this can be systolic
+  secondaryValue?: number; // Diastolic
+  timing?: 'fasting' | 'postprandial' | 'random' | 'before_sleep';
+  timestamp: string;
   notes?: string;
 }
 
@@ -85,6 +85,8 @@ export interface MonitoringCampaign {
 export interface FamilyMember {
   id: string;
   name: string;
+  relationship?: string;
+  phone?: string;
   splitPercentage: number;
   isActive: boolean;
 }
@@ -105,11 +107,9 @@ export interface MedicalAppointment {
   patientId: string;
   doctorName: string;
   specialty: string;
-  location: string;
   dateTime: string;
-  cost?: number;
-  reason: string;
-  preparationInstructions?: string;
+  location?: string;
+  notes?: string;
   isCompleted: boolean;
 }
 
@@ -117,12 +117,10 @@ export interface MedicalStudy {
   id: string;
   patientId: string;
   title: string;
-  category: string;
-  laboratory: string;
+  category: 'blood_test' | 'imaging' | 'cardiology' | 'pathology' | 'other';
   date: string;
-  fileName: string;
-  fileType: 'pdf' | 'image';
+  laboratory?: string;
+  resultsSummary?: string;
   fileUrl?: string;
-  cost?: number;
-  keyFindings?: string;
+  fileType?: 'pdf' | 'image';
 }

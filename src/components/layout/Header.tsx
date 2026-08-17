@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Heart,
-  User,
   Bell,
   BellRing,
   Share2,
@@ -12,12 +11,14 @@ import {
   HeartPulse
 } from 'lucide-react';
 import { PatientSelector } from './PatientSelector';
-import { requestNotificationPermission } from '../../lib/notifications';
-import { buildWhatsAppSummary, shareViaWhatsApp } from '../../lib/whatsapp';
+import { WhatsAppModal } from '../sharing/WhatsAppModal';
+import { requestNotificationPermission, sendLocalNotification } from '../../lib/notifications';
+import { getDailyDoseSlots, formatDateIso } from '../../utils/frequencyEngine';
 
 export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport }) => {
   const { activePatient, medications, doseLogs } = useApp();
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [notificationsGranted, setNotificationsGranted] = useState(false);
 
   useEffect(() => {
@@ -26,15 +27,48 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport
     }
   }, []);
 
+  // Periodic reminder checker (checks every 60 seconds for due doses)
+  useEffect(() => {
+    if (!notificationsGranted || !activePatient) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentH = String(now.getHours()).padStart(2, '0');
+      const currentM = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentH}:${currentM}`;
+      const todayIso = formatDateIso(now);
+
+      const patientMeds = medications.filter(m => m.patientId === activePatient.id);
+      patientMeds.forEach(med => {
+        const slots = getDailyDoseSlots(med, now);
+        slots.forEach(slot => {
+          if (slot.time === currentTimeStr) {
+            const alreadyTaken = doseLogs.some(
+              l => l.medicationId === med.id && l.scheduledTime === slot.time && l.date === todayIso && l.taken
+            );
+            if (!alreadyTaken) {
+              sendLocalNotification(
+                `⏰ Medication Time: ${med.name}`,
+                `Scheduled dose: ${slot.dose} ${med.presentation} for ${activePatient.name}. Please take or administer now.`
+              );
+            }
+          }
+        });
+      });
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [notificationsGranted, activePatient, medications, doseLogs]);
+
   const handleToggleNotifications = async () => {
     const granted = await requestNotificationPermission();
     setNotificationsGranted(granted);
-  };
-
-  const handleShareWhatsApp = () => {
-    if (!activePatient) return;
-    const summary = buildWhatsAppSummary(activePatient, medications, doseLogs);
-    shareViaWhatsApp(summary);
+    if (granted) {
+      sendLocalNotification(
+        '🔔 FamHealth Alerts Active',
+        'You will now receive desktop notifications for your scheduled medications.'
+      );
+    }
   };
 
   return (
@@ -159,7 +193,7 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport
 
             <button
               className="btn btn-secondary btn-sm"
-              onClick={handleShareWhatsApp}
+              onClick={() => setIsWhatsAppModalOpen(true)}
               title="Share Today's Agenda on WhatsApp"
               style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#16a34a' }}
             >
@@ -185,6 +219,11 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport
       <PatientSelector
         isOpen={isPatientModalOpen}
         onClose={() => setIsPatientModalOpen(false)}
+      />
+
+      <WhatsAppModal
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
       />
     </>
   );
