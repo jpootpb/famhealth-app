@@ -1,77 +1,81 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
-  Paciente,
-  Medicamento,
-  TomaRegistro,
-  SignoVital,
-  CampaniaMonitoreo,
-  Familiar,
-  GastoSalud,
-  CitaMedica,
-  EstudioMedico
+  Patient,
+  Medication,
+  DoseLog,
+  VitalSign,
+  MonitoringCampaign,
+  FamilyMember,
+  HealthExpense,
+  MedicalAppointment,
+  MedicalStudy
 } from '../types';
 import { LocalStore } from '../lib/storage';
 import { sendLocalNotification } from '../lib/notifications';
-import { formatDateIso, tocaTomaHoy } from '../utils/frequencyEngine';
+import { formatDateIso } from '../utils/frequencyEngine';
 
 interface AppContextType {
-  patients: Paciente[];
-  activePatient: Paciente | undefined;
+  patients: Patient[];
+  activePatient: Patient | undefined;
   setActivePatientId: (id: string) => void;
-  addPatient: (p: Omit<Paciente, 'id'>) => void;
-  updatePatient: (p: Paciente) => void;
+  addPatient: (p: Omit<Patient, 'id'>) => void;
+  updatePatient: (p: Patient) => void;
 
-  medications: Medicamento[];
-  addMedication: (m: Omit<Medicamento, 'id'>) => void;
-  updateMedication: (m: Medicamento) => void;
+  medications: Medication[];
+  addMedication: (m: Omit<Medication, 'id'>) => void;
+  updateMedication: (m: Medication) => void;
   deleteMedication: (id: string) => void;
 
-  tomas: TomaRegistro[];
-  toggleToma: (medicamentoId: string, horaProgramada: string, fecha?: string) => void;
+  doseLogs: DoseLog[];
+  toggleDoseTaken: (medicationId: string, scheduledTime: string, dateStr?: string) => void;
 
-  vitals: SignoVital[];
-  addVital: (v: Omit<SignoVital, 'id'>) => void;
+  vitals: VitalSign[];
+  addVital: (v: Omit<VitalSign, 'id'>) => void;
   deleteVital: (id: string) => void;
 
-  campaigns: CampaniaMonitoreo[];
-  addCampaign: (c: Omit<CampaniaMonitoreo, 'id'>) => void;
+  campaigns: MonitoringCampaign[];
+  addCampaign: (c: Omit<MonitoringCampaign, 'id'>) => void;
   toggleCampaignStatus: (id: string) => void;
 
-  families: Familiar[];
-  addFamilyMember: (f: Omit<Familiar, 'id'>) => void;
-  updateFamilyMember: (f: Familiar) => void;
+  families: FamilyMember[];
+  addFamilyMember: (f: Omit<FamilyMember, 'id'>) => void;
+  updateFamilyMember: (f: FamilyMember) => void;
 
-  expenses: GastoSalud[];
-  addExpense: (e: Omit<GastoSalud, 'id'>) => void;
+  expenses: HealthExpense[];
+  addExpense: (e: Omit<HealthExpense, 'id'>) => void;
   deleteExpense: (id: string) => void;
 
-  appointments: CitaMedica[];
-  addAppointment: (a: Omit<CitaMedica, 'id'>) => void;
+  appointments: MedicalAppointment[];
+  addAppointment: (a: Omit<MedicalAppointment, 'id'>) => void;
   toggleAppointmentCompleted: (id: string) => void;
 
-  studies: EstudioMedico[];
-  addStudy: (s: Omit<EstudioMedico, 'id'>) => void;
+  studies: MedicalStudy[];
+  addStudy: (s: Omit<MedicalStudy, 'id'>) => void;
   deleteStudy: (id: string) => void;
 }
 
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [patients, setPatients] = useState<Paciente[]>(() => LocalStore.getPatients());
-  const [activePatientId, setActivePatientIdState] = useState<string>(() => LocalStore.getActivePatientId());
-  const [medications, setMedications] = useState<Medicamento[]>(() => LocalStore.getMedications());
-  const [tomas, setTomas] = useState<TomaRegistro[]>(() => LocalStore.getTomas());
-  const [vitals, setVitals] = useState<SignoVital[]>(() => LocalStore.getVitals());
-  const [campaigns, setCampaigns] = useState<CampaniaMonitoreo[]>(() => LocalStore.getCampaigns());
-  const [families, setFamilies] = useState<Familiar[]>(() => LocalStore.getFamilies());
-  const [expenses, setExpenses] = useState<GastoSalud[]>(() => LocalStore.getExpenses());
-  const [appointments, setAppointments] = useState<CitaMedica[]>(() => LocalStore.getAppointments());
-  const [studies, setStudies] = useState<EstudioMedico[]>(() => LocalStore.getStudies());
 
-  // Auto-sync LocalStore
+export const AppProvider: React.FC<{
+children: ReactNode
+}> = ({ children }) => {
+  const [patients, setPatients] = useState<Patient[]>(() => LocalStore.getPatients());
+  const [activePatientId, setActivePatientIdState] = useState<string>(() => LocalStore.getActivePatientId());
+  const [medications, setMedications] = useState<Medication[]>(() => LocalStore.getMedications());
+  const [doseLogs, setDoseLogs] = useState<DoseLog[]>(() => LocalStore.getDoseLogs());
+  const [vitals, setVitals] = useState<VitalSign[]>(() => LocalStore.getVitals());
+  const [campaigns, setCampaigns] = useState<MonitoringCampaign[]>(() => LocalStore.getCampaigns());
+  const [families, setFamilies] = useState<FamilyMember[]>(() => LocalStore.getFamilies());
+  const [expenses, setExpenses] = useState<HealthExpense[]>(() => LocalStore.getExpenses());
+  const [appointments, setAppointments] = useState<MedicalAppointment[]>(() => LocalStore.getAppointments());
+  const [studies, setStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
+
+
   useEffect(() => LocalStore.savePatients(patients), [patients]);
   useEffect(() => LocalStore.saveMedications(medications), [medications]);
-  useEffect(() => LocalStore.saveTomas(tomas), [tomas]);
+  useEffect(() => LocalStore.saveDoseLogs(doseLogs), [doseLogs]);
   useEffect(() => LocalStore.saveVitals(vitals), [vitals]);
   useEffect(() => LocalStore.saveCampaigns(campaigns), [campaigns]);
   useEffect(() => LocalStore.saveFamilies(families), [families]);
@@ -79,140 +83,165 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => LocalStore.saveAppointments(appointments), [appointments]);
   useEffect(() => LocalStore.saveStudies(studies), [studies]);
 
+
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0];
+
 
   const setActivePatientId = (id: string) => {
     setActivePatientIdState(id);
     LocalStore.setActivePatientId(id);
   };
 
-  const addPatient = (p: Omit<Paciente, 'id'>) => {
-    const newP: Paciente = { ...p, id: 'paciente-' + Date.now() };
+
+  const addPatient = (p: Omit<Patient, 'id'>) => {
+    const newP: Patient = { ...p, id: 'patient-' + Date.now() };
     setPatients(prev => [...prev, newP]);
     setActivePatientId(newP.id);
   };
 
-  const updatePatient = (p: Paciente) => {
+
+  const updatePatient = (p: Patient) => {
     setPatients(prev => prev.map(item => item.id === p.id ? p : item));
   };
 
-  const addMedication = (m: Omit<Medicamento, 'id'>) => {
-    const newMed: Medicamento = { ...m, id: 'med-' + Date.now() };
+
+  const addMedication = (m: Omit<Medication, 'id'>) => {
+    const newMed: Medication = { ...m, id: 'med-' + Date.now() };
     setMedications(prev => [...prev, newMed]);
   };
 
-  const updateMedication = (m: Medicamento) => {
+
+  const updateMedication = (m: Medication) => {
     setMedications(prev => prev.map(item => item.id === m.id ? m : item));
   };
+
 
   const deleteMedication = (id: string) => {
     setMedications(prev => prev.filter(m => m.id !== id));
   };
 
-  const toggleToma = (medicamentoId: string, horaProgramada: string, fechaStr: string = formatDateIso(new Date())) => {
-    const med = medications.find(m => m.id === medicamentoId);
+
+  const toggleDoseTaken = (
+    medicationId: string,
+    scheduledTime: string,
+    dateStr: string = formatDateIso(new Date())
+  ) => {
+    const med = medications.find(m => m.id === medicationId);
     if (!med) return;
 
-    const existingIndex = tomas.findIndex(
-      t => t.medicamentoId === medicamentoId && t.horaProgramada === horaProgramada && t.fecha === fechaStr
+
+    const existingIndex = doseLogs.findIndex(
+      l => l.medicationId === medicationId && l.scheduledTime === scheduledTime && l.date === dateStr
     );
 
+
     if (existingIndex >= 0) {
-      // Toggle off -> Restore stock
-      const existing = tomas[existingIndex];
-      if (existing.tomada) {
+      const existing = doseLogs[existingIndex];
+      if (existing.taken) {
         setMedications(prev => prev.map(m => {
-          if (m.id === medicamentoId) {
-            return { ...m, stockActual: m.stockActual + existing.dosis };
+          if (m.id === medicationId) {
+            return { ...m, currentStock: m.currentStock + existing.dose };
           }
           return m;
         }));
       }
-      setTomas(prev => prev.filter((_, idx) => idx !== existingIndex));
+      setDoseLogs(prev => prev.filter((_, idx) => idx !== existingIndex));
     } else {
-      // Find dose for this hour
-      const horario = med.frecuencia.horarios.find(h => h.hora === horaProgramada);
-      const dosis = horario ? horario.dosis : 1;
+      const slot = med.frequency.doseSlots.find(s => s.time === scheduledTime);
+      const dose = slot ? slot.dose : 1;
 
-      const nuevaToma: TomaRegistro = {
-        id: 'toma-' + Date.now(),
-        medicamentoId,
-        pacienteId: med.pacienteId,
-        fecha: fechaStr,
-        horaProgramada,
-        horaRealToma: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-        dosis,
-        tomada: true
+
+      const newLog: DoseLog = {
+        id: 'dose-' + Date.now(),
+        medicationId,
+        patientId: med.patientId,
+        date: dateStr,
+        scheduledTime,
+        actualTakenTime: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        dose,
+        taken: true
       };
 
-      // Deduct stock
+
       setMedications(prev => prev.map(m => {
-        if (m.id === medicamentoId) {
-          const nuevoStock = Math.max(0, m.stockActual - dosis);
-          if (nuevoStock <= m.stockMinimoAlerta) {
+        if (m.id === medicationId) {
+          const newStock = Math.max(0, m.currentStock - dose);
+          if (newStock <= m.minimumStockAlert) {
             sendLocalNotification(
-              '⚠️ Alerta de Stock Bajo: ' + m.nombre,
-              'Quedan ' + nuevoStock + ' ' + m.presentacion + 's. Considera comprar más pronto.'
+              '₠ Low Stock Alert: ' + m.name,
+              'Remaining: ' + newStock + ' ' + m.presentation + 's. Consider restocking soon.'
             );
           }
-          return { ...m, stockActual: nuevoStock };
+          return { ...m, currentStock: newStock };
         }
         return m;
       }));
 
-      setTomas(prev => [...prev, nuevaToma]);
+      setDoseLogs(prev => [...prev, newLog]);
     }
   };
 
-  const addVital = (v: Omit<SignoVital, 'id'>) => {
-    const newV: SignoVital = { ...v, id: 'vit-' + Date.now() };
+
+  const addVital = (v: Omit<VitalSign, 'id'>) => {
+    const newV: VitalSign = { ...v, id: 'vit-' + Date.now() };
     setVitals(prev => [newV, ...prev]);
   };
+
 
   const deleteVital = (id: string) => {
     setVitals(prev => prev.filter(v => v.id !== id));
   };
 
-  const addCampaign = (c: Omit<CampaniaMonitoreo, 'id'>) => {
-    const newC: CampaniaMonitoreo = { ...c, id: 'camp-' + Date.now() };
+
+  const addCampaign = (c: Omit<MonitoringCampaign, 'id'>) => {
+    const newC: MonitoringCampaign = { ...c, id: 'camp-' + Date.now() };
     setCampaigns(prev => [...prev, newC]);
   };
 
+
   const toggleCampaignStatus = (id: string) => {
-    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, activa: !c.activa } : c));
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, isActive: !c.isActive } : c));
   };
 
-  const addFamilyMember = (f: Omit<Familiar, 'id'>) => {
-    const newF: Familiar = { ...f, id: 'fam-' + Date.now() };
+
+  const addFamilyMember = (f: Omit<FamilyMember, 'id'>) => {
+    const newF: FamilyMember = { ...f, id: 'fam-' + Date.now() };
     setFamilies(prev => [...prev, newF]);
   };
 
-  const updateFamilyMember = (f: Familiar) => {
+
+  const updateFamilyMember = (f: FamilyMember) => {
     setFamilies(prev => prev.map(item => item.id === f.id ? f : item));
   };
 
-  const addExpense = (e: Omit<GastoSalud, 'id'>) => {
-    const newE: GastoSalud = { ...e, id: 'exp-' + Date.now() };
+
+  const addExpense = (e: Omit<HealthExpense, 'id'>) => {
+    const newE: HealthExpense = { ...e, id: 'exp-' + Date.now() };
     setExpenses(prev => [newE, ...prev]);
   };
+
 
   const deleteExpense = (id: string) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
-  const addAppointment = (a: Omit<CitaMedica, 'id'>) => {
-    const newA: CitaMedica = { ...a, id: 'cita-' + Date.now() };
+
+  const addAppointment = (a: Omit<MedicalAppointment, 'id'>) => {
+    const newA: MedicalAppointment = { ...a, id: 'cita-' + Date.now() };
     setAppointments(prev => [...prev, newA]);
   };
 
+
   const toggleAppointmentCompleted = (id: string) => {
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, completada: !a.completada } : a));
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, isCompleted: !a.isCompleted } : a));
   };
 
-  const addStudy = (s: Omit<EstudioMedico, 'id'>) => {
-    const newS: EstudioMedico = { ...s, id: 'est-' + Date.now() };
+
+  const addStudy = (s: Omit<MedicalStudy, 'id'>) => {
+    const newS: MedicalStudy = { ...s, id: 'est-' + Date.now() };
     setStudies(prev => [newS, ...prev]);
   };
+
 
   const deleteStudy = (id: string) => {
     setStudies(prev => prev.filter(s => s.id !== id));
@@ -230,8 +259,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addMedication,
         updateMedication,
         deleteMedication,
-        tomas,
-        toggleToma,
+        doseLogs,
+        toggleDoseTaken,
         vitals,
         addVital,
         deleteVital,
@@ -260,7 +289,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 export const useApp = () => {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useApp debe ser usado dentro de un AppProvider');
+    throw new Error('useApp must be used within an AppProvider');
   }
   return context;
 };

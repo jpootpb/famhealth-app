@@ -1,60 +1,63 @@
-﻿import { Paciente, Medicamento, TomaRegistro } from '../types';
-import { formatDosis } from '../utils/formatters';
-import { obtenerHorariosDelDia } from '../utils/frequencyEngine';
+import { Patient, Medication, DoseLog } from '../types';
+import { formatDose } from '../utils/formatters';
+import { getDailyDoseSlots } from '../utils/frequencyEngine';
 
 export function buildWhatsAppSummary(
-  paciente: Paciente,
-  medicamentos: Medicamento[],
-  tomas: TomaRegistro[],
-  fecha: Date = new Date()
+  patient: Patient,
+  medications: Medication[],
+  doseLogs: DoseLog[],
+  date: Date = new Date()
 ): string {
-  const fechaStr = fecha.toLocaleDateString('es-MX', {
+  const dateStr = date.toLocaleDateString('es-MX', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
 
-  let text = '📋 *AGENDA DE MEDICAMENTOS - ' + paciente.nombre.toUpperCase() + '*\n';
-  text += '📅 *Fecha:* ' + fechaStr + '\n\n';
-  text += '🩺 *Indicaciones del Día:*\n';
+  const lines: string[] = [];
+  lines.push('*MEDICATION AGENDA - ' + patient.name.toUpperCase() + '*');
+  lines.push('*Date:* ' + dateStr);
+  lines.push('');
+  lines.push('*Scheduled Doses:*');
 
-  const tomasDelDia: Array<{ hora: string; medName: string; dosisText: string; tomada: boolean }> = [];
+  const dailyDoses: Array<{ time: string; medName: string; doseText: string; taken: boolean }> = [];
 
-  medicamentos.forEach(med => {
-    const horarios = obtenerHorariosDelDia(med, fecha);
-    horarios.forEach(h => {
-      const dosisText = formatDosis(h.dosis, med.presentacion);
-      const isTomada = tomas.some(t => t.medicamentoId === med.id && t.horaProgramada === h.hora && t.tomada);
-      tomasDelDia.push({
-        hora: h.hora,
-        medName: med.nombre,
-        dosisText,
-        tomada: isTomada
+  medications.forEach(med => {
+    const slots = getDailyDoseSlots(med, date);
+    slots.forEach(s => {
+      const doseText = formatDose(s.dose, med.presentation);
+      const isTaken = doseLogs.some(l => l.medicationId === med.id && l.scheduledTime === s.time && l.taken);
+      dailyDoses.push({
+        time: s.time,
+        medName: med.name,
+        doseText,
+        taken: isTaken
       });
     });
   });
 
-  tomasDelDia.sort((a, b) => a.hora.localeCompare(b.hora));
+  dailyDoses.sort((a, b) => a.time.localeCompare(b.time));
 
-  if (tomasDelDia.length === 0) {
-    text += '✨ _No hay medicamentos programados para hoy._\n\n';
+  if (dailyDoses.length === 0) {
+    lines.push('_No medications scheduled for today._');
   } else {
-    tomasDelDia.forEach(item => {
-      const check = item.tomada ? '✅' : '⏳';
-      text += check + ' *' + item.hora + '* → ' + item.medName + ' (' + item.dosisText + ')\n';
+    dailyDoses.forEach(item => {
+      const check = item.taken ? '[DONE]' : '[PENDING]s';
+      lines.push(check + ' *' + item.time + '* -> ' + item.medName + ' (' + item.doseText + ')');
     });
-    text += '\n';
   }
 
-  if (paciente.notas) {
-    text += '⚠️ *Notas Importantes:* ' + paciente.notas + '\n\n';
+  lines.push('');
+  if (patient.notes) {
+    lines.push('*Notes:* ' + patient.notes);
+    lines.push('');
   }
 
-  text += '🔗 _Pase de Relevo Web:_ ' + window.location.origin + '?mode=relevo&pacienteId=' + paciente.id + '\n';
-  text += '👨‍⚕️ _SaludFamiliar PWA_';
+  lines.push('_Caregiver Pass:_ ' + window.location.origin + '?mode=pass&apatientId=' + patient.id);
+  lines.push('_FamHealth PWA_');
 
-  return text;
+  return lines.join('\n');
 }
 
 export function shareViaWhatsApp(text: string, phone: string = ''): void {

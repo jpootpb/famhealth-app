@@ -1,4 +1,4 @@
-import { Medicamento, ReglaFrecuencia, HorarioToma } from '../types';
+import { Medication, FrequencyRule, DoseSlot } from '../types';
 
 export function parseDateOnly(dateStr: string): Date {
   const [partY, partM, partD] = dateStr.split('-').map(Number);
@@ -18,50 +18,50 @@ export function diffInDays(d1: Date, d2: Date): number {
   return Math.floor((utc2 - utc1) / (1000 * 60 * 60 * 24));
 }
 
-export function tocaTomaHoy(regla: ReglaFrecuencia, fechaEvaluacion: Date = new Date()): boolean {
-  const fechaInicio = parseDateOnly(regla.fechaInicio);
-  const evalDate = new Date(fechaEvaluacion.getFullYear(), fechaEvaluacion.getMonth(), fechaEvaluacion.getDate());
-  
-  const diasTranscurridos = diffInDays(fechaInicio, evalDate);
-  if (diasTranscurridos < 0) return false;
+export function isDoseDueToday(rule: FrequencyRule, evalDate: Date = new Date()): boolean {
+  const startDate = parseDateOnly(rule.startDate);
+  const targetDate = new Date(evalDate.getFullYear(), evalDate.getMonth(), evalDate.getDate());
 
-  if (regla.fechaFin) {
-    const fechaFin = parseDateOnly(regla.fechaFin);
-    if (evalDate > fechaFin) return false;
+  const elapsedDays = diffInDays(startDate, targetDate);
+  if (elapsedDays < 0) return false;
+
+  if (rule.endDate) {
+    const endDate = parseDateOnly(rule.endDate);
+    if (targetDate > endDate) return false;
   }
 
-  switch (regla.tipo) {
-    case 'diaria_fija':
+
+  switch (rule.type) {
+    case 'daily_fixed':
       return true;
-    case 'dias_alternos':
-      return diasTranscurridos % 2 === 0;
-    case 'cada_n_dias': {
-      const n = regla.intervaloDias || 1;
-      return diasTranscurridos % n === 0;
-    }
-    case 'por_horas_temporal':
+    case 'alternate_days':
+      return elapsedDays % 2 === 0;
+    case 'every_n_days':
+      const n = rule.intervalDays || 1;
+      return elapsedDays % n === 0;
+    case 'temporary_hourly':
       return true;
     default:
       return true;
   }
 }
 
-export function obtenerHorariosDelDia(med: Medicamento, fecha: Date = new Date()): HorarioToma[] {
-  if (!tocaTomaHoy(med.frecuencia, fecha)) return [];
-  return med.frecuencia.horarios;
+export function getDailyDoseSlots(med: Medication, date: Date = new Date()): DoseSlot[] {
+  if (!isDoseDueToday(med.frequency, date)) return [];
+  return med.frequency.doseSlots;
 }
 
-export function getFrecuenciaLabel(regla: ReglaFrecuencia): string {
-  switch (regla.tipo) {
-    case 'diaria_fija':
-      return 'Diario (' + regla.horarios.length + ' tomas/día)';
-    case 'dias_alternos':
-      return 'Días alternos (un día sí, un día no)';
-    case 'cada_n_dias':
-      return 'Cada ' + (regla.intervaloDias || 1) + ' días';
-    case 'por_horas_temporal':
-      return 'Cada ' + (regla.intervaloHoras || 8) + ' horas (Temporal)';
+export function getFrequencyLabel(rule: FrequencyRule): string {
+  switch (rule.type) {
+    case 'daily_fixed':
+      return 'Daily (' + rule.doseSlots.length + ' times/day)';
+    case 'alternate_days':
+      return 'Alternate Days (every other day)';
+    case 'every_n_days':
+      return 'Every ' + (rule.intervalDays || 1) + ' days';
+    case 'temporary_hourly':
+      return 'Every ' + (rule.intervalHours || 8) + ' hours (Temporary)';
     default:
-      return 'Personalizado';
+      return 'Custom';
   }
 }

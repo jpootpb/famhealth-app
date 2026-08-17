@@ -6,8 +6,8 @@ export default function App() {
   return (
     <div className="app-container">
       <div className="main-content">
-        <h1>SaludFamiliar PWA</h1>
-        <p>Paciente Activo: {activePatient?.nombre || 'Ninguno'}</p>
+        <h1>FamHealth PWA</h1>
+        <p>Active Patient: {activePatient ? activePatient.name : 'None'}</p>
       </div>
     </div>
   );

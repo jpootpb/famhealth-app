@@ -1,9 +1,9 @@
-﻿export function formatDosis(dosis: number, presentacion: string = 'tableta'): string {
-  if (dosis === 0.5) return '1/2 ' + presentacion;
-  if (dosis === 0.25) return '1/4 ' + presentacion;
-  if (dosis === 0.75) return '3/4 ' + presentacion;
-  if (dosis === 1) return '1 ' + presentacion;
-  return dosis + ' ' + presentacion + (dosis > 1 ? 's' : '');
+export function formatDose(dose: number, presentation: string = 'tablet'): string {
+  if (dose === 0.5) return '1/2 ' + presentation;
+  if (dose === 0.25) return '1/4 ' + presentation;
+  if (dose === 0.75) return '3/4 ' + presentation;
+  if (dose === 1) return '1 ' + presentation;
+  return dose + ' ' + presentation + (dose > 1 ? 's' : '');
 }
 
 export function formatCurrency(amount: number): string {
@@ -13,12 +13,12 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function getStockStatus(actual: number, minimo: number): { label: string; color: string; badgeClass: string } {
-  if (actual <= 0) {
-    return { label: 'Agotado (0)', color: '#dc2626', badgeClass: 'badge-red' };
+export function getStockStatus(current: number, minimum: number): { label: string; color: string; badgeClass: string } {
+  if (current <= 0) {
+    return { label: 'Out of Stock (0)', color: '#dc2626', badgeClass: 'badge-red' };
   }
-  if (actual <= minimo) {
-    return { label: 'Bajo stock (' + actual + ')', color: '#d97706', badgeClass: 'badge-yellow' };
+  if (current <= minimum) {
+    return { label: 'Low Stock (' + current + ')', color: '#d97706', badgeClass: 'badge-yellow' };
   }
-  return { label: 'Disponible (' + actual + ')', color: '#16a34a', badgeClass: 'badge-green' };
+  return { label: 'In Stock (' + current + ')', color: '#16a34a', badgeClass: 'badge-green' };
 }

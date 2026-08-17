@@ -1,128 +1,128 @@
-export type TipoPaciente = 'cronico' | 'temporal';
+export type PatientType = 'chronic' | 'temporary';
 
-export interface Paciente {
+export interface Patient {
   id: string;
-  nombre: string;
-  edad?: number;
-  tipo: TipoPaciente;
-  diagnosticoPrincipal?: string;
-  notas?: string;
-  fechaInicioTratamiento?: string;
-  duracionDias?: number;
+  name: string;
+  age?: number;
+  type: PatientType;
+  primaryDiagnosis?: string;
+  treatmentStartDate?: string; // YYYY-MM-DD
+  durationDays?: number;
+  notes?: string;
 }
 
-export type TipoFrecuencia = 'diaria_fija' | 'dias_alternos' | 'cada_n_dias' | 'por_horas_temporal';
+export type FrequencyType =
+  | 'daily_fixed'
+  | 'alternate_days'
+  | 'every_n_days'
+  | 'temporary_hourly';
 
-export interface HorarioToma {
-  hora: string;
-  dosis: number;
-  instruccion?: string;
+export interface DoseSlot {
+  time: string; // HH:MM
+  dose: number; // 1, 0.5, 0.25 pills
+  instruction?: string;
 }
 
-export interface ReglaFrecuencia {
-  tipo: TipoFrecuencia;
-  horarios: HorarioToma[];
-  intervaloDias?: number;
-  intervaloHoras?: number;
-  fechaInicio: string;
-  fechaFin?: string;
+export interface FrequencyRule {
+  type: FrequencyType;
+  doseSlots: DoseSlot[];
+  startDate: string;
+  endDate?: string;
+  intervalDays?: number;
+  intervalHours?: number;
 }
 
-export interface Medicamento {
+export interface Medication {
   id: string;
-  pacienteId: string;
-  nombre: string;
-  presentacion: string;
-  indicacion?: string;
-  frecuencia: ReglaFrecuencia;
-  stockActual: number;
-  stockMinimoAlerta: number;
-  costoUnitario?: number;
-  colorBadge?: string;
+  patientId: string;
+  name: string;
+  presentation: string; // tablet, capsule, ml, etc.
+  indication?: string;
+  frequency: FrequencyRule;
+  currentStock: number;
+  minimumStockAlert: number;
+  unitCost?: number;
+  badgeColor?: string;
 }
 
-export interface TomaRegistro {
+export interface DoseLog {
   id: string;
-  medicamentoId: string;
-  pacienteId: string;
-  fecha: string;
-  horaProgramada: string;
-  horaRealToma?: string;
-  dosis: number;
-  tomada: boolean;
-  notas?: string;
+  medicationId: string;
+  patientId: string;
+  date: string; // YYYY-MM-DD
+  scheduledTime: string; // HI:MM
+  actualTakenTime: string;
+  dose: number;
+  taken: boolean;
 }
 
-export type TipoSigno = 'glucosa' | 'presion' | 'oxigenacion' | 'pulso';
+export type VitalType = 'glucose' | 'blood_pressure' | 'oxygen_saturation';
 
-export interface SignoVital {
+export interface VitalSign {
   id: string;
-  pacienteId: string;
-  tipo: TipoSigno;
-  valorPrincipal: number;
-  valorSecundario?: number;
-  pulso?: number;
-  contexto?: string;
-  fechaHora: string;
-  notas?: string;
-  campaniaId?: string;
+  patientId: string;
+  type: VitalType;
+  primaryValue: number; // mg/dL, systolic, or SpO2
+  secondaryValue?: number; // diastolic
+  pulse?: number;
+  context?: string; // Fasting, Postprandial, Resting, etc.
+  dateTime: string; // ISO
+  notes?: string;
 }
 
-export interface CampaniaMonitoreo {
+export interface MonitoringCampaign {
   id: string;
-  pacienteId: string;
-  nombre: string;
-  tiposSigno: TipoSigno[];
-  fechaInicio: string;
-  duracionDias: number;
-  tomasPorDia: number;
-  objetivo?: string;
-  activa: boolean;
+  patientId: string;
+  name: string;
+  vitalTypes: VitalType[];
+  startDate: string;
+  durationDays: number;
+  checksPerDay: number;
+  targetNotes?: string;
+  isActive: boolean;
 }
 
-export interface EstudioMedico {
+export interface FamilyMember {
   id: string;
-  pacienteId: string;
-  nombre: string;
-  tipo: string;
-  laboratorio?: string;
-  fecha: string;
-  archivoUrl?: string;
-  archivoNombre?: string;
-  archivoTipo?: 'pdf' | 'imagen';
-  costo?: number;
-  notas?: string;
+  name: string;
+  splitPercentage: number;
+  isActive: boolean;
 }
 
-export interface CitaMedica {
+export interface HealthExpense {
   id: string;
-  pacienteId: string;
-  medico: string;
-  especialidad: string;
-  lugar?: string;
-  fechaHora: string;
-  costoConsulta?: number;
-  motivo?: string;
-  indicacionesPrevias?: string;
-  completada: boolean;
+  patientId: string;
+  concept: string;
+  category: 'medication' | 'lab_study' | 'doctor_appointment' | 'supplies' | 'other';
+  amount: number;
+  date: string;
+  paidBy: string;
+  receiptUrl?: string;
 }
 
-export interface GastoSalud {
+export interface MedicalAppointment {
   id: string;
-  pacienteId: string;
-  concepto: string;
-  categoria: 'medicamento' | 'estudio' | 'consulta' | 'insumos' | 'otro';
-  monto: number;
-  fecha: string;
-  pagadoPor: string;
-  comprobanteUrl?: string;
-  notas?: string;
+  patientId: string;
+  doctorName: string;
+  specialty: string;
+  location: string;
+  dateTime: string;
+  cost?: number;
+  reason: string;
+  preparationInstructions?: string;
+  isCompleted: boolean;
 }
 
-export interface Familiar {
+export interface MedicalStudy {
   id: string;
-  nombre: string;
-  telefono?: string;
-  porcentajeDivision: number;
-  activo: boolean;
+  patientId: string;
+  title: string;
+  category: string;
+  laboratory: string;
+  date: string;
+  fileName: string;
+  fileType: 'pdf' | 'image';
+  fileUrl?: string;
+  cost?: number;
+  keyFindings?: string;
 }

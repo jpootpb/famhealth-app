@@ -1,7 +1,6 @@
-﻿// Web Notifications API - Source: https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) {
-    console.warn('Este navegador no soporta notificaciones de escritorio.');
+    console.warn('This browser does not support desktop notifications.');
     return false;
   }
   if (Notification.permission === 'granted') {
