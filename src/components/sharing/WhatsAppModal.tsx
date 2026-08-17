@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   X,
@@ -8,9 +8,10 @@ import {
   Phone,
   Calendar,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  UserCheck
 } from 'lucide-react';
-import { buildWhatsAppSummary, shareViaWhatsApp } from '../../lib/whatsapp';
+import { buildWhatsAppSummary, shareViaWhatsApp, getCurrentShiftCaregiver } from '../../lib/whatsapp';
 import { formatDateIso } from '../../utils/frequencyEngine';
 
 interface WhatsAppModalProps {
@@ -23,6 +24,15 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({ isOpen, onClose })
   const [selectedDate, setSelectedDate] = useState<string>(formatDateIso(new Date()));
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && families.length > 0) {
+      const shiftCaregiver = getCurrentShiftCaregiver(families, new Date());
+      if (shiftCaregiver?.phone) {
+        setPhoneNumber(shiftCaregiver.phone);
+      }
+    }
+  }, [isOpen, families]);
 
   if (!isOpen || !activePatient) return null;
 
@@ -107,11 +117,11 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({ isOpen, onClose })
           </div>
         </div>
 
-        {/* Family Member Quick Select */}
+        {/* Family Member Quick Select & Shift Indicator */}
         {families.length > 0 && (
           <div style={{ marginBottom: '1rem' }}>
-            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.375rem' }}>
-              Quick Select Caregiver / Family Contact:
+            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <UserCheck size={12} color="var(--primary)" /> Quick Select Caregiver / Shift Contact:
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
               {families.map(member => (
@@ -119,10 +129,10 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({ isOpen, onClose })
                   key={member.id}
                   type="button"
                   onClick={() => setPhoneNumber(member.phone || '')}
-                  className="btn btn-secondary btn-sm"
+                  className={`btn btn-sm ${phoneNumber === member.phone ? 'btn-primary' : 'btn-secondary'}`}
                   style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                 >
-                  {member.name} ({member.relationship})
+                  {member.name} {member.shift ? `(${member.shift} shift)` : `(${member.relationship})`}
                 </button>
               ))}
             </div>

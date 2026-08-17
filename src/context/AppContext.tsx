@@ -27,7 +27,7 @@ interface AppContextType {
   deleteMedication: (id: string) => void;
 
   doseLogs: DoseLog[];
-  toggleDoseTaken: (medicationId: string, scheduledTime: string, dateStr?: string) => void;
+  toggleDoseTaken: (medicationId: string, scheduledTime: string, dateStr?: string, administeredBy?: string) => void;
 
   vitals: VitalSign[];
   addVital: (v: Omit<VitalSign, 'id'>) => void;
@@ -54,13 +54,9 @@ interface AppContextType {
   deleteStudy: (id: string) => void;
 }
 
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-
-export const AppProvider: React.FC<{
-children: ReactNode
-}> = ({ children }) => {
+export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [patients, setPatients] = useState<Patient[]>(() => LocalStore.getPatients());
   const [activePatientId, setActivePatientIdState] = useState<string>(() => LocalStore.getActivePatientId());
   const [medications, setMedications] = useState<Medication[]>(() => LocalStore.getMedications());
@@ -72,68 +68,60 @@ children: ReactNode
   const [appointments, setAppointments] = useState<MedicalAppointment[]>(() => LocalStore.getAppointments());
   const [studies, setStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
 
-
-  useEffect(() => LocalStore.savePatients(patients), [patients]);
-  useEffect(() => LocalStore.saveMedications(medications), [medications]);
-  useEffect(() => LocalStore.saveDoseLogs(doseLogs), [doseLogs]);
-  useEffect(() => LocalStore.saveVitals(vitals), [vitals]);
-  useEffect(() => LocalStore.saveCampaigns(campaigns), [campaigns]);
-  useEffect(() => LocalStore.saveFamilies(families), [families]);
-  useEffect(() => LocalStore.saveExpenses(expenses), [expenses]);
-  useEffect(() => LocalStore.saveAppointments(appointments), [appointments]);
-  useEffect(() => LocalStore.saveStudies(studies), [studies]);
-
+  // Sync state changes to storage
+  useEffect(() => { LocalStore.savePatients(patients); }, [patients]);
+  useEffect(() => { LocalStore.setActivePatientId(activePatientId); }, [activePatientId]);
+  useEffect(() => { LocalStore.saveMedications(medications); }, [medications]);
+  useEffect(() => { LocalStore.saveDoseLogs(doseLogs); }, [doseLogs]);
+  useEffect(() => { LocalStore.saveVitals(vitals); }, [vitals]);
+  useEffect(() => { LocalStore.saveCampaigns(campaigns); }, [campaigns]);
+  useEffect(() => { LocalStore.saveFamilies(families); }, [families]);
+  useEffect(() => { LocalStore.saveExpenses(expenses); }, [expenses]);
+  useEffect(() => { LocalStore.saveAppointments(appointments); }, [appointments]);
+  useEffect(() => { LocalStore.saveStudies(studies); }, [studies]);
 
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0];
 
-
   const setActivePatientId = (id: string) => {
     setActivePatientIdState(id);
-    LocalStore.setActivePatientId(id);
   };
-
 
   const addPatient = (p: Omit<Patient, 'id'>) => {
-    const newP: Patient = { ...p, id: 'patient-' + Date.now() };
-    setPatients(prev => [...prev, newP]);
-    setActivePatientId(newP.id);
+    const newPatient: Patient = { ...p, id: 'patient-' + Date.now() };
+    setPatients(prev => [...prev, newPatient]);
+    setActivePatientIdState(newPatient.id);
   };
-
 
   const updatePatient = (p: Patient) => {
     setPatients(prev => prev.map(item => item.id === p.id ? p : item));
   };
-
 
   const addMedication = (m: Omit<Medication, 'id'>) => {
     const newMed: Medication = { ...m, id: 'med-' + Date.now() };
     setMedications(prev => [...prev, newMed]);
   };
 
-
   const updateMedication = (m: Medication) => {
     setMedications(prev => prev.map(item => item.id === m.id ? m : item));
   };
 
-
   const deleteMedication = (id: string) => {
-    setMedications(prev => prev.filter(m => m.id !== id));
+    setMedications(prev => prev.filter(item => item.id !== id));
+    setDoseLogs(prev => prev.filter(item => item.medicationId !== id));
   };
-
 
   const toggleDoseTaken = (
     medicationId: string,
     scheduledTime: string,
-    dateStr: string = formatDateIso(new Date())
+    dateStr: string = formatDateIso(new Date()),
+    administeredBy?: string
   ) => {
     const med = medications.find(m => m.id === medicationId);
     if (!med) return;
 
-
     const existingIndex = doseLogs.findIndex(
       l => l.medicationId === medicationId && l.scheduledTime === scheduledTime && l.date === dateStr
     );
-
 
     if (existingIndex >= 0) {
       const existing = doseLogs[existingIndex];
@@ -150,7 +138,6 @@ children: ReactNode
       const slot = med.frequency.doseSlots.find(s => s.time === scheduledTime);
       const dose = slot ? slot.dose : 1;
 
-
       const newLog: DoseLog = {
         id: 'dose-' + Date.now(),
         medicationId,
@@ -159,17 +146,17 @@ children: ReactNode
         scheduledTime,
         actualTakenTime: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
         dose,
-        taken: true
+        taken: true,
+        administeredBy: administeredBy || 'Caregiver'
       };
-
 
       setMedications(prev => prev.map(m => {
         if (m.id === medicationId) {
           const newStock = Math.max(0, m.currentStock - dose);
           if (newStock <= m.minimumStockAlert) {
             sendLocalNotification(
-              '₠ Low Stock Alert: ' + m.name,
-              'Remaining: ' + newStock + ' ' + m.presentation + 's. Consider restocking soon.'
+              `⚠️ Low Stock Alert: ${m.name}`,
+              `Only ${newStock} ${m.presentation}(s) remaining. Time to restock.`
             );
           }
           return { ...m, currentStock: newStock };
@@ -181,70 +168,58 @@ children: ReactNode
     }
   };
 
-
   const addVital = (v: Omit<VitalSign, 'id'>) => {
-    const newV: VitalSign = { ...v, id: 'vit-' + Date.now() };
-    setVitals(prev => [newV, ...prev]);
+    const newVital: VitalSign = { ...v, id: 'vital-' + Date.now() };
+    setVitals(prev => [newVital, ...prev]);
   };
-
 
   const deleteVital = (id: string) => {
     setVitals(prev => prev.filter(v => v.id !== id));
   };
 
-
   const addCampaign = (c: Omit<MonitoringCampaign, 'id'>) => {
-    const newC: MonitoringCampaign = { ...c, id: 'camp-' + Date.now() };
-    setCampaigns(prev => [...prev, newC]);
+    const newCamp: MonitoringCampaign = { ...c, id: 'camp-' + Date.now() };
+    setCampaigns(prev => [...prev, newCamp]);
   };
-
 
   const toggleCampaignStatus = (id: string) => {
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, isActive: !c.isActive } : c));
   };
 
-
   const addFamilyMember = (f: Omit<FamilyMember, 'id'>) => {
-    const newF: FamilyMember = { ...f, id: 'fam-' + Date.now() };
-    setFamilies(prev => [...prev, newF]);
+    const newFam: FamilyMember = { ...f, id: 'fam-' + Date.now() };
+    setFamilies(prev => [...prev, newFam]);
   };
-
 
   const updateFamilyMember = (f: FamilyMember) => {
     setFamilies(prev => prev.map(item => item.id === f.id ? f : item));
   };
 
-
   const addExpense = (e: Omit<HealthExpense, 'id'>) => {
-    const newE: HealthExpense = { ...e, id: 'exp-' + Date.now() };
-    setExpenses(prev => [newE, ...prev]);
+    const newExp: HealthExpense = { ...e, id: 'exp-' + Date.now() };
+    setExpenses(prev => [newExp, ...prev]);
   };
-
 
   const deleteExpense = (id: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    setExpenses(prev => prev.filter(item => item.id !== id));
   };
-
 
   const addAppointment = (a: Omit<MedicalAppointment, 'id'>) => {
-    const newA: MedicalAppointment = { ...a, id: 'cita-' + Date.now() };
-    setAppointments(prev => [...prev, newA]);
+    const newApp: MedicalAppointment = { ...a, id: 'app-' + Date.now() };
+    setAppointments(prev => [...prev, newApp]);
   };
-
 
   const toggleAppointmentCompleted = (id: string) => {
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, isCompleted: !a.isCompleted } : a));
   };
 
-
   const addStudy = (s: Omit<MedicalStudy, 'id'>) => {
-    const newS: MedicalStudy = { ...s, id: 'est-' + Date.now() };
-    setStudies(prev => [newS, ...prev]);
+    const newStudy: MedicalStudy = { ...s, id: 'study-' + Date.now() };
+    setStudies(prev => [newStudy, ...prev]);
   };
 
-
   const deleteStudy = (id: string) => {
-    setStudies(prev => prev.filter(s => s.id !== id));
+    setStudies(prev => prev.filter(item => item.id !== id));
   };
 
   return (
@@ -255,27 +230,35 @@ children: ReactNode
         setActivePatientId,
         addPatient,
         updatePatient,
+
         medications,
         addMedication,
         updateMedication,
         deleteMedication,
+
         doseLogs,
         toggleDoseTaken,
+
         vitals,
         addVital,
         deleteVital,
+
         campaigns,
         addCampaign,
         toggleCampaignStatus,
+
         families,
         addFamilyMember,
         updateFamilyMember,
+
         expenses,
         addExpense,
         deleteExpense,
+
         appointments,
         addAppointment,
         toggleAppointmentCompleted,
+
         studies,
         addStudy,
         deleteStudy
@@ -286,10 +269,10 @@ children: ReactNode
   );
 };
 
-export const useApp = () => {
+export function useApp(): AppContextType {
   const context = useContext(AppContext);
   if (!context) {
     throw new Error('useApp must be used within an AppProvider');
   }
   return context;
-};
+}

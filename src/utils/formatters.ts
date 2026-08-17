@@ -32,6 +32,30 @@ export function getStockStatus(current: number, minimum: number): StockStatusRes
   return { status: 'ok', label: 'In Stock (' + current + ')', color: '#16a34a', badgeClass: 'badge-green' };
 }
 
+export interface ExpirationStatusResult {
+  status: 'expired' | 'expiring_soon' | 'valid';
+  label: string;
+  badgeClass: string;
+}
+
+export function getExpirationStatus(expirationDate?: string, referenceDate: Date = new Date()): ExpirationStatusResult {
+  if (!expirationDate) {
+    return { status: 'valid', label: 'No expiry set', badgeClass: 'badge-blue' };
+  }
+  const exp = new Date(expirationDate + 'T23:59:59');
+  const now = new Date(referenceDate);
+  const diffTime = exp.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { status: 'expired', label: `Expired on ${expirationDate}`, badgeClass: 'badge-red' };
+  }
+  if (diffDays <= 30) {
+    return { status: 'expiring_soon', label: `Expires in ${diffDays}d (${expirationDate})`, badgeClass: 'badge-yellow' };
+  }
+  return { status: 'valid', label: `Exp: ${expirationDate}`, badgeClass: 'badge-green' };
+}
+
 export function classifyGlucose(value: number, timing: string = 'fasting'): { level: 'optimal' | 'elevated' | 'high'; label: string; badgeClass: string } {
   if (timing === 'fasting') {
     if (value < 130) return { level: 'optimal', label: 'Optimal (<130 mg/dL)', badgeClass: 'badge-green' };

@@ -38,6 +38,7 @@ export const initialMedications: Medication[] = [
     name: 'Metformin / Sitagliptin (500mg)',
     presentation: 'tablet',
     indication: 'Type 2 Diabetes glycemic control',
+    expirationDate: '2027-04-30',
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
@@ -56,6 +57,7 @@ export const initialMedications: Medication[] = [
     name: 'Rivaroxaban (20mg)',
     presentation: 'tablet',
     indication: 'Anticoagulant / Blood Thinner',
+    expirationDate: '2026-09-10', // Expiring soon demonstration
     frequency: {
       type: 'alternate_days',
       doseSlots: [
@@ -73,6 +75,7 @@ export const initialMedications: Medication[] = [
     name: 'Aspirin Protect (100mg)',
     presentation: 'tablet',
     indication: 'Cardiovascular protection',
+    expirationDate: '2027-11-20',
     frequency: {
       type: 'every_n_days',
       intervalDays: 4,
@@ -91,6 +94,7 @@ export const initialMedications: Medication[] = [
     name: 'Cilostazol (100mg)',
     presentation: 'tablet',
     indication: 'Peripheral circulation',
+    expirationDate: '2026-08-01', // Expired demonstration
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
@@ -109,6 +113,7 @@ export const initialMedications: Medication[] = [
     name: 'Ciprofloxacin (500mg)',
     presentation: 'tablet',
     indication: 'Acute infection treatment',
+    expirationDate: '2027-02-15',
     frequency: {
       type: 'temporary_hourly',
       intervalHours: 12,
@@ -135,7 +140,8 @@ export const initialDoseLogs: DoseLog[] = [
     actualTakenTime: '08:15',
     dose: 1,
     taken: true,
-    notes: 'Taken with oatmeal'
+    notes: 'Taken with oatmeal',
+    administeredBy: 'Carlos Poot (Morning Shift)'
   }
 ];
 
@@ -188,6 +194,8 @@ export const initialFamilies: FamilyMember[] = [
     id: 'fam-carlos',
     name: 'Carlos Poot',
     relationship: 'Son / Main Caregiver',
+    shift: 'morning',
+    isDefaultCaregiver: true,
     phone: '5219991234567',
     splitPercentage: 50,
     isActive: true
@@ -195,7 +203,9 @@ export const initialFamilies: FamilyMember[] = [
   {
     id: 'fam-lucia',
     name: 'Lucia Poot',
-    relationship: 'Daughter / Weekend Shift',
+    relationship: 'Daughter / Night Shift',
+    shift: 'night',
+    isDefaultCaregiver: false,
     phone: '5219997654321',
     splitPercentage: 50,
     isActive: true

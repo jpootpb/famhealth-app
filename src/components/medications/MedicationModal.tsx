@@ -23,6 +23,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [currentStock, setCurrentStock] = useState<number>(30);
   const [minimumStockAlert, setMinimumStockAlert] = useState<number>(5);
   const [unitCost, setUnitCost] = useState<number | ''>('');
+  const [expirationDate, setExpirationDate] = useState<string>('');
 
   // Frequency Configuration
   const [frequencyType, setFrequencyType] = useState<FrequencyType>('daily_fixed');
@@ -45,6 +46,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setCurrentStock(medicationToEdit.currentStock);
       setMinimumStockAlert(medicationToEdit.minimumStockAlert);
       setUnitCost(medicationToEdit.unitCost || '');
+      setExpirationDate(medicationToEdit.expirationDate || '');
       setFrequencyType(medicationToEdit.frequency.type);
       setStartDate(medicationToEdit.frequency.startDate);
       setEndDate(medicationToEdit.frequency.endDate || '');
@@ -58,6 +60,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setCurrentStock(30);
       setMinimumStockAlert(5);
       setUnitCost('');
+      setExpirationDate('');
       setFrequencyType('daily_fixed');
       setStartDate(formatDateIso(new Date()));
       setEndDate('');
@@ -104,6 +107,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       currentStock: Number(currentStock) || 0,
       minimumStockAlert: Number(minimumStockAlert) || 3,
       unitCost: unitCost ? Number(unitCost) : undefined,
+      expirationDate: expirationDate || undefined,
       frequency: {
         type: frequencyType,
         doseSlots: doseSlots.map(s => ({
@@ -180,15 +184,28 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Indication / Medical Purpose</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="e.g. Diabetes control, Blood thinner, Pain relief"
-              value={indication}
-              onChange={e => setIndication(e.target.value)}
-            />
+          <div className="grid-2">
+            <div className="form-group">
+              <label className="form-label">Indication / Medical Purpose</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Diabetes control, Blood thinner"
+                value={indication}
+                onChange={e => setIndication(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Box Expiration Date (Fecha de Caducidad)</label>
+              <input
+                type="date"
+                className="form-input"
+                value={expirationDate}
+                onChange={e => setExpirationDate(e.target.value)}
+                title="Printed expiration date on medication package"
+              />
+            </div>
           </div>
 
           {/* Stock & Inventory */}
@@ -220,7 +237,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Cost per Box / Unit ($)</label>
+                <label className="form-label">Cost per Box ($ MXN)</label>
                 <input
                   type="number"
                   className="form-input"

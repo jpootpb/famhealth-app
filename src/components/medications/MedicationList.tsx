@@ -10,9 +10,9 @@ import {
   CheckCircle2,
   PackagePlus,
   Clock,
-  HelpCircle
+  Calendar
 } from 'lucide-react';
-import { getStockStatus, formatDose, formatCurrency } from '../../utils/formatters';
+import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/formatters';
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
 import { MedicationModal } from './MedicationModal';
 
@@ -80,7 +80,7 @@ export const MedicationList: React.FC = () => {
             {activePatient.name}'s Medication Cabinet
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Track active prescriptions, recurrence rules, and pharmacy stock traffic lights.
+            Track active prescriptions, expiration dates, recurrence rules, and pharmacy stock traffic lights.
           </p>
         </div>
 
@@ -167,6 +167,7 @@ export const MedicationList: React.FC = () => {
         <div className="grid-2">
           {patientMeds.map(med => {
             const stockStatus = getStockStatus(med.currentStock, med.minimumStockAlert);
+            const expStatus = getExpirationStatus(med.expirationDate);
             const freqLabel = getFrequencyLabel(med.frequency);
 
             return (
@@ -200,9 +201,16 @@ export const MedicationList: React.FC = () => {
                       )}
                     </div>
 
-                    <span className={`badge ${stockStatus.badgeClass}`}>
-                      {stockStatus.label}: {med.currentStock} {med.presentation}s
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                      <span className={`badge ${stockStatus.badgeClass}`}>
+                        {stockStatus.label}: {med.currentStock} {med.presentation}s
+                      </span>
+                      {med.expirationDate && (
+                        <span className={`badge ${expStatus.badgeClass}`} style={{ fontSize: '0.7rem' }}>
+                          📅 {expStatus.label}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Frequency & Hours */}

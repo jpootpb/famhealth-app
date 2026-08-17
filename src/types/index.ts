@@ -43,6 +43,7 @@ export interface Medication {
   minimumStockAlert: number;
   unitCost?: number;
   badgeColor?: string;
+  expirationDate?: string; // YYYY-MM-DD
 }
 
 export interface DoseLog {
@@ -55,6 +56,7 @@ export interface DoseLog {
   dose: number;
   taken: boolean;
   notes?: string;
+  administeredBy?: string; // Name of caregiver who administered dose
 }
 
 export type VitalType = 'glucose' | 'blood_pressure' | 'spo2' | 'weight' | 'heart_rate';
@@ -82,11 +84,15 @@ export interface MonitoringCampaign {
   isActive: boolean;
 }
 
+export type CaregiverShift = 'morning' | 'evening' | 'night' | 'full_day' | 'weekend';
+
 export interface FamilyMember {
   id: string;
   name: string;
   relationship?: string;
   phone?: string;
+  shift?: CaregiverShift;
+  isDefaultCaregiver?: boolean;
   splitPercentage: number;
   isActive: boolean;
 }
