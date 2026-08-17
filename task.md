@@ -1,123 +1,116 @@
-﻿# 📋 Plan de Tareas de Ingeniería de Software: SaludFamiliar PWA
+# 📋 Software Engineering Task Plan: FamHealth PWA
 
-> **Metodología de Ejecución:**
-> - **Paso a paso estricto:** No se avanza a la siguiente tarea hasta que la anterior esté completamente implementada, probada y verificada.
-> - **Skills explícitos en cada tarea:** Cada paso indica qué skills de ingeniería gobiernan su ejecución (TDD, Source-Driven Development, Frontend UI Engineering, Incremental Implementation).
-
----
-
-## 🗺️ Tareas Numeradas de Implementación
-
-### Tarea 1: Scaffolding, TypeScript & Configuración de Testing (TDD Base)
-- **Skills aplicados:**
-  - 🛠️ source-driven-development: Configuración oficial de Vite + React 18 + Vitest según itejs.dev y itest.dev.
-  - 🧪 	est-driven-development: Configuración del entorno de pruebas unitarias para el ciclo Red-Green-Refactor.
-- **Entregable:** itest configurado y un primer test de prueba (sanity.test.ts) pasando exitosamente con 
-pm test.
-- **Criterio de Aceptación:** 
-pm test y 
-pm run build ejecutan sin errores.
+> **Execution Methodology:**
+> - **Strict Step-by-Step Gate:** No task starts until the previous task is tested, verified, and committed.
+> - **Explicit Engineering Skills:** Every step clearly states its governing skills (TDD, Source-Driven Development, Frontend UI Engineering, Incremental Implementation).
+> - **Language Standard:** Codebase artifacts, types, methods, and models are in English (`FamHealth`).
 
 ---
 
-### Tarea 2: Motor de Frecuencias de Medicamentos con TDD
-- **Skills aplicados:**
-  - 🧪 	est-driven-development: Escribir primero las pruebas unitarias (	ests/frequencyEngine.test.ts) con todos los casos clínicos complejos antes de la lógica.
-  - 🛠️ source-driven-development: Fechas UTC determinísticas y tipos TypeScript estrictos.
-- **Casos de Prueba (Red -> Green):**
-  1. Metformina diaria con dosis variables (1 tableta a las 8:00 AM y 0.5 tableta a las 8:00 PM).
-  2. Rivaroxabán en días alternos (un día sí, un día no).
-  3. Aspirina cada 4 días (diffDias % 4 === 0).
-  4. Antibiótico temporal (cada 12 horas por 7 días con fecha de término).
-- **Criterio de Aceptación:** Todas las pruebas del motor de frecuencias pasan al 100%.
+## 🗺️ Implementation Tasks Progress
+
+### - [x] Task 1: Scaffolding, TypeScript, Design Tokens & Vitest Harness
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `69ec57a`)
+- **Skills Applied:**
+  - 🛠️ `source-driven-development`: Vite + React 18 + TypeScript + Vitest setup.
+  - 🧪 `test-driven-development`: `tests/sanity.test.ts` initial test harness.
+- **Verification:** `npm test` passed (2/2) & `npm run build` generated clean bundle.
 
 ---
 
-### Tarea 3: Capa de Persistencia Offline & Contexto Global React
-- **Skills aplicados:**
-  - 🛠️ source-driven-development: Patrón oficial de React Context + LocalStorage / Web Storage API (MDN).
-  - 🧱 incremental-implementation: Estado centralizado sin mutaciones directas.
-- **Entregable:** AppContext con CRUD completo para pacientes, medicamentos, tomas, signos y gastos con respaldo local.
-- **Criterio de Aceptación:** Pruebas unitarias de almacenamiento y persistencia verificadas.
+### - [x] Task 2: Medication Recurrence Calculation Engine with TDD
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `db7704b`)
+- **Skills Applied:**
+  - 🧪 `test-driven-development`: `tests/frequencyEngine.test.ts` with 4 clinical test scenarios written before implementation.
+  - 🛠️ `source-driven-development`: Deterministic UTC date math and strict TypeScript models in `src/utils/frequencyEngine.ts`.
+- **Test Scenarios Verified:**
+  1. Metformin daily with variable slots (1 pill at 8:00 AM, 0.5 pill at 8:00 PM).
+  2. Rivaroxaban alternate days (`elapsedDays % 2 === 0`).
+  3. Aspirin Protect every 4 days (`elapsedDays % 4 === 0`).
+  4. Ciprofloxacin temporary antibiotic (every 12h for 7 days).
+- **Verification:** 100% tests green.
 
 ---
 
-### Tarea 4: Header, Barra de Estado y Selector Multi-Perfil de Paciente
-- **Skills aplicados:**
-  - 🎨 rontend-ui-engineering: Diseño accesible, táctil, responsivo y de alto contraste para cuidadores.
-  - 🛠️ source-driven-development: Modales accesibles con foco y soporte para teclado.
-- **Entregable:** Selector rápido para alternar entre perfil crónico (Adulto Mayor) y perfil temporal (Familiar con tratamiento agudo).
-- **Criterio de Aceptación:** Cambio de paciente filtra la información en pantalla al instante.
+### - [x] Task 3: Offline Persistence Layer & React Global State (`AppContext`)
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `17b5edc`)
+- **Skills Applied:**
+  - 🛠️ `source-driven-development`: English domain models (`Patient`, `Medication`, `DoseLog`, `VitalSign`, `MonitoringCampaign`, `HealthExpense`), `LocalStore` Web Storage API wrapper in `src/lib/storage.ts`, and React Context provider in `src/context/AppContext.tsx`.
+  - 🧪 `test-driven-development`: Storage unit test suite in `tests/storage.test.ts` (3/3 tests passed).
+  - 🧱 `incremental-implementation`: Immutable state dispatchers and automatic reactive sync to localStorage.
+- **Verification:** 9/9 tests passed across all suites & `npm run build` clean.
 
 ---
 
-### Tarea 5: Línea de Tiempo Diaria de Medicamentos & Confirmación de Tomas
-- **Skills aplicados:**
-  - 🎨 rontend-ui-engineering: Tarjetas de alta legibilidad, distintivos destacados para fracciones (1/2 pastilla) y estados visuales (Pendiente / Tomado / Retrasado).
-  - 🧱 incremental-implementation: Conexión directa con descuento de stock en tiempo real.
-- **Entregable:** Checklist interactivo del día agrupado por horarios (Mañana, Tarde, Noche).
-- **Criterio de Aceptación:** Marcar toma actualiza el estado y descuenta del inventario.
+### - [x] Task 4: Header, Status Bar, and Multi-Profile Patient Switcher
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `d79df0f`)
+- **Skills Applied:**
+  - 🎨 `frontend-ui-engineering`: Responsive header in `src/components/layout/Header.tsx` with branding, desktop notifications toggle, 1-click WhatsApp share and active patient badge.
+  - 👥 `frontend-ui-engineering`: Accessible modal `src/components/layout/PatientSelector.tsx` for toggling between Chronic (Elderly) and Temporary (Acute) care profiles, with form to create new patients.
+  - 🧪 `test-driven-development`: Unit test suite in `tests/headerPatientSelector.test.ts` (2/2 tests passed).
+- **Verification:** 11/11 tests passed across 4 suites & `npm run build` clean in 1.09s.
 
 ---
 
-### Tarea 6: Formulario de Medicamentos & Control de Inventario con Semáforo
-- **Skills aplicados:**
-  - 🎨 rontend-ui-engineering: Formulario modal guiado para programar reglas complejas en menos de 1 minuto.
-  - 🛠️ source-driven-development: Validación estricta de formularios y semáforo de stock (Verde / Amarillo / Rojo).
-- **Entregable:** Vista de inventario de pastillas restantes y alertas de compra.
-- **Criterio de Aceptación:** Alerta visual automática cuando el stock sea menor o igual al mínimo.
+### - [ ] Task 5: Daily Medication Timeline with Fractional Pill Badges & Stock Deduction
+- **Status:** `NEXT IN QUEUE`
+- **Skills Applied:**
+  - 🎨 `frontend-ui-engineering`: High-legibility daily checklist in `src/components/timeline/DailyTimeline.tsx`, date picker (Today / Yesterday / Tomorrow), progress bar of completed doses, time-of-day slots (Morning, Afternoon, Evening, Night), and fractional badges (1 pill, 1/2 pill, 1/4 pill).
+  - 🧱 `incremental-implementation`: 1-click dose confirmation with instant stock decrement and low-stock notification triggers.
+  - 🧪 `test-driven-development`: Unit tests in `tests/dailyTimeline.test.ts`.
 
 ---
 
-### Tarea 7: Alertas de Escritorio (PC) & Delegación Rápida a WhatsApp
-- **Skills aplicados:**
-  - 🛠️ source-driven-development: Web Notifications API oficial de MDN (Notification.requestPermission, 
-ew Notification).
-  - 📱 source-driven-development: Codificación URL estándar WHATWG para enlaces universales de WhatsApp (wa.me/?text=...).
-- **Entregable:** Botón para activar alertas en PC y modal para exportar el checklist del día con emojis y enlace web de relevo.
-- **Criterio de Aceptación:** Alerta de prueba en el navegador y generación del mensaje de WhatsApp estructurado.
+### - [ ] Task 6: Medication Modal Form & Inventory Management with Stock Traffic Lights
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🎨 `frontend-ui-engineering`: Guided modal form for configuring complex dosing frequencies in under 1 minute.
+  - 🛠️ `source-driven-development`: Stock status badges (Green: Safe / Yellow: Low Stock / Red: Critical/Depleted).
 
 ---
 
-### Tarea 8: Bitácora de Signos Vitales & Campañas de Monitoreo de 3 Días
-- **Skills aplicados:**
-  - 🧪 	est-driven-development: Pruebas de cálculo de promedios y validación de rangos clínicos.
-  - 🎨 rontend-ui-engineering: Entrada rápida de Glucosa (ayunas/postprandial), Presión y SpO2 con gráficas de evolución.
-- **Entregable:** Registro de signos y módulo de  Campañas médicas (reto de 3 días con barra de progreso).
-- **Criterio de Aceptación:** Gráfica interactiva de tendencias y cálculo de cumplimiento de campañas.
+### - [ ] Task 7: Desktop Web Notifications & 1-Click WhatsApp Delegation
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🛠️ `source-driven-development`: MDN Web Notifications API (`Notification.requestPermission`, `new Notification`).
+  - 📱 `source-driven-development`: WHATWG URL encoding for universal WhatsApp delegation (`wa.me/?text=...`).
 
 ---
 
-### Tarea 9: Expediente de Estudios Digitales & Agenda de Citas Médicas
-- **Skills aplicados:**
-  - 🛠️ source-driven-development: File API y Blob URLs / FileReader de MDN para previsualización local y subida segura de PDFs y fotos.
-  - 🎨 rontend-ui-engineering: Visor modal de documentos y calendario de citas con especialistas.
-- **Entregable:** Archivo de análisis clínicos con visor y agenda médica con notas de preparación.
-- **Criterio de Aceptación:** Subir y visualizar un PDF o imagen de laboratorio sin salir de la app.
+### - [ ] Task 8: Vitals Log (Glucose, BP, SpO2) & 3-Day Monitoring Campaigns
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🧪 `test-driven-development`: Average calculations and clinical range validations.
+  - 🎨 `frontend-ui-engineering`: Fast input for Glucose (fasting/postprandial), Blood Pressure, Heart Rate, and SpO2 with 3-day challenge progress bar.
 
 ---
 
-### Tarea 10: Modo Resumen para el Médico (1 Clic)
-- **Skills aplicados:**
-  - 🎨 rontend-ui-engineering: Hoja clínica limpia optimizada para pantalla y para impresión física (@media print).
-  - 🛠️ source-driven-development: CSS Paged Media standards para reportes médicos en 1 sola hoja.
-- **Entregable:** Ficha clínica consolidada que resume medicamentos activos, últimas tomas de signos y últimos estudios para la consulta.
-- **Criterio de Aceptación:** Vista de impresión en 1 página lista para mostrar o entregar al doctor.
+### - [ ] Task 9: Digital Lab Studies Archive & Appointments Schedule
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🛠️ `source-driven-development`: MDN File API & FileReader for safe local document previews (PDF/Images).
+  - 🎨 `frontend-ui-engineering`: Studies gallery viewer and medical appointments agenda.
 
 ---
 
-### Tarea 11: Control de Gastos Médicos & Calculadora de División Familiar
-- **Skills aplicados:**
-  - 🧪 	est-driven-development: Pruebas del algoritmo de liquidación familiar (Hermano A le debe a Hermano B).
-  - 🎨 rontend-ui-engineering: Dashboard financiero mensual con desglose por categoría (Farmacia, Estudios, Consultas).
-- **Entregable:** Registro de tickets de compra y tabla de división con botón de compartir resumen de cuentas a WhatsApp.
-- **Criterio de Aceptación:** La suma de las partes cuadra exactamente con el total gastado en el mes.
+### - [ ] Task 10: 1-Click "Doctor Summary Report" Print View (`@media print`)
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🎨 `frontend-ui-engineering`: Single-page clinical summary optimized for consultation screens and physical printing.
+  - 🛠️ `source-driven-development`: CSS Paged Media standards for high-density 1-page printouts.
 
 ---
 
-### Tarea 12: Configuración PWA, Modo Offline y Verificación Integral E2E
-- **Skills aplicados:**
-  - 🛠️ source-driven-development: Web App Manifest y Service Worker según estándares W3C.
-  - 🧱 incremental-implementation: Auditoría de instalación en PC (Windows/Chrome/Edge) y móviles (Android/iOS).
-- **Entregable:** Aplicación 100% instalable con soporte offline y experiencia fluida.
-- **Criterio de Aceptación:** Build de producción exitoso y app funcionando de forma autónoma.
+### - [ ] Task 11: Expense Manager & Family Split Calculator
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🧪 `test-driven-development`: Settlement math algorithm (Sibling A owes Sibling B).
+  - 🎨 `frontend-ui-engineering`: Monthly category breakdown (Pharmacy, Lab, Consultation) and WhatsApp settlement sharing.
+
+---
+
+### - [ ] Task 12: PWA Manifest, Service Worker Offline Verification & E2E Checks
+- **Status:** `PENDING`
+- **Skills Applied:**
+  - 🛠️ `source-driven-development`: W3C Web App Manifest and Service Worker caching.
+  - 🧱 `incremental-implementation`: Offline installation and audit on PC and mobile devices.
