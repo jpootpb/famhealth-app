@@ -103,7 +103,7 @@
 ---
 
 ### - [x] Task 10: 1-Click "Doctor Summary Report" Print View (`@media print`)
-- **Status:** `COMPLETED & VERIFIED`
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `f94e588`)
 - **Skills Applied:**
   - 🎨 `frontend-ui-engineering`: Single-page clinical summary `DoctorSummaryModal.tsx` consolidating diagnosis, active prescriptions, recent vitals log, and latest lab studies.
   - 🛠️ `source-driven-development`: CSS Paged Media standards (`@media print`) in `src/index.css` configured for 1-page Letter layout with high-contrast text and zero distraction UI elements.
@@ -112,16 +112,17 @@
 
 ---
 
-### - [ ] Task 11: Expense Manager & Family Split Calculator
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 11: Expense Manager & Family Split Calculator
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🧪 `test-driven-development`: Settlement math algorithm (Sibling A owes Sibling B).
-  - 🎨 `frontend-ui-engineering`: Monthly category breakdown (Pharmacy, Lab, Consultation) and WhatsApp settlement sharing.
+  - 🧪 `test-driven-development`: Settlement math algorithm (`calculateFamilyExpenseSplit`) in `src/utils/expenseEngine.ts` tested across multiple split scenarios in `tests/expenseSettlement.test.ts` (3/3 tests passed).
+  - 🎨 `frontend-ui-engineering`: `ExpensesView.tsx` with category distribution cards, family member balance cards (Paid vs Due), debt settlement transfer instructions, and WhatsApp expense export.
+- **Verification:** 27/27 tests passed across 11 suites & `npm run build` clean in 1.07s.
 
 ---
 
 ### - [ ] Task 12: PWA Manifest, Service Worker Offline Verification & E2E Checks
-- **Status:** `PENDING`
+- **Status:** `NEXT IN QUEUE`
 - **Skills Applied:**
-  - 🛠️ `source-driven-development`: W3C Web App Manifest and Service Worker caching.
+  - 🛠️ `source-driven-development`: W3C Web App Manifest (`manifest.json`) and Service Worker registration (`sw.js`).
   - 🧱 `incremental-implementation`: Offline installation and audit on PC and mobile devices.
