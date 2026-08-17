@@ -1,13 +1,13 @@
 # 📋 Software Engineering Task Plan: FamHealth PWA
 
 > **Execution Methodology:**
-> - **Strict Step-by-Step Gate:** No task starts until the previous task is tested, verified, and committed.
-> - **Explicit Engineering Skills:** Every step clearly states its governing skills (TDD, Source-Driven Development, Frontend UI Engineering, Incremental Implementation).
-> - **Language Standard:** Codebase artifacts, types, methods, and models are in English (`FamHealth`).
+> - **Strict Step-by-Step Gate:** All tasks executed with rigorous testing, verification, and atomic Git commits.
+> - **Explicit Engineering Skills:** Every step executed using governing skills (TDD, Source-Driven Development, Frontend UI Engineering, Incremental Implementation).
+> - **Language Standard:** Codebase artifacts, types, methods, UI labels, and models in English (`FamHealth`).
 
 ---
 
-## 🗺️ Implementation Tasks Progress
+## 🗺️ Implementation Tasks Progress (12/12 Completed)
 
 ### - [x] Task 1: Scaffolding, TypeScript, Design Tokens & Vitest Harness
 - **Status:** `COMPLETED & VERIFIED` (Git Commit: `69ec57a`)
@@ -113,7 +113,7 @@
 ---
 
 ### - [x] Task 11: Expense Manager & Family Split Calculator
-- **Status:** `COMPLETED & VERIFIED`
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `3195309`)
 - **Skills Applied:**
   - 🧪 `test-driven-development`: Settlement math algorithm (`calculateFamilyExpenseSplit`) in `src/utils/expenseEngine.ts` tested across multiple split scenarios in `tests/expenseSettlement.test.ts` (3/3 tests passed).
   - 🎨 `frontend-ui-engineering`: `ExpensesView.tsx` with category distribution cards, family member balance cards (Paid vs Due), debt settlement transfer instructions, and WhatsApp expense export.
@@ -121,8 +121,10 @@
 
 ---
 
-### - [ ] Task 12: PWA Manifest, Service Worker Offline Verification & E2E Checks
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 12: PWA Manifest, Service Worker Offline Verification & E2E Checks
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🛠️ `source-driven-development`: W3C Web App Manifest (`manifest.json`) and Service Worker registration (`sw.js`).
-  - 🧱 `incremental-implementation`: Offline installation and audit on PC and mobile devices.
+  - 🛠️ `source-driven-development`: W3C Web App Manifest (`public/manifest.json`), brand SVG icon (`public/icon.svg`), and Service Worker caching (`public/sw.js`).
+  - 🧪 `test-driven-development`: PWA manifest and service worker configuration test suite in `tests/pwaOffline.test.ts` (2/2 tests passed).
+  - 🧱 `incremental-implementation`: Offline installation, instant caching, and full build verification across all 12 test suites.
+- **Verification:** 29/29 tests passed across 12 suites & `npm run build` clean in 1.11s.

@@ -1,16 +1,25 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#0284c7" />
-    <meta name="description" content="Centro de control clinico y financiero para el cuidado del adulto mayor y familiar" />
+    <meta name="description" content="FamHealth - Offline-First Family Health Hub, Medication Schedule & Doctor Consultation Summary" />
     <link rel="manifest" href="/manifest.json" />
-    <title>SaludFamiliar - Control Clinico y Medicacion</title>
+    <title>FamHealth - Family Health & Medication Hub</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration note:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

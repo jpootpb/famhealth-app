@@ -1,9 +1,18 @@
 {
-  "name": "SaludFamiliar - Control Clënico y Medicación",
-  "short_name": "SaludFamiliar",
-  "display": "standalone",
+  "name": "FamHealth - Family Health & Medication Hub",
+  "short_name": "FamHealth",
+  "description": "Offline-First Family Health Hub, Medication Schedule & Doctor Consultation Summary",
   "start_url": "/",
-  "theme_color": "#0284c7",
+  "display": "standalone",
   "background_color": "#f8fafc",
-  "icons": [{ "src": "/favicon.svg", "sizes": "192x192 512x512", "type": "image/svg+xml" }]
+  "theme_color": "#0284c7",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
