@@ -3,6 +3,8 @@ import { Header } from './components/layout/Header';
 import { DailyTimeline } from './components/timeline/DailyTimeline';
 import { MedicationList } from './components/medications/MedicationList';
 import { VitalsView } from './components/vitals/VitalsView';
+import { StudiesView } from './components/studies/StudiesView';
+import { AppointmentsView } from './components/appointments/AppointmentsView';
 import { useApp } from './context/AppContext';
 import {
   Calendar,
@@ -96,23 +98,11 @@ export default function App() {
         )}
 
         {activeTab === 'studies' && (
-          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-            <FileText size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Digital Lab Studies Archive</h3>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-              Digital PDF and lab photo archive will load here in Task 9.
-            </p>
-          </div>
+          <StudiesView />
         )}
 
         {activeTab === 'appointments' && (
-          <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-            <CalendarDays size={36} color="var(--primary)" style={{ margin: '0 auto 0.75rem' }} />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Doctor Appointments Schedule</h3>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-              Specialist consultation agenda will load here in Task 9.
-            </p>
-          </div>
+          <AppointmentsView />
         )}
 
         {activeTab === 'expenses' && (

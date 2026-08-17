@@ -84,7 +84,7 @@
 ---
 
 ### - [x] Task 8: Vitals Log (Glucose, BP, SpO2) & 3-Day Monitoring Campaigns
-- **Status:** `COMPLETED & VERIFIED`
+- **Status:** `COMPLETED & VERIFIED` (Git Commit: `cf8f323`)
 - **Skills Applied:**
   - 🧪 `test-driven-development`: Unit tests in `tests/vitalsCampaign.test.ts` (3/3 tests passed) testing clinical classifications and 3-day challenge completion algorithms.
   - 🎨 `frontend-ui-engineering`: `VitalsView.tsx` with 3-day challenge progress bar, fast vital entry (Glucose fasting/postprandial, BP systolic/diastolic, SpO2/pulse), summary stats cards, and historical records.
@@ -92,16 +92,18 @@
 
 ---
 
-### - [ ] Task 9: Digital Lab Studies Archive & Appointments Schedule
-- **Status:** `NEXT IN QUEUE`
+### - [x] Task 9: Digital Lab Studies Archive & Appointments Schedule
+- **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🛠️ `source-driven-development`: MDN File API & FileReader for safe local document previews (PDF/Images).
-  - 🎨 `frontend-ui-engineering`: Studies gallery viewer and medical appointments agenda.
+  - 🛠️ `source-driven-development`: MDN File API & FileReader for local offline storage and instant embedded previews of lab PDFs and photos.
+  - 🎨 `frontend-ui-engineering`: `StudiesView.tsx` with category filters (Blood, Imaging, Cardiology, Pathology), file uploader and document viewer modal; `AppointmentsView.tsx` with upcoming consultations, specialty tags, preparation notes, and status toggles.
+  - 🧪 `test-driven-development`: Unit test suite in `tests/studiesAppointments.test.ts` (2/2 tests passed).
+- **Verification:** 22/22 tests passed across 9 suites & `npm run build` clean in 1.08s.
 
 ---
 
 ### - [ ] Task 10: 1-Click "Doctor Summary Report" Print View (`@media print`)
-- **Status:** `PENDING`
+- **Status:** `NEXT IN QUEUE`
 - **Skills Applied:**
   - 🎨 `frontend-ui-engineering`: Single-page clinical summary optimized for consultation screens and physical printing.
   - 🛠️ `source-driven-development`: CSS Paged Media standards for high-density 1-page printouts.
