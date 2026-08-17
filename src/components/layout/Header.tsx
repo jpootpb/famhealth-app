@@ -12,13 +12,15 @@ import {
 } from 'lucide-react';
 import { PatientSelector } from './PatientSelector';
 import { WhatsAppModal } from '../sharing/WhatsAppModal';
+import { DoctorSummaryModal } from '../doctor/DoctorSummaryModal';
 import { requestNotificationPermission, sendLocalNotification } from '../../lib/notifications';
 import { getDailyDoseSlots, formatDateIso } from '../../utils/frequencyEngine';
 
-export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport }) => {
+export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
   const { activePatient, medications, doseLogs } = useApp();
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isDoctorSummaryOpen, setIsDoctorSummaryOpen] = useState(false);
   const [notificationsGranted, setNotificationsGranted] = useState(false);
 
   useEffect(() => {
@@ -201,17 +203,15 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport
               <span className="hide-mobile" style={{ fontSize: '0.8125rem' }}>WhatsApp</span>
             </button>
 
-            {onPrintReport && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={onPrintReport}
-                title="Print Doctor Report (Ctrl+P)"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
-              >
-                <Printer size={16} />
-                <span className="hide-mobile" style={{ fontSize: '0.8125rem' }}>Report</span>
-              </button>
-            )}
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsDoctorSummaryOpen(true)}
+              title="Open Doctor Consultation Summary & Print Sheet"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--primary)' }}
+            >
+              <Printer size={16} />
+              <span className="hide-mobile" style={{ fontSize: '0.8125rem' }}>Doctor Sheet</span>
+            </button>
           </div>
         </div>
       </header>
@@ -224,6 +224,11 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = ({ onPrintReport
       <WhatsAppModal
         isOpen={isWhatsAppModalOpen}
         onClose={() => setIsWhatsAppModalOpen(false)}
+      />
+
+      <DoctorSummaryModal
+        isOpen={isDoctorSummaryOpen}
+        onClose={() => setIsDoctorSummaryOpen(false)}
       />
     </>
   );
