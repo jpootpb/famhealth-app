@@ -86,6 +86,11 @@ export const initialMedications: Medication[] = [
     indication: 'Control glucémico en Diabetes Tipo 2',
     laboratory: 'MSD / Janumet',
     expirationDate: '2027-04-30',
+    isImssCovered: true,
+    source: 'imss',
+    unitCost: 0,
+    preferredStore: 'IMSS Clínica 59',
+    purchaseNotes: 'Suministrado mensualmente sin costo por el IMSS ($0 MXN).',
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
@@ -95,8 +100,7 @@ export const initialMedications: Medication[] = [
       startDate: '2026-01-01'
     },
     currentStock: 28,
-    minimumStockAlert: 6,
-    unitCost: 350
+    minimumStockAlert: 6
   },
   {
     id: 'med-rivaroxaban',
@@ -107,6 +111,11 @@ export const initialMedications: Medication[] = [
     indication: 'Anticoagulante preventivo',
     laboratory: 'Bayer / Xarelto',
     expirationDate: '2026-09-10',
+    isImssCovered: false,
+    source: 'online_store',
+    unitCost: 510,
+    preferredStore: 'Mercado Libre',
+    purchaseNotes: 'Comprar genérico en Mercado Libre con misma sal (Rivaroxabán 20mg) a $510 MXN. En farmacias cuesta $1,200 (¡Ahorro de $690 MXN por caja!).',
     frequency: {
       type: 'alternate_days',
       doseSlots: [
@@ -115,8 +124,32 @@ export const initialMedications: Medication[] = [
       startDate: '2026-08-16'
     },
     currentStock: 12,
-    minimumStockAlert: 4,
-    unitCost: 890
+    minimumStockAlert: 4
+  },
+  {
+    id: 'med-krytantek',
+    familyId: 'circle-poot',
+    patientId: 'patient-grandfather',
+    name: 'Krytantek Gotas Oftálmicas',
+    presentation: 'drops',
+    indication: 'Control de presión intraocular / Glaucoma',
+    laboratory: 'Sophia',
+    expirationDate: '2027-06-15',
+    isImssCovered: false,
+    source: 'medical_sample',
+    unitCost: 600,
+    preferredStore: 'Muestras Médicas / Consultorio',
+    purchaseNotes: 'Conseguir muestras médicas a $600 MXN en lugar de pagar $890 MXN en farmacia (Ahorro de $290 MXN).',
+    frequency: {
+      type: 'daily_fixed',
+      doseSlots: [
+        { time: '08:00', dose: 1, instruction: '1 gota en cada ojo' },
+        { time: '20:00', dose: 1, instruction: '1 gota en cada ojo' }
+      ],
+      startDate: '2026-08-01'
+    },
+    currentStock: 2,
+    minimumStockAlert: 1
   },
   {
     id: 'med-aspirin',
@@ -127,6 +160,11 @@ export const initialMedications: Medication[] = [
     indication: 'Protección cardiovascular',
     laboratory: 'Bayer',
     expirationDate: '2027-11-20',
+    isImssCovered: false,
+    source: 'private_pharmacy',
+    unitCost: 210,
+    preferredStore: 'Farmacias Guadalajara',
+    purchaseNotes: 'Comprar en Farmacias Guadalajara los días de descuento.',
     frequency: {
       type: 'every_n_days',
       intervalDays: 4,
@@ -136,8 +174,7 @@ export const initialMedications: Medication[] = [
       startDate: '2026-08-14'
     },
     currentStock: 18,
-    minimumStockAlert: 5,
-    unitCost: 180
+    minimumStockAlert: 5
   },
   {
     id: 'med-cilostazol',
@@ -148,6 +185,10 @@ export const initialMedications: Medication[] = [
     indication: 'Circulación periférica',
     laboratory: 'Silanes',
     expirationDate: '2026-08-01',
+    isImssCovered: false,
+    source: 'private_pharmacy',
+    unitCost: 420,
+    preferredStore: 'Farmacias del Ahorro',
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
@@ -157,8 +198,7 @@ export const initialMedications: Medication[] = [
       startDate: '2026-01-01'
     },
     currentStock: 4,
-    minimumStockAlert: 6,
-    unitCost: 420
+    minimumStockAlert: 6
   },
   {
     id: 'med-ciprofloxacin',
@@ -169,6 +209,8 @@ export const initialMedications: Medication[] = [
     indication: 'Tratamiento de infección aguda',
     laboratory: 'Genérico GI',
     expirationDate: '2027-02-15',
+    isImssCovered: false,
+    unitCost: 220,
     frequency: {
       type: 'temporary_hourly',
       intervalHours: 12,
@@ -180,8 +222,7 @@ export const initialMedications: Medication[] = [
       endDate: '2026-08-22'
     },
     currentStock: 10,
-    minimumStockAlert: 2,
-    unitCost: 220
+    minimumStockAlert: 2
   },
   {
     id: 'med-losartan-gomez',
@@ -192,6 +233,8 @@ export const initialMedications: Medication[] = [
     indication: 'Control de presión arterial',
     laboratory: 'Silanes',
     expirationDate: '2027-09-01',
+    isImssCovered: true,
+    unitCost: 0,
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
@@ -200,8 +243,7 @@ export const initialMedications: Medication[] = [
       startDate: '2026-01-01'
     },
     currentStock: 30,
-    minimumStockAlert: 5,
-    unitCost: 150
+    minimumStockAlert: 5
   },
   {
     id: 'med-atorvastatin-laura',
@@ -212,6 +254,8 @@ export const initialMedications: Medication[] = [
     indication: 'Control de colesterol y triglicéridos',
     laboratory: 'Pfizer / Lipitor',
     expirationDate: '2027-10-15',
+    isImssCovered: false,
+    unitCost: 480,
     frequency: {
       type: 'temporary_hourly',
       intervalHours: 24,
@@ -222,8 +266,7 @@ export const initialMedications: Medication[] = [
       endDate: '2026-10-16'
     },
     currentStock: 60,
-    minimumStockAlert: 10,
-    unitCost: 480
+    minimumStockAlert: 10
   }
 ];
 
@@ -343,21 +386,60 @@ export const initialExpenses: HealthExpense[] = [
     id: 'exp-1',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    concept: 'Surtido de Metformina 500mg y Cilostazol (Farmacias Guadalajara)',
+    concept: 'Rivaroxabán 20mg en Farmacia de Cadena',
     category: 'medication',
-    amount: 770,
-    date: '2026-08-14',
-    paidBy: 'Carlos Poot'
+    amount: 1200,
+    date: '2026-07-15',
+    paidBy: 'Carlos Poot',
+    store: 'Farmacias Guadalajara',
+    medicationId: 'med-rivaroxaban'
   },
   {
     id: 'exp-2',
+    familyId: 'circle-poot',
+    patientId: 'patient-grandfather',
+    concept: 'Rivaroxabán 20mg en Mercado Libre (Mismo compuesto)',
+    category: 'medication',
+    amount: 510,
+    date: '2026-08-14',
+    paidBy: 'Lucía Poot',
+    store: 'Mercado Libre',
+    medicationId: 'med-rivaroxaban'
+  },
+  {
+    id: 'exp-3',
+    familyId: 'circle-poot',
+    patientId: 'patient-grandfather',
+    concept: 'Krytantek Gotas (Muestras Médicas)',
+    category: 'medication',
+    amount: 600,
+    date: '2026-08-12',
+    paidBy: 'Jorge Poot',
+    store: 'Muestras Médicas',
+    medicationId: 'med-krytantek'
+  },
+  {
+    id: 'exp-4',
+    familyId: 'circle-poot',
+    patientId: 'patient-grandfather',
+    concept: 'Aspirina Protect 100mg (Compra con aumento)',
+    category: 'medication',
+    amount: 210,
+    date: '2026-08-01',
+    paidBy: 'Carlos Poot',
+    store: 'Farmacias Guadalajara',
+    medicationId: 'med-aspirin'
+  },
+  {
+    id: 'exp-5',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
     concept: 'Química Sanguínea y Perfil HbA1c (Laboratorios Chopo)',
     category: 'lab_study',
     amount: 1250,
     date: '2026-08-10',
-    paidBy: 'Lucía Poot'
+    paidBy: 'Lucía Poot',
+    store: 'Laboratorios Chopo'
   }
 ];
 

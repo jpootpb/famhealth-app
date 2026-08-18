@@ -51,12 +51,14 @@ export interface FrequencyRule {
   intervalHours?: number;
 }
 
+export type MedicationSource = 'imss' | 'issste' | 'private_pharmacy' | 'medical_sample' | 'online_store' | 'other';
+
 export interface Medication {
   id: string;
   familyId?: string;
   patientId: string;
   name: string;
-  presentation: string; // tablet, capsule, ml, etc.
+  presentation: string; // tablet, capsule, ml, drops, etc.
   indication?: string;
   laboratory?: string; // Brand or Lab manufacturer (e.g. MSD, Silanes, Farmacias del Ahorro)
   imageUrl?: string; // Photo of medicine box / blister pack (Base64 data URL)
@@ -64,6 +66,10 @@ export interface Medication {
   currentStock: number;
   minimumStockAlert: number;
   unitCost?: number;
+  isImssCovered?: boolean; // Surtido gratuitamente por IMSS / ISSSTE / Sector Salud ($0)
+  source?: MedicationSource;
+  preferredStore?: string; // Farmacia o tienda recomendada (ej: Mercado Libre, Farmacias Guadalajara, Muestras Médicas)
+  purchaseNotes?: string; // Notas de compra y tips de ahorro para la familia
   badgeColor?: string;
   expirationDate?: string; // YYYY-MM-DD
 }
@@ -132,6 +138,8 @@ export interface HealthExpense {
   amount: number;
   date: string;
   paidBy: string;
+  store?: string; // Farmacia o tienda donde se compró (ej: Mercado Libre, Farmacias Guadalajara)
+  medicationId?: string; // Enlace al medicamento para tracking de precios y aumentos
   receiptUrl?: string;
 }
 

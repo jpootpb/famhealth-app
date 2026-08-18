@@ -319,6 +319,60 @@ export const MedicationList: React.FC = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* IMSS or Recommended Store & Savings Badge */}
+                  {med.isImssCovered ? (
+                    <div
+                      style={{
+                        backgroundColor: '#ecfdf5',
+                        border: '1px solid #10b981',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.5rem 0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.75rem',
+                        color: '#065f46'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>🏥 <strong>Surtido Gratis por IMSS / Sector Salud</strong></span>
+                      </div>
+                      <span className="badge badge-success" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+                        $0 MXN
+                      </span>
+                    </div>
+                  ) : (
+                    (med.preferredStore || med.purchaseNotes || med.unitCost) && (
+                      <div
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0.5rem 0.75rem',
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
+                          {med.preferredStore && (
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                              🏬 {med.preferredStore}
+                            </span>
+                          )}
+                          {med.unitCost !== undefined && (
+                            <span style={{ color: 'var(--primary)', fontWeight: 800 }}>
+                              ${med.unitCost} MXN / caja
+                            </span>
+                          )}
+                        </div>
+                        {med.purchaseNotes && (
+                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', color: '#047857' }}>
+                            💡 {med.purchaseNotes}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  )}
                 </div>
 
                 {/* Card Footer Actions */}

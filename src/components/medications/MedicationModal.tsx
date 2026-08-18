@@ -44,6 +44,9 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [minimumStockAlert, setMinimumStockAlert] = useState<number>(5);
   const [unitCost, setUnitCost] = useState<number | ''>('');
   const [expirationDate, setExpirationDate] = useState<string>('');
+  const [isImssCovered, setIsImssCovered] = useState(false);
+  const [preferredStore, setPreferredStore] = useState('');
+  const [purchaseNotes, setPurchaseNotes] = useState('');
 
   // Frequency Configuration
   const [frequencyType, setFrequencyType] = useState<FrequencyType>('daily_fixed');
@@ -90,8 +93,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setImageUrl(medicationToEdit.imageUrl || '');
       setCurrentStock(medicationToEdit.currentStock);
       setMinimumStockAlert(medicationToEdit.minimumStockAlert);
-      setUnitCost(medicationToEdit.unitCost || '');
+      setUnitCost(medicationToEdit.unitCost !== undefined ? medicationToEdit.unitCost : '');
       setExpirationDate(medicationToEdit.expirationDate || '');
+      setIsImssCovered(Boolean(medicationToEdit.isImssCovered || medicationToEdit.source === 'imss'));
+      setPreferredStore(medicationToEdit.preferredStore || '');
+      setPurchaseNotes(medicationToEdit.purchaseNotes || '');
       setFrequencyType(medicationToEdit.frequency.type);
       setStartDate(medicationToEdit.frequency.startDate);
       setEndDate(medicationToEdit.frequency.endDate || '');
@@ -108,6 +114,9 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setMinimumStockAlert(5);
       setUnitCost('');
       setExpirationDate('');
+      setIsImssCovered(false);
+      setPreferredStore('');
+      setPurchaseNotes('');
       setFrequencyType('daily_fixed');
       setStartDate(formatDateIso(new Date()));
       setEndDate('');
@@ -168,7 +177,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       imageUrl: imageUrl || undefined,
       currentStock: Number(currentStock) || 0,
       minimumStockAlert: Number(minimumStockAlert) || 3,
-      unitCost: unitCost ? Number(unitCost) : undefined,
+      unitCost: isImssCovered ? 0 : (unitCost ? Number(unitCost) : undefined),
+      isImssCovered,
+      source: (isImssCovered ? 'imss' : (preferredStore ? 'private_pharmacy' : undefined)) as any,
+      preferredStore: preferredStore.trim() || undefined,
+      purchaseNotes: purchaseNotes.trim() || undefined,
       expirationDate: expirationDate || undefined,
       frequency: {
         type: frequencyType,
@@ -433,7 +446,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
             </div>
 
-            <div className="grid-2">
+            <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">{t('expirationDate')}</label>
                 <input
@@ -449,12 +462,99 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                 <input
                   type="number"
                   className="form-input"
-                  placeholder="e.g. 250"
-                  value={unitCost}
+                  placeholder={isImssCovered ? 'Surtido por IMSS ($0)' : 'e.g. 510'}
+                  disabled={isImssCovered}
+                  value={isImssCovered ? 0 : unitCost}
                   onChange={e => setUnitCost(e.target.value ? Number(e.target.value) : '')}
                 />
               </div>
             </div>
+
+            {/* IMSS / Institutional Supply Toggle */}
+            <div
+              style={{
+                backgroundColor: isImssCovered ? '#ecfdf5' : '#ffffff',
+                border: isImssCovered ? '1.5px solid #10b981' : '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem',
+                marginBottom: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                const next = !isImssCovered;
+                setIsImssCovered(next);
+                if (next) {
+                  setUnitCost(0);
+                  if (!preferredStore) setPreferredStore('IMSS / Sector Salud');
+                }
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: '0.8125rem', color: isImssCovered ? '#065f46' : 'var(--text-primary)' }}>
+                  🏥 {language === 'es' ? 'Medicamento Suministrado Gratis por el IMSS / ISSSTE' : 'Supplied Free by IMSS / Public Healthcare'}
+                </strong>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  {language === 'es'
+                    ? 'No genera costo de compra ni división de gastos ($0 MXN).'
+                    : 'Zero financial cost ($0 MXN). Excluded from family expense split.'}
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={isImssCovered}
+                onChange={() => {}} // Controlled by div onClick
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Preferred Store & Purchase Notes for Siblings */}
+            {!isImssCovered && (
+              <div>
+                <div className="form-group" style={{ marginBottom: '0.625rem' }}>
+                  <label className="form-label">
+                    🏬 {language === 'es' ? 'Farmacia o Tienda Recomendada (Mejor Precio)' : 'Recommended Store / Pharmacy'}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Mercado Libre, Farmacias Guadalajara, Muestras Médicas"
+                    value={preferredStore}
+                    onChange={e => setPreferredStore(e.target.value)}
+                  />
+
+                  {/* Quick Store Pill Presets */}
+                  <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap' }}>
+                    {['Mercado Libre', 'Farmacias Guadalajara', 'Muestras Médicas', 'Farmacia del Ahorro', 'Farmacias Similares'].map(store => (
+                      <button
+                        key={store}
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setPreferredStore(store)}
+                        style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)' }}
+                      >
+                        {store}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">
+                    💡 {language === 'es' ? 'Tips de Compra y Ahorro para la Familia' : 'Purchase Tips & Savings for Family'}
+                  </label>
+                  <textarea
+                    className="form-input"
+                    rows={2}
+                    placeholder="e.g. Comprar genérico con mismo compuesto y gramaje a $510 en Mercado Libre (ahorro de $690 vs $1200 en farmacia)."
+                    value={purchaseNotes}
+                    onChange={e => setPurchaseNotes(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Frequency Type Selector */}
