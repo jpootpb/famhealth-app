@@ -6,6 +6,7 @@ import { VitalsView } from './components/vitals/VitalsView';
 import { StudiesView } from './components/studies/StudiesView';
 import { AppointmentsView } from './components/appointments/AppointmentsView';
 import { ExpensesView } from './components/expenses/ExpensesView';
+import { AuthScreen } from './components/auth/AuthScreen';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './i18n/LanguageContext';
 import {
@@ -18,9 +19,14 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const { activePatient } = useApp();
+  const { isAuthenticated, activePatient } = useApp();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'timeline' | 'medications' | 'vitals' | 'studies' | 'expenses' | 'appointments'>('timeline');
+
+  // If user is not logged in, enforce Auth Gate (No data or spaces leaked)
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="app-container">

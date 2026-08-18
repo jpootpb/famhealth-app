@@ -51,6 +51,14 @@ export const initialUsers: UserAccount[] = [
   }
 ];
 
+export const guestUser: UserAccount = {
+  id: 'guest',
+  name: 'Invitado',
+  email: 'guest@famhealth.app',
+  activeFamilyId: '',
+  joinedFamilyIds: []
+};
+
 const STORAGE_KEYS = {
   USERS: 'famhealth_users',
   CURRENT_USER: 'famhealth_current_user',
@@ -94,7 +102,7 @@ export const LocalStore = {
   getUsers: (): UserAccount[] => safeGet<UserAccount[]>(STORAGE_KEYS.USERS, initialUsers),
   saveUsers: (users: UserAccount[]) => safeSet(STORAGE_KEYS.USERS, users),
 
-  getCurrentUser: (): UserAccount => safeGet<UserAccount>(STORAGE_KEYS.CURRENT_USER, initialUsers[0]),
+  getCurrentUser: (): UserAccount => safeGet<UserAccount>(STORAGE_KEYS.CURRENT_USER, guestUser),
   saveCurrentUser: (user: UserAccount) => safeSet(STORAGE_KEYS.CURRENT_USER, user),
 
   // Family Circles
@@ -102,7 +110,7 @@ export const LocalStore = {
   saveFamilyCircles: (circles: FamilyCircle[]) => safeSet(STORAGE_KEYS.FAMILY_CIRCLES, circles),
 
   getActiveFamilyId: (): string => {
-    return safeGet<string>(STORAGE_KEYS.ACTIVE_FAMILY_ID, 'circle-poot');
+    return safeGet<string>(STORAGE_KEYS.ACTIVE_FAMILY_ID, '');
   },
   setActiveFamilyId: (id: string) => safeSet(STORAGE_KEYS.ACTIVE_FAMILY_ID, id),
 
@@ -111,7 +119,7 @@ export const LocalStore = {
   savePatients: (patients: Patient[]) => safeSet(STORAGE_KEYS.PATIENTS, patients),
 
   getActivePatientId: (): string => {
-    return safeGet<string>(STORAGE_KEYS.ACTIVE_PATIENT_ID, 'patient-grandfather');
+    return safeGet<string>(STORAGE_KEYS.ACTIVE_PATIENT_ID, '');
   },
   setActivePatientId: (id: string) => safeSet(STORAGE_KEYS.ACTIVE_PATIENT_ID, id),
 

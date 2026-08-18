@@ -16,11 +16,12 @@ import { LocalStore } from '../lib/storage';
 import { sendLocalNotification } from '../lib/notifications';
 import { formatDateIso } from '../utils/frequencyEngine';
 import { generateFamilyInviteCode } from '../utils/familyEngine';
-import { getUserVisibleFamilyCircles, joinFamilyWithCode } from '../utils/authEngine';
+import { getUserVisibleFamilyCircles, joinFamilyWithCode, isUserAuthenticated } from '../utils/authEngine';
 
 interface AppContextType {
   // Auth & Current User
   currentUser: UserAccount;
+  isAuthenticated: boolean;
   allUsers: UserAccount[];
   switchUser: (userId: string) => void;
   loginUser: (email: string, password?: string) => boolean;
@@ -104,6 +105,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [allAppointments, setAllAppointments] = useState<MedicalAppointment[]>(() => LocalStore.getAppointments());
   const [allStudies, setAllStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
 
+  const isAuthenticated = isUserAuthenticated(currentUser);
+
   // Sync state changes to storage
   useEffect(() => { LocalStore.saveUsers(allUsers); }, [allUsers]);
   useEffect(() => { LocalStore.saveCurrentUser(currentUser); }, [currentUser]);
@@ -181,10 +184,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const logoutUser = () => {
-    // Switch to clean guest / login state
+    // Switch to clean guest state
     const cleanGuest: UserAccount = {
       id: 'guest',
-      name: 'Invitado / Login',
+      name: 'Invitado',
       email: 'guest@famhealth.app',
       activeFamilyId: '',
       joinedFamilyIds: []
@@ -419,6 +422,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
         allUsers,
         switchUser,
         loginUser,

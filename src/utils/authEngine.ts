@@ -1,6 +1,14 @@
 import { UserAccount, FamilyCircle } from '../types';
 
+export function isUserAuthenticated(user?: UserAccount | null): boolean {
+  if (!user) return false;
+  if (!user.id || user.id === 'guest') return false;
+  if (user.email === 'guest@famhealth.app') return false;
+  return true;
+}
+
 export function getUserVisibleFamilyCircles(user: UserAccount, allCircles: FamilyCircle[]): FamilyCircle[] {
+  if (!isUserAuthenticated(user)) return [];
   return allCircles.filter(circle => user.joinedFamilyIds.includes(circle.id));
 }
 
