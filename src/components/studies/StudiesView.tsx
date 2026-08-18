@@ -33,6 +33,7 @@ export const StudiesView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFileStudy, setSelectedFileStudy] = useState<MedicalStudy | null>(null);
   const [studyToShare, setStudyToShare] = useState<MedicalStudy | null>(null);
+  const [studyToDelete, setStudyToDelete] = useState<MedicalStudy | null>(null);
   const [doctorPhone, setDoctorPhone] = useState('');
   const [doctorEmail, setDoctorEmail] = useState('');
   const [copied, setCopied] = useState(false);
@@ -327,7 +328,8 @@ export const StudiesView: React.FC = () => {
 
                 <button
                   className="btn btn-secondary btn-sm"
-                  onClick={() => deleteStudy(study.id)}
+                  onClick={() => setStudyToDelete(study)}
+                  title={language === 'es' ? 'Eliminar estudio' : 'Delete study'}
                   aria-label="Delete study"
                 >
                   <Trash2 size={14} color="var(--danger)" />
@@ -626,6 +628,101 @@ export const StudiesView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Accidental Study Deletion Safety Confirmation Modal */}
+      {studyToDelete && (
+        <div className="modal-backdrop" onClick={() => setStudyToDelete(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '480px', borderTop: '4px solid var(--danger)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  color: 'var(--danger)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <Trash2 size={22} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, margin: 0 }}>
+                  {language === 'es' ? '¿Eliminar Estudio de Laboratorio?' : 'Delete Laboratory Study?'}
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {language === 'es' ? 'Confirmación de seguridad requerida' : 'Safety confirmation required'}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '0.875rem',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.8125rem'
+              }}
+            >
+              <div><strong>🔬 {studyToDelete.title}</strong></div>
+              <div style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>📅 {studyToDelete.date} {studyToDelete.laboratory ? `• ${studyToDelete.laboratory}` : ''}</div>
+            </div>
+
+            {/* Warning if study has PACS links or attached files */}
+            {(studyToDelete.viewerUrl || studyToDelete.fileUrl) && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #f87171',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.8125rem',
+                  color: '#991b1b'
+                }}
+              >
+                <strong>⚠️ {language === 'es' ? '¡Atención! Contiene Archivos / Visor PACS 3D:' : 'Warning! Contains Files / PACS 3D Viewer:'}</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem' }}>
+                  {language === 'es'
+                    ? 'Este estudio tiene enlaces a imágenes tomográficas o archivos PDF adjuntos. Al eliminarlo, se borrarán definitivamente del expediente.'
+                    : 'This study includes attached files or 3D PACS links. Deleting will permanently remove them from records.'}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ justifyContent: 'center' }}
+                onClick={() => setStudyToDelete(null)}
+              >
+                {language === 'es' ? 'Cancelar / Conservar' : 'Cancel / Keep'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ backgroundColor: 'var(--danger)', borderColor: 'var(--danger)', justifyContent: 'center' }}
+                onClick={() => {
+                  deleteStudy(studyToDelete.id);
+                  setStudyToDelete(null);
+                }}
+              >
+                {language === 'es' ? 'Sí, Eliminar' : 'Yes, Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

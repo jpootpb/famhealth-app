@@ -29,6 +29,7 @@ export const AppointmentsView: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [appointmentToEdit, setAppointmentToEdit] = useState<MedicalAppointment | null>(null);
+  const [appToDelete, setAppToDelete] = useState<MedicalAppointment | null>(null);
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [targetAppointmentForAi, setTargetAppointmentForAi] = useState<MedicalAppointment | null>(null);
 
@@ -362,10 +363,11 @@ export const AppointmentsView: React.FC = () => {
                     <Edit2 size={14} color="var(--primary)" />
                   </button>
 
-                  {/* Delete Button */}
+                  {/* Delete Button with Safety Protection */}
                   <button
                     className="btn btn-secondary btn-sm"
-                    onClick={() => deleteAppointment(app.id)}
+                    onClick={() => setAppToDelete(app)}
+                    title={language === 'es' ? 'Eliminar consulta' : 'Delete appointment'}
                     aria-label="Delete appointment"
                   >
                     <Trash2 size={14} color="var(--danger)" />
@@ -597,6 +599,104 @@ export const AppointmentsView: React.FC = () => {
         }}
         onSelectMedication={handleAiExtractedMed}
       />
+
+      {/* Accidental Deletion Safety Confirmation Modal */}
+      {appToDelete && (
+        <div className="modal-backdrop" onClick={() => setAppToDelete(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '480px', borderTop: '4px solid var(--danger)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fee2e2',
+                  color: 'var(--danger)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <Trash2 size={22} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, margin: 0 }}>
+                  {language === 'es' ? '¿Eliminar esta Consulta Médica?' : 'Delete Medical Appointment?'}
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {language === 'es' ? 'Confirmación de seguridad requerida' : 'Safety confirmation required'}
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '0.875rem',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.8125rem'
+              }}
+            >
+              <div><strong>👨‍⚕️ {appToDelete.doctorName}</strong> ({appToDelete.specialty})</div>
+              <div style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>📅 {appToDelete.dateTime}</div>
+              {appToDelete.location && (
+                <div style={{ color: 'var(--text-secondary)', marginTop: '0.2rem' }}>📍 {appToDelete.location}</div>
+              )}
+            </div>
+
+            {/* Warning if prescription is attached */}
+            {appToDelete.prescriptionUrl && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #f87171',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.8125rem',
+                  color: '#991b1b'
+                }}
+              >
+                <strong>⚠️ {language === 'es' ? '¡Atención! Contiene Receta Médica:' : 'Warning! Contains Attached Prescription:'}</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem' }}>
+                  {language === 'es'
+                    ? 'Esta consulta tiene una foto o PDF de la receta médica. Al eliminarla, se borrará definitivamente del expediente.'
+                    : 'This appointment includes an attached prescription file. Deleting it will permanently remove it from records.'}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ justifyContent: 'center' }}
+                onClick={() => setAppToDelete(null)}
+              >
+                {language === 'es' ? 'Cancelar / Conservar' : 'Cancel / Keep'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ backgroundColor: 'var(--danger)', borderColor: 'var(--danger)', justifyContent: 'center' }}
+                onClick={() => {
+                  deleteAppointment(appToDelete.id);
+                  setAppToDelete(null);
+                }}
+              >
+                {language === 'es' ? 'Sí, Eliminar' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
