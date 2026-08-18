@@ -51,7 +51,16 @@ export interface FrequencyRule {
   intervalHours?: number;
 }
 
-export type MedicationSource = 'imss' | 'issste' | 'private_pharmacy' | 'medical_sample' | 'online_store' | 'other';
+export type MedicationSource =
+  | 'imss'
+  | 'issste'
+  | 'private_pharmacy'
+  | 'medical_sample'
+  | 'online_store'
+  | 'family_donation'
+  | 'friend_donation'
+  | 'dispensary_donation'
+  | 'other';
 
 export interface Medication {
   id: string;
@@ -81,6 +90,7 @@ export interface Medication {
   donationSource?: {
     fromPatientName: string;
     fromFamilyName?: string;
+    donorType?: 'family' | 'known_person' | 'dispensary';
     date: string;
     notes?: string;
   };

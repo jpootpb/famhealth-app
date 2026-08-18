@@ -1,11 +1,15 @@
 import { Medication } from '../types';
 import { formatDateIso } from './frequencyEngine';
 
+export type DonationRecipientType = 'family_member' | 'known_contact' | 'dispensary_or_stranger';
+
 export interface TransferStockParams {
   sourceMedication: Medication;
   sourcePatientName: string;
-  targetPatientId: string;
-  targetPatientName: string;
+  recipientType?: DonationRecipientType;
+  targetPatientId?: string;
+  targetPatientName?: string;
+  recipientName?: string;
   quantityToTransfer: number;
   commercialEstimatedValue?: number;
   note?: string;
@@ -13,10 +17,11 @@ export interface TransferStockParams {
 
 export interface TransferStockResult {
   updatedSourceMed: Medication;
-  createdOrUpdatedTargetMed: Medication;
+  createdOrUpdatedTargetMed?: Medication;
   transferLog: {
     fromPatient: string;
-    toPatient: string;
+    recipientType: DonationRecipientType;
+    toRecipient: string;
     medicationName: string;
     quantity: number;
     savingsAmount: number;
@@ -71,13 +76,15 @@ export function claimLoyaltyReward(medication: Medication): { updatedMed: Medica
 }
 
 /**
- * Transfers unused medication stock between family members/in-laws at $0 cost
+ * Transfers unused medication stock to family members, friends/neighbors, or community dispensaries / strangers
  */
 export function transferMedicationStock({
   sourceMedication,
   sourcePatientName,
+  recipientType = 'family_member',
   targetPatientId,
   targetPatientName,
+  recipientName,
   quantityToTransfer,
   commercialEstimatedValue = 0,
   note
@@ -90,26 +97,37 @@ export function transferMedicationStock({
     currentStock: remainingSourceStock
   };
 
-  const createdOrUpdatedTargetMed: Medication = {
-    ...sourceMedication,
-    id: `med-transfer-${Date.now()}`,
-    patientId: targetPatientId,
-    currentStock: actualQty,
-    unitCost: 0, // Donated at $0 to the receiving family member
-    isImssCovered: sourceMedication.isImssCovered,
-    donationSource: {
-      fromPatientName: sourcePatientName,
-      date: formatDateIso(new Date()),
-      notes: note || `Donación solidaria de ${actualQty} ${sourceMedication.presentation}s de ${sourcePatientName}.`
-    }
-  };
+  let destinationName = '';
+  let createdOrUpdatedTargetMed: Medication | undefined = undefined;
+
+  if (recipientType === 'family_member' && targetPatientId) {
+    destinationName = targetPatientName || 'Familiar';
+    createdOrUpdatedTargetMed = {
+      ...sourceMedication,
+      id: `med-transfer-${Date.now()}`,
+      patientId: targetPatientId,
+      currentStock: actualQty,
+      unitCost: 0, // Donated at $0 to the receiving family member
+      isImssCovered: sourceMedication.isImssCovered,
+      donationSource: {
+        fromPatientName: sourcePatientName,
+        date: formatDateIso(new Date()),
+        notes: note || `Donación solidaria de ${actualQty} ${sourceMedication.presentation}s de ${sourcePatientName}.`
+      }
+    };
+  } else if (recipientType === 'known_contact') {
+    destinationName = recipientName?.trim() || 'Conocido / Amigo / Vecino';
+  } else {
+    destinationName = recipientName?.trim() || 'Dispensario Comunitario / Persona en Necesidad';
+  }
 
   return {
     updatedSourceMed,
     createdOrUpdatedTargetMed,
     transferLog: {
       fromPatient: sourcePatientName,
-      toPatient: targetPatientName,
+      recipientType,
+      toRecipient: destinationName,
       medicationName: sourceMedication.name,
       quantity: actualQty,
       savingsAmount: commercialEstimatedValue,

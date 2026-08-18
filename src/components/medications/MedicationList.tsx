@@ -81,7 +81,9 @@ export const MedicationList: React.FC = () => {
   };
 
   const [transferModalMed, setTransferModalMed] = useState<Medication | null>(null);
+  const [donationType, setDonationType] = useState<'family_member' | 'known_contact' | 'dispensary_or_stranger'>('family_member');
   const [targetPatientId, setTargetPatientId] = useState<string>('');
+  const [customRecipientName, setCustomRecipientName] = useState<string>('');
   const [transferQty, setTransferQty] = useState<number>(1);
   const [transferNote, setTransferNote] = useState<string>('');
   const [transferSavings, setTransferSavings] = useState<number>(0);
@@ -106,40 +108,45 @@ export const MedicationList: React.FC = () => {
   const handleOpenTransferModal = (med: Medication) => {
     const otherPatients = patients.filter(p => p.id !== activePatient.id);
     setTransferModalMed(med);
+    setDonationType(otherPatients.length > 0 ? 'family_member' : 'known_contact');
     setTargetPatientId(otherPatients[0]?.id || '');
+    setCustomRecipientName('');
     setTransferQty(med.currentStock);
     setTransferSavings(med.unitCost || 450);
     setTransferNote(
       language === 'es'
-        ? `Medicamento que ${activePatient.name} ya no utiliza y se traspasa solidariamente.`
-        : `Unused medication transferred as family donation.`
+        ? `Medicamento que ${activePatient.name} ya no utiliza y se dona solidariamente.`
+        : `Unused medication donated.`
     );
   };
 
   const handleConfirmTransfer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!transferModalMed || !targetPatientId || transferQty <= 0) return;
+    if (!transferModalMed || transferQty <= 0) return;
 
     const targetPatient = patients.find(p => p.id === targetPatientId);
-    if (!targetPatient) return;
 
-    const { updatedSourceMed, createdOrUpdatedTargetMed } = transferMedicationStock({
+    const { updatedSourceMed, createdOrUpdatedTargetMed, transferLog } = transferMedicationStock({
       sourceMedication: transferModalMed,
       sourcePatientName: activePatient.name,
-      targetPatientId: targetPatient.id,
-      targetPatientName: targetPatient.name,
+      recipientType: donationType,
+      targetPatientId: donationType === 'family_member' ? targetPatient?.id : undefined,
+      targetPatientName: donationType === 'family_member' ? targetPatient?.name : undefined,
+      recipientName: donationType !== 'family_member' ? customRecipientName : undefined,
       quantityToTransfer: Number(transferQty),
       commercialEstimatedValue: Number(transferSavings),
       note: transferNote
     });
 
     updateMedication(updatedSourceMed);
-    addMedication(createdOrUpdatedTargetMed);
+    if (createdOrUpdatedTargetMed) {
+      addMedication(createdOrUpdatedTargetMed);
+    }
 
     setTransferToast(
       language === 'es'
-        ? `🤝 ¡Traspaso solidario exitoso! Se transfirieron ${transferQty} ${transferModalMed.presentation}s a ${targetPatient.name}.`
-        : `🤝 Successful donation! Transferred ${transferQty} items to ${targetPatient.name}.`
+        ? `🤝 ¡Donación solidaria registrada! Se donaron ${transferQty} ${transferModalMed.presentation}s a ${transferLog.toRecipient}.`
+        : `🤝 Successful donation! Transferred ${transferQty} items to ${transferLog.toRecipient}.`
     );
     setTimeout(() => setTransferToast(null), 5000);
     setTransferModalMed(null);
@@ -684,8 +691,8 @@ export const MedicationList: React.FC = () => {
 
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               {language === 'es'
-                ? `Traspasa medicamento que ${activePatient.name} ya no utiliza (ej. sobrante del IMSS o tratamiento finalizado) a otro familiar que lo necesite a costo $0 MXN.`
-                : `Transfer unused medication from ${activePatient.name} to another family member at $0 cost.`}
+                ? `Dona medicamento que ${activePatient.name} ya no utiliza (sobrante del IMSS o tratamiento concluido) a un familiar, amigo, vecino o dispensario a costo $0 MXN.`
+                : `Donate unused medication to a family member, friend, neighbor or community dispensary at $0 cost.`}
             </p>
 
             <form onSubmit={handleConfirmTransfer}>
@@ -707,24 +714,128 @@ export const MedicationList: React.FC = () => {
                 )}
               </div>
 
+              {/* Destination Selector: Family / Known / Dispensary */}
               <div className="form-group">
                 <label className="form-label">
-                  👤 {language === 'es' ? 'Familiar Receptor (A quién se lo donas)' : 'Receiving Family Member'}
+                  🎁 {language === 'es' ? '¿A quién deseas donar este medicamento?' : 'Who are you donating to?'}
                 </label>
-                <select
-                  className="form-select"
-                  value={targetPatientId}
-                  onChange={e => setTargetPatientId(e.target.value)}
-                  required
-                >
-                  {patients
-                    .filter(p => p.id !== activePatient.id)
-                    .map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.primaryDiagnosis || 'Familiar'})
-                      </option>
-                    ))}
-                </select>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${donationType === 'family_member' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setDonationType('family_member')}
+                    style={{ fontSize: '0.75rem', justifyContent: 'center' }}
+                  >
+                    👨‍👩‍👧 {language === 'es' ? 'Familiar en App' : 'Family Member'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${donationType === 'known_contact' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => {
+                      setDonationType('known_contact');
+                      if (!customRecipientName) setCustomRecipientName('Don Paco (Vecino)');
+                    }}
+                    style={{ fontSize: '0.75rem', justifyContent: 'center' }}
+                  >
+                    👤 {language === 'es' ? 'Amigo / Vecino' : 'Friend / Neighbor'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${donationType === 'dispensary_or_stranger' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => {
+                      setDonationType('dispensary_or_stranger');
+                      if (!customRecipientName) setCustomRecipientName('Dispensario Comunitario / Persona en Necesidad');
+                    }}
+                    style={{ fontSize: '0.75rem', justifyContent: 'center' }}
+                  >
+                    🏥 {language === 'es' ? 'Dispensario / Ayuda' : 'Dispensary / Charity'}
+                  </button>
+                </div>
+
+                {/* Family Member dropdown */}
+                {donationType === 'family_member' && (
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                      {language === 'es' ? 'Selecciona al Familiar Receptor:' : 'Select Family Member:'}
+                    </label>
+                    <select
+                      className="form-select"
+                      value={targetPatientId}
+                      onChange={e => setTargetPatientId(e.target.value)}
+                      required
+                    >
+                      {patients
+                        .filter(p => p.id !== activePatient.id)
+                        .map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.primaryDiagnosis || 'Familiar'})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Known contact text input */}
+                {donationType === 'known_contact' && (
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                      {language === 'es' ? 'Nombre del Amigo, Vecino o Conocido:' : 'Name of Friend / Neighbor:'}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={customRecipientName}
+                      onChange={e => setCustomRecipientName(e.target.value)}
+                      placeholder="e.g. Don Paco (Vecino), Amiga de mamá, Compañero de trabajo"
+                      required
+                    />
+                    <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                      {['Don Paco (Vecino)', 'Amiga de Doña María', 'Compañero de Trabajo', 'Tía / Pariente Fuera de App'].map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setCustomRecipientName(preset)}
+                          style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)' }}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dispensary or Stranger text input */}
+                {donationType === 'dispensary_or_stranger' && (
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                      {language === 'es' ? 'Institución, Dispensario o Causa Social:' : 'Charity or Dispensary:'}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={customRecipientName}
+                      onChange={e => setCustomRecipientName(e.target.value)}
+                      placeholder="e.g. Dispensario Parroquial, Cruz Roja, Persona en Sala de Espera"
+                      required
+                    />
+                    <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                      {['Dispensario Parroquial San Judas', 'Cruz Roja / Centro de Salud', 'Persona en Necesidad (IMSS)', 'Banco de Medicinas Comunitario'].map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setCustomRecipientName(preset)}
+                          style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)' }}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid-2">

@@ -85,18 +85,54 @@ describe('Pharmacy Loyalty Programs (3+1 Free) & Family Medication Solidarity Ba
     expect(transferLog.savingsAmount).toBe(450);
   });
 
-  it('3. Should calculate total family savings from pharmacy promos and inter-family donations', () => {
+  it('3. Should support donating unused medication to friends, neighbors, acquaintances, or unknown persons in need / dispensaries', () => {
+    // Donation to a known neighbor
+    const neighborDonation = transferMedicationStock({
+      sourceMedication: pregabalinaMedMaria,
+      sourcePatientName: patientMaria.name,
+      recipientType: 'known_contact',
+      recipientName: 'Don Paco (Vecino)',
+      quantityToTransfer: 14,
+      commercialEstimatedValue: 225,
+      note: 'Donación solidaria de 14 cápsulas a Don Paco vecino para su tratamiento.'
+    });
+
+    expect(neighborDonation.updatedSourceMed.currentStock).toBe(14);
+    expect(neighborDonation.createdOrUpdatedTargetMed).toBeUndefined(); // Not inside the app's patient list
+    expect(neighborDonation.transferLog.recipientType).toBe('known_contact');
+    expect(neighborDonation.transferLog.toRecipient).toBe('Don Paco (Vecino)');
+    expect(neighborDonation.transferLog.savingsAmount).toBe(225);
+
+    // Donation to an unknown person in need / community dispensary
+    const dispensaryDonation = transferMedicationStock({
+      sourceMedication: neighborDonation.updatedSourceMed,
+      sourcePatientName: patientMaria.name,
+      recipientType: 'dispensary_or_stranger',
+      recipientName: 'Dispensario Médico Parroquial / Persona en Necesidad',
+      quantityToTransfer: 14,
+      commercialEstimatedValue: 225,
+      note: 'Donación a dispensario comunitario para pacientes de escasos recursos.'
+    });
+
+    expect(dispensaryDonation.updatedSourceMed.currentStock).toBe(0);
+    expect(dispensaryDonation.transferLog.recipientType).toBe('dispensary_or_stranger');
+    expect(dispensaryDonation.transferLog.toRecipient).toContain('Dispensario');
+  });
+
+  it('4. Should calculate total family savings and social impact from pharmacy promos, inter-family donations, and altruistic community donations', () => {
     const savings = calculateLoyaltyAndSolidaritySavings({
       loyaltyFreeBoxesClaimed: [
         { medicationName: 'Eyestil Plus', storeName: 'Farmacias Value', value: 380 }
       ],
       solidarityTransfers: [
-        { medicationName: 'Pregabalina 75mg', from: 'Doña María', to: 'Suegra', estimatedValue: 450 }
+        { medicationName: 'Pregabalina 75mg', from: 'Doña María', to: 'Suegra', estimatedValue: 450 },
+        { medicationName: 'Pregabalina 75mg', from: 'Doña María', to: 'Don Paco (Vecino)', estimatedValue: 225 },
+        { medicationName: 'Gotas Kintantek', from: 'Donación de Amigo', to: 'Don Manuel', estimatedValue: 600 }
       ]
     });
 
     expect(savings.totalLoyaltySavings).toBe(380);
-    expect(savings.totalSolidaritySavings).toBe(450);
-    expect(savings.grandTotalSmartSavings).toBe(830);
+    expect(savings.totalSolidaritySavings).toBe(1275);
+    expect(savings.grandTotalSmartSavings).toBe(1655);
   });
 });

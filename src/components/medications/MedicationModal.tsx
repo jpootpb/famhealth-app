@@ -505,44 +505,80 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
             </div>
 
-            {/* IMSS / Institutional Supply Toggle */}
-            <div
-              style={{
-                backgroundColor: isImssCovered ? '#ecfdf5' : '#ffffff',
-                border: isImssCovered ? '1.5px solid #10b981' : '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.75rem',
-                marginBottom: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer'
-              }}
-              onClick={() => {
-                const next = !isImssCovered;
-                setIsImssCovered(next);
-                if (next) {
-                  setUnitCost(0);
-                  if (!preferredStore) setPreferredStore('IMSS / Sector Salud');
-                }
-              }}
-            >
-              <div>
-                <strong style={{ fontSize: '0.8125rem', color: isImssCovered ? '#065f46' : 'var(--text-primary)' }}>
-                  🏥 {language === 'es' ? 'Medicamento Suministrado Gratis por el IMSS / ISSSTE' : 'Supplied Free by IMSS / Public Healthcare'}
-                </strong>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                  {language === 'es'
-                    ? 'No genera costo de compra ni división de gastos ($0 MXN).'
-                    : 'Zero financial cost ($0 MXN). Excluded from family expense split.'}
-                </p>
+            {/* IMSS & Free Donation / Gift Toggles */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <div
+                style={{
+                  backgroundColor: isImssCovered ? '#ecfdf5' : '#ffffff',
+                  border: isImssCovered ? '1.5px solid #10b981' : '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.625rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  const next = !isImssCovered;
+                  setIsImssCovered(next);
+                  if (next) {
+                    setUnitCost(0);
+                    if (!preferredStore) setPreferredStore('IMSS / Sector Salud');
+                  }
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '0.78rem', color: isImssCovered ? '#065f46' : 'var(--text-primary)' }}>
+                    🏥 {language === 'es' ? 'Surtido Gratis IMSS / ISSSTE' : 'IMSS Public Healthcare'}
+                  </strong>
+                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    $0 MXN
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isImssCovered}
+                  onChange={() => {}}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={isImssCovered}
-                onChange={() => {}} // Controlled by div onClick
-                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-              />
+
+              <div
+                style={{
+                  backgroundColor: !isImssCovered && unitCost === 0 ? '#fdf4ff' : '#ffffff',
+                  border: !isImssCovered && unitCost === 0 ? '1.5px solid #c084fc' : '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.625rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  if (unitCost === 0 && !isImssCovered) {
+                    setUnitCost('');
+                  } else {
+                    setIsImssCovered(false);
+                    setUnitCost(0);
+                    if (!preferredStore) setPreferredStore('Regalo / Donación Solidaria');
+                  }
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '0.78rem', color: !isImssCovered && unitCost === 0 ? '#7e22ce' : 'var(--text-primary)' }}>
+                    🤝 {language === 'es' ? 'Regalo / Donación Solidaria' : 'Gift / Solidarity Donation'}
+                  </strong>
+                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    {language === 'es' ? 'Amigo, vecino o dispensario ($0)' : 'Friend, neighbor or charity ($0)'}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={!isImssCovered && unitCost === 0}
+                  onChange={() => {}}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+              </div>
             </div>
 
             {/* Preferred Store & Purchase Notes for Siblings */}
