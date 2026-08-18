@@ -24,7 +24,7 @@ describe('App Offline Persistence (LocalStore)', () => {
   it('1. Should initialize with default patients in clean Spanish', () => {
     const patients = LocalStore.getPatients();
     expect(patients.length).toBeGreaterThanOrEqual(2);
-    expect(patients[0].name).toBe('Don Manuel Poot');
+    expect(patients[0].name).toContain('Don Manuel Poot');
     expect(patients[1].name).toContain('María');
   });
 

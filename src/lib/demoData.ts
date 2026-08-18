@@ -37,7 +37,7 @@ export const initialPatients: Patient[] = [
   {
     id: 'patient-grandfather',
     familyId: 'circle-poot',
-    name: 'Don Manuel Poot',
+    name: 'Don Manuel Poot (Papá)',
     age: 78,
     type: 'chronic',
     primaryDiagnosis: 'Diabetes Tipo 2 e Hipertensión',
@@ -46,13 +46,22 @@ export const initialPatients: Patient[] = [
   {
     id: 'patient-maria',
     familyId: 'circle-poot',
-    name: 'Doña María Poot',
-    age: 52,
+    name: 'Doña María Poot (Mamá)',
+    age: 74,
     type: 'temporary',
-    primaryDiagnosis: 'Bronquitis Aguda',
+    primaryDiagnosis: 'Tratamiento Antibiótico & Cuidado General',
     treatmentStartDate: '2026-08-15',
     durationDays: 7,
-    notes: 'Tomar antibiótico con alimentos. Reposo por 5 días.'
+    notes: 'Tomar medicamento con alimentos. Reposo y control médico.'
+  },
+  {
+    id: 'patient-jose',
+    familyId: 'circle-poot',
+    name: 'José Manuel Poot (Mi Autocuidado)',
+    age: 38,
+    type: 'preventive',
+    primaryDiagnosis: 'Prediabetes y Control Preventivo',
+    notes: 'Monitoreo de glucosa en ayunas, peso y gotas oculares Eyestil Plus.'
   },
   {
     id: 'patient-suegro',
@@ -203,10 +212,10 @@ export const initialMedications: Medication[] = [
   {
     id: 'med-eyestil',
     familyId: 'circle-poot',
-    patientId: 'patient-grandfather',
+    patientId: 'patient-jose',
     name: 'Eyestil Plus Gotas Oftálmicas',
     presentation: 'drops',
-    indication: 'Lubricación y protección ocular',
+    indication: 'Lubricación y protección ocular (Autocuidado)',
     laboratory: 'Sifi',
     expirationDate: '2027-12-01',
     isImssCovered: false,
@@ -392,10 +401,10 @@ export const initialCampaigns: MonitoringCampaign[] = [
 
 export const initialFamilies: FamilyMember[] = [
   {
-    id: 'fam-carlos',
+    id: 'fam-jose',
     familyId: 'circle-poot',
-    name: 'Carlos Poot',
-    relationship: 'Hijo / Cuidador Principal',
+    name: 'José Manuel Poot',
+    relationship: 'Hijo / Cuidador Principal de Papá y Mamá',
     shift: 'morning',
     isDefaultCaregiver: true,
     phone: '5219991234567',

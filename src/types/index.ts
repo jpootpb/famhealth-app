@@ -1,4 +1,4 @@
-export type PatientType = 'chronic' | 'temporary';
+export type PatientType = 'chronic' | 'temporary' | 'preventive';
 
 export interface FamilyCircle {
   id: string;
