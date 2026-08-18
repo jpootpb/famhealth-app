@@ -90,4 +90,40 @@ describe('Manual Medication Completion & Archive Engine (TDD)', () => {
 
     expect(slots.length).toBe(2);
   });
+
+  it('4. Should properly support ophthalmic drops like Krytantek with manual bottle stock control', () => {
+    const krytantekMed: Medication = {
+      id: 'med-krytantek-1',
+      patientId: 'patient-test-1',
+      name: 'Krytantek Ofteno Gotas',
+      presentation: 'drops',
+      stockTrackingMode: 'manual_bottle',
+      laboratory: 'Sophia',
+      indication: 'Glaucoma / Presión intraocular',
+      frequency: {
+        type: 'daily_fixed',
+        doseSlots: [
+          { time: '08:00', dose: 1, instruction: '1 gota en ojo derecho' },
+          { time: '20:00', dose: 1, instruction: '1 gota en ojo derecho' }
+        ],
+        startDate: '2026-08-01'
+      },
+      currentStock: 1,
+      minimumStockAlert: 0,
+      status: 'active'
+    };
+
+    const today = new Date(2026, 7, 18);
+    const slots = generateUnifiedCaregiverTimeline({
+      patients: [testPatient],
+      medications: [krytantekMed],
+      doseLogs: [],
+      date: today
+    });
+
+    expect(slots.length).toBe(2);
+    expect(slots[0].instruction).toBe('1 gota en ojo derecho');
+    expect(slots[0].presentation).toBe('drops');
+    expect(slots[1].time).toBe('20:00');
+  });
 });

@@ -332,7 +332,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               </span>
 
               <span className="fractional-badge">
-                {formatDose(slot.dose, slot.presentation)}
+                {formatDose(slot.dose, slot.presentation, language as any)}
               </span>
 
               {overdue && (

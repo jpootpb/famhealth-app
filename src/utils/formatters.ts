@@ -1,11 +1,37 @@
 import { VitalSign, MonitoringCampaign } from '../types';
 
-export function formatDose(dose: number, presentation: string = 'tablet'): string {
-  if (dose === 0.5) return '1/2 ' + presentation;
-  if (dose === 0.25) return '1/4 ' + presentation;
-  if (dose === 0.75) return '3/4 ' + presentation;
-  if (dose === 1) return '1 ' + presentation;
-  return dose + ' ' + presentation + (dose > 1 ? 's' : '');
+export function formatDose(dose: number, presentation: string = 'tablet', lang: 'es' | 'en' = 'es'): string {
+  const isEn = lang === 'en';
+  const pres = presentation.toLowerCase();
+
+  if (pres.includes('drop') || pres.includes('gota')) {
+    if (dose === 1) return isEn ? '1 drop' : '1 gota';
+    return isEn ? `${dose} drops` : `${dose} gotas`;
+  }
+
+  if (pres.includes('spray') || pres.includes('atomiz') || pres.includes('disparo')) {
+    if (dose === 1) return isEn ? '1 spray/puff' : '1 disparo';
+    return isEn ? `${dose} sprays/puffs` : `${dose} disparos`;
+  }
+
+  if (pres.includes('inhal')) {
+    if (dose === 1) return isEn ? '1 puff' : '1 inhalación';
+    return isEn ? `${dose} puffs` : `${dose} inhalaciones`;
+  }
+
+  if (pres.includes('cream') || pres.includes('pomada') || pres.includes('gel') || pres.includes('ungüento')) {
+    return isEn ? '1 application' : '1 aplicación';
+  }
+
+  if (pres.includes('ml')) {
+    return `${dose} ml`;
+  }
+
+  if (dose === 0.5) return isEn ? '1/2 unit' : '1/2 ' + (pres.includes('capsul') ? 'cápsula' : 'tableta');
+  if (dose === 0.25) return isEn ? '1/4 unit' : '1/4 ' + (pres.includes('capsul') ? 'cápsula' : 'tableta');
+  if (dose === 0.75) return isEn ? '3/4 unit' : '3/4 ' + (pres.includes('capsul') ? 'cápsula' : 'tableta');
+  if (dose === 1) return isEn ? `1 ${presentation}` : `1 ${presentation === 'tablet' ? 'tableta' : presentation === 'capsule' ? 'cápsula' : presentation}`;
+  return `${dose} ${presentation}${dose > 1 && !pres.endsWith('s') ? 's' : ''}`;
 }
 
 export function formatCurrency(amount: number): string {
@@ -22,14 +48,30 @@ export interface StockStatusResult {
   badgeClass: string;
 }
 
-export function getStockStatus(current: number, minimum: number): StockStatusResult {
+export function getStockStatus(
+  current: number,
+  minimum: number,
+  stockTrackingMode?: 'pieces' | 'manual_bottle',
+  lang: 'es' | 'en' = 'es'
+): StockStatusResult {
+  const isEn = lang === 'en';
+
+  if (stockTrackingMode === 'manual_bottle') {
+    return {
+      status: 'ok',
+      label: isEn ? '1 Bottle in use (Manual tracking)' : '🧴 1 Frasco / Tubo en uso (Control manual)',
+      color: '#0284c7',
+      badgeClass: 'badge-blue'
+    };
+  }
+
   if (current <= 0) {
-    return { status: 'depleted', label: 'Out of Stock (0)', color: '#dc2626', badgeClass: 'badge-red' };
+    return { status: 'depleted', label: isEn ? 'Out of Stock (0)' : 'Agotado (0)', color: '#dc2626', badgeClass: 'badge-red' };
   }
   if (current <= minimum) {
-    return { status: 'low', label: 'Low Stock (' + current + ')', color: '#d97706', badgeClass: 'badge-yellow' };
+    return { status: 'low', label: isEn ? `Low Stock (${current})` : `Poco Stock (${current})`, color: '#d97706', badgeClass: 'badge-yellow' };
   }
-  return { status: 'ok', label: 'In Stock (' + current + ')', color: '#16a34a', badgeClass: 'badge-green' };
+  return { status: 'ok', label: isEn ? `In Stock (${current})` : `En Stock (${current})`, color: '#16a34a', badgeClass: 'badge-green' };
 }
 
 export interface ExpirationStatusResult {

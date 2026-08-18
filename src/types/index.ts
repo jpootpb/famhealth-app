@@ -127,6 +127,8 @@ export interface Medication {
   };
   badgeColor?: string;
   expirationDate?: string; // YYYY-MM-DD
+  stockTrackingMode?: 'pieces' | 'manual_bottle'; // 'pieces' = subtract units on each dose; 'manual_bottle' = eye drops/ointments/syrups managed manually until empty
+  route?: 'oral' | 'ophthalmic' | 'topical' | 'nasal' | 'otic' | 'inhalation' | 'injectable' | 'other';
   status?: 'active' | 'completed' | 'suspended';
   completedAt?: string; // ISO date string when medicine was finished / stopped
   completionReason?: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other';

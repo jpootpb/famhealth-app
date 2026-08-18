@@ -41,6 +41,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [indication, setIndication] = useState('');
   const [laboratory, setLaboratory] = useState('');
   const [imageUrl, setImageUrl] = useState<string>('');
+  const [stockTrackingMode, setStockTrackingMode] = useState<'pieces' | 'manual_bottle'>('pieces');
   const [currentStock, setCurrentStock] = useState<number>(30);
   const [minimumStockAlert, setMinimumStockAlert] = useState<number>(5);
   const [unitCost, setUnitCost] = useState<number | ''>('');
@@ -200,11 +201,12 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       patientId: assignedPatientId || activePatient.id,
       name: name.trim(),
       presentation,
+      stockTrackingMode,
       indication: indication.trim() || undefined,
       laboratory: laboratory.trim() || undefined,
       imageUrl: imageUrl || undefined,
-      currentStock: Number(currentStock) || 0,
-      minimumStockAlert: Number(minimumStockAlert) || 3,
+      currentStock: stockTrackingMode === 'manual_bottle' ? 1 : (Number(currentStock) || 0),
+      minimumStockAlert: stockTrackingMode === 'manual_bottle' ? 0 : (Number(minimumStockAlert) || 3),
       unitCost: isImssCovered ? 0 : (unitCost ? Number(unitCost) : undefined),
       isImssCovered,
       source: (isImssCovered ? 'imss' : (preferredStore ? 'private_pharmacy' : undefined)) as any,
@@ -342,17 +344,75 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               <select
                 className="form-select"
                 value={presentation}
-                onChange={e => setPresentation(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setPresentation(val);
+                  const isLiquid = ['drops', 'ear_drops', 'nasal_spray', 'syrup', 'cream', 'inhalation'].includes(val);
+                  if (isLiquid) {
+                    setStockTrackingMode('manual_bottle');
+                  } else {
+                    setStockTrackingMode('pieces');
+                  }
+                }}
               >
-                <option value="tablet">{t('presTablet')}</option>
-                <option value="capsule">{t('presCapsule')}</option>
-                <option value="ml">{t('presMl')}</option>
-                <option value="drops">{t('presDrops')}</option>
-                <option value="inhalation">{t('presInhalation')}</option>
-                <option value="injection">{t('presInjection')}</option>
-                <option value="patch">{t('presPatch')}</option>
-                <option value="sachet">{t('presSachet')}</option>
+                <option value="tablet">💊 {language === 'es' ? 'Tableta / Pastilla' : 'Tablet'}</option>
+                <option value="capsule">💊 {language === 'es' ? 'Cápsula' : 'Capsule'}</option>
+                <option value="drops">👁️ {language === 'es' ? 'Gotas Oftálmicas (Ojos) / Gotero (ej. Krytantek)' : 'Eye Drops'}</option>
+                <option value="ear_drops">👂 {language === 'es' ? 'Gotas Óticas (Oídos)' : 'Ear Drops'}</option>
+                <option value="nasal_spray">👃 {language === 'es' ? 'Spray / Gotas Nasales' : 'Nasal Spray'}</option>
+                <option value="syrup">🥄 {language === 'es' ? 'Jarabe / Suspensión Líquida' : 'Syrup'}</option>
+                <option value="cream">🧴 {language === 'es' ? 'Crema / Pomada / Gel / Ungüento' : 'Cream / Ointment'}</option>
+                <option value="inhalation">🫁 {language === 'es' ? 'Inhalador / Aerosol (Disparos)' : 'Inhaler / Puffs'}</option>
+                <option value="injection">💉 {language === 'es' ? 'Inyectable / Ampolleta' : 'Injection'}</option>
+                <option value="patch">🩹 {language === 'es' ? 'Parche Transdérmico' : 'Patch'}</option>
+                <option value="sachet">🍵 {language === 'es' ? 'Sobre / Polvo soluble' : 'Sachet'}</option>
               </select>
+            </div>
+          </div>
+
+          {/* Stock Tracking Mode Switcher */}
+          <div
+            className="card"
+            style={{
+              padding: '0.875rem 1rem',
+              backgroundColor: stockTrackingMode === 'manual_bottle' ? '#f0f9ff' : '#ffffff',
+              border: `1.5px solid ${stockTrackingMode === 'manual_bottle' ? '#0284c7' : 'var(--border-color)'}`,
+              marginBottom: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <strong style={{ fontSize: '0.875rem', color: stockTrackingMode === 'manual_bottle' ? '#0369a1' : 'var(--text-primary)' }}>
+                  📦 {language === 'es' ? 'Modo de Control de Inventario / Stock:' : 'Stock Control Mode:'}
+                </strong>
+                <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  {stockTrackingMode === 'manual_bottle'
+                    ? (language === 'es' ? '🧴 Control Manual de Frasco / Gotero (ideal para gotas, jarabes o pomadas sin restar pastillas).' : 'Manual bottle control.')
+                    : (language === 'es' ? '🔢 Control por Pastillas / Piezas (resta cada dosis tomada con alerta de poco stock).' : 'Unit subtraction mode.')}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${stockTrackingMode === 'pieces' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setStockTrackingMode('pieces')}
+                  style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  🔢 {language === 'es' ? 'Por Pastillas / Piezas' : 'By Pieces'}
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${stockTrackingMode === 'manual_bottle' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setStockTrackingMode('manual_bottle')}
+                  style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: stockTrackingMode === 'manual_bottle' ? '#0284c7' : undefined, borderColor: '#0284c7' }}
+                >
+                  🧴 {language === 'es' ? 'Frasco / Gotero Manual' : 'Manual Bottle'}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -920,14 +980,36 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                     <option value={3}>3</option>
                   </select>
 
-                  <input
-                    type="text"
-                    className="form-input"
-                    style={{ flex: 1 }}
-                    placeholder={t('instructionsPlaceholder')}
-                    value={slot.instruction || ''}
-                    onChange={e => handleUpdateDoseSlot(idx, 'instruction', e.target.value)}
-                  />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ width: '100%' }}
+                      placeholder={language === 'es' ? 'ej: 1 gota en ojo derecho, con el desayuno' : t('instructionsPlaceholder')}
+                      value={slot.instruction || ''}
+                      onChange={e => handleUpdateDoseSlot(idx, 'instruction', e.target.value)}
+                    />
+                    <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                      {[
+                        { label: '👁️ Ojo derecho', text: '1 gota en ojo derecho' },
+                        { label: '👁️ Ojo izquierdo', text: '1 gota en ojo izquierdo' },
+                        { label: '👁️ Ambos ojos', text: '1 gota en ambos ojos' },
+                        { label: '👃 Fosa nasal', text: '1 disparo en cada fosa nasal' },
+                        { label: '🍽️ Con alimentos', text: 'Con alimentos' },
+                        { label: '🌙 Al dormir', text: 'Antes de dormir' }
+                      ].map(chip => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleUpdateDoseSlot(idx, 'instruction', chip.text)}
+                          style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-full)' }}
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   {doseSlots.length > 1 && (
                     <button

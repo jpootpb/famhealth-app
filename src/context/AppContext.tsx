@@ -351,7 +351,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const existing = allDoseLogs[existingIndex];
       if (existing.taken) {
         setAllMedications(prev => prev.map(m => {
-          if (m.id === medicationId) {
+          if (m.id === medicationId && m.stockTrackingMode !== 'manual_bottle') {
             return { ...m, currentStock: m.currentStock + existing.dose };
           }
           return m;
@@ -377,6 +377,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       setAllMedications(prev => prev.map(m => {
         if (m.id === medicationId) {
+          if (m.stockTrackingMode === 'manual_bottle') {
+            return m; // Manual bottle control does not decrease pills
+          }
           const newStock = Math.max(0, m.currentStock - dose);
           if (newStock <= m.minimumStockAlert) {
             sendLocalNotification(

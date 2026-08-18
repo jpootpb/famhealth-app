@@ -403,7 +403,7 @@ export const MedicationList: React.FC = () => {
       ) : (
         <div className="grid-2">
           {currentDisplayList.map(med => {
-            const stockStatus = getStockStatus(med.currentStock, med.minimumStockAlert);
+            const stockStatus = getStockStatus(med.currentStock, med.minimumStockAlert, med.stockTrackingMode, language as any);
             const expStatus = getExpirationStatus(med.expirationDate);
             const freqLabel = getFrequencyLabel(med.frequency);
             const isCompleted = med.status === 'completed' || med.status === 'suspended';
@@ -421,6 +421,8 @@ export const MedicationList: React.FC = () => {
                   borderTop: `4px solid ${
                     isCompleted
                       ? '#94a3b8'
+                      : med.stockTrackingMode === 'manual_bottle'
+                      ? '#0284c7'
                       : stockStatus.status === 'ok'
                       ? 'var(--success)'
                       : stockStatus.status === 'low'
@@ -491,7 +493,7 @@ export const MedicationList: React.FC = () => {
                       ) : (
                         <>
                           <span className={`badge ${stockStatus.badgeClass}`}>
-                            {stockStatus.label}: {med.currentStock} {med.presentation}s
+                            {stockStatus.label}
                           </span>
                           {med.expirationDate && (
                             <span className={`badge ${expStatus.badgeClass}`} style={{ fontSize: '0.7rem' }}>
@@ -639,14 +641,16 @@ export const MedicationList: React.FC = () => {
                       </button>
                     ) : (
                       <>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleQuickRestock(med, 30)}
-                          style={{ fontSize: '0.75rem' }}
-                          title={language === 'es' ? 'Resurtir +30 pastillas o dosis' : 'Restock +30 units'}
-                        >
-                          <PackagePlus size={14} /> +30
-                        </button>
+                        {med.stockTrackingMode !== 'manual_bottle' && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleQuickRestock(med, 30)}
+                            style={{ fontSize: '0.75rem' }}
+                            title={language === 'es' ? 'Resurtir +30 pastillas o dosis' : 'Restock +30 units'}
+                          >
+                            <PackagePlus size={14} /> +30
+                          </button>
+                        )}
 
                         <button
                           className="btn btn-secondary btn-sm"
