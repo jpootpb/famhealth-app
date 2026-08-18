@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { Medication, FrequencyType, DoseSlot } from '../../types';
 import {
   X,
@@ -27,6 +28,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   medicationToEdit
 }) => {
   const { activePatient, addMedication, updateMedication } = useApp();
+  const { t, language } = useLanguage();
 
   const [name, setName] = useState('');
   const [presentation, setPresentation] = useState('tablet');
@@ -48,7 +50,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
   // Dose Slots
   const [doseSlots, setDoseSlots] = useState<DoseSlot[]>([
-    { time: '08:00', dose: 1, instruction: 'With breakfast' }
+    { time: '08:00', dose: 1, instruction: 'Con el desayuno' }
   ]);
 
   useEffect(() => {
@@ -84,9 +86,9 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setDurationDays(7);
       setIntervalDays(2);
       setIntervalHours(8);
-      setDoseSlots([{ time: '08:00', dose: 1, instruction: 'With breakfast' }]);
+      setDoseSlots([{ time: '08:00', dose: 1, instruction: language === 'es' ? 'Con el desayuno' : 'With breakfast' }]);
     }
-  }, [medicationToEdit, isOpen]);
+  }, [medicationToEdit, isOpen, language]);
 
   if (!isOpen || !activePatient) return null;
 
@@ -104,7 +106,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   };
 
   const handleAddDoseSlot = () => {
-    setDoseSlots(prev => [...prev, { time: '20:00', dose: 1, instruction: 'With dinner' }]);
+    setDoseSlots(prev => [...prev, { time: '20:00', dose: 1, instruction: language === 'es' ? 'Con la cena' : 'With dinner' }]);
   };
 
   const handleRemoveDoseSlot = (index: number) => {
@@ -174,7 +176,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Pill size={22} color="var(--primary)" />
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-              {medicationToEdit ? 'Edit Medication' : 'Add Medication / Schedule'}
+              {medicationToEdit ? t('editMedTitle') : t('addMedTitle')}
             </h2>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close modal">
@@ -186,11 +188,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
           {/* Basic Details */}
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Medication Name *</label>
+              <label className="form-label">{t('medName')}</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Metformin, Rivaroxaban, Aspirin"
+                placeholder={t('medNamePlaceholder')}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
@@ -198,42 +200,42 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Presentation</label>
+              <label className="form-label">{t('presentation')}</label>
               <select
                 className="form-select"
                 value={presentation}
                 onChange={e => setPresentation(e.target.value)}
               >
-                <option value="tablet">Tablet / Pill</option>
-                <option value="capsule">Capsule</option>
-                <option value="ml">Syrup / Liquid (ml)</option>
-                <option value="drops">Drops</option>
-                <option value="inhalation">Inhaler / Puffs</option>
-                <option value="injection">Injection / Unit</option>
-                <option value="patch">Patch</option>
-                <option value="sachet">Sachet / Powder</option>
+                <option value="tablet">{t('presTablet')}</option>
+                <option value="capsule">{t('presCapsule')}</option>
+                <option value="ml">{t('presMl')}</option>
+                <option value="drops">{t('presDrops')}</option>
+                <option value="inhalation">{t('presInhalation')}</option>
+                <option value="injection">{t('presInjection')}</option>
+                <option value="patch">{t('presPatch')}</option>
+                <option value="sachet">{t('presSachet')}</option>
               </select>
             </div>
           </div>
 
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Laboratory / Brand Manufacturer</label>
+              <label className="form-label">{t('labBrand')}</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Silanes, Bayer, Genérico GI, Sanofi"
+                placeholder={t('labBrandPlaceholder')}
                 value={laboratory}
                 onChange={e => setLaboratory(e.target.value)}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">Indication / Medical Purpose</label>
+              <label className="form-label">{t('medicalIndication')}</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Diabetes control, Blood pressure"
+                placeholder={t('medicalIndicationPlaceholder')}
                 value={indication}
                 onChange={e => setIndication(e.target.value)}
               />
@@ -311,10 +313,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
               <div>
                 <strong style={{ fontSize: '0.875rem', display: 'block' }}>
-                  Photo of Medicine Box / Blister Pack
+                  {t('boxPhoto')}
                 </strong>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Helps caregivers & patients identify the exact box and brand visually.
+                  {t('boxPhotoHint')}
                 </span>
               </div>
             </div>
@@ -324,7 +326,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                 className="btn btn-secondary btn-sm"
                 style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
               >
-                <Camera size={14} /> {imageUrl ? 'Change Photo' : 'Upload / Take Photo'}
+                <Camera size={14} /> {imageUrl ? t('changePhoto') : t('uploadPhoto')}
                 <input
                   type="file"
                   accept="image/*"
@@ -338,11 +340,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
           {/* Stock, Expiration & Cost Settings */}
           <div className="card" style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <AlertCircle size={16} color="var(--primary)" /> Inventory & Expiration Settings
+              <AlertCircle size={16} color="var(--primary)" /> {t('inventorySettings')}
             </h3>
             <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Current Stock Count</label>
+                <label className="form-label">{t('currentStockCount')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -353,7 +355,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Low Stock Alert at</label>
+                <label className="form-label">{t('lowStockThreshold')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -366,7 +368,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
             <div className="grid-2">
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Box Expiration Date (Caducidad)</label>
+                <label className="form-label">{t('expirationDate')}</label>
                 <input
                   type="date"
                   className="form-input"
@@ -376,7 +378,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Cost per Box ($ MXN)</label>
+                <label className="form-label">{t('costPerBox')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -390,23 +392,23 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
           {/* Frequency Type Selector */}
           <div className="form-group">
-            <label className="form-label">Frequency Rule</label>
+            <label className="form-label">{t('frequencyRule')}</label>
             <select
               className="form-select"
               value={frequencyType}
               onChange={e => setFrequencyType(e.target.value as FrequencyType)}
             >
-              <option value="daily_fixed">Daily (Fixed hours with custom doses, e.g. 1 morning, 1/2 night)</option>
-              <option value="alternate_days">Alternate Days (Every other day / Un día sí, un día no)</option>
-              <option value="every_n_days">Every N Days (e.g. Every 3 or 4 days)</option>
-              <option value="temporary_hourly">Temporary Treatment (Antibiotics / Acute course for fixed days)</option>
+              <option value="daily_fixed">{t('dailyFixedOpt')}</option>
+              <option value="alternate_days">{t('alternateDaysOpt')}</option>
+              <option value="every_n_days">{t('everyNDaysOpt')}</option>
+              <option value="temporary_hourly">{t('temporaryHourlyOpt')}</option>
             </select>
           </div>
 
           {/* Start Date */}
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">Treatment Start Date</label>
+              <label className="form-label">{t('startDate')}</label>
               <input
                 type="date"
                 className="form-input"
@@ -418,7 +420,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
             {frequencyType === 'every_n_days' && (
               <div className="form-group">
-                <label className="form-label">Interval (Every X Days)</label>
+                <label className="form-label">{t('intervalDays')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -432,7 +434,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
             {frequencyType === 'temporary_hourly' && (
               <div className="form-group">
-                <label className="form-label">Duration in Days</label>
+                <label className="form-label">{t('durationDays')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -448,7 +450,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
               <label className="form-label" style={{ margin: 0 }}>
-                Scheduled Dosing Times & Fractional Pills
+                {t('dosingHoursFractional')}
               </label>
               <button
                 type="button"
@@ -456,7 +458,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                 onClick={handleAddDoseSlot}
                 style={{ fontSize: '0.75rem' }}
               >
-                <Plus size={14} /> Add Dosing Hour
+                <Plus size={14} /> {t('addDosingHour')}
               </button>
             </div>
 
@@ -489,20 +491,20 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                     value={slot.dose}
                     onChange={e => handleUpdateDoseSlot(idx, 'dose', Number(e.target.value))}
                   >
-                    <option value={0.25}>1/4 {presentation}</option>
-                    <option value={0.5}>1/2 {presentation}</option>
-                    <option value={0.75}>3/4 {presentation}</option>
-                    <option value={1}>1 {presentation}</option>
-                    <option value={1.5}>1 1/2 {presentation}s</option>
-                    <option value={2}>2 {presentation}s</option>
-                    <option value={3}>3 {presentation}s</option>
+                    <option value={0.25}>1/4</option>
+                    <option value={0.5}>1/2</option>
+                    <option value={0.75}>3/4</option>
+                    <option value={1}>1</option>
+                    <option value={1.5}>1 1/2</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
                   </select>
 
                   <input
                     type="text"
                     className="form-input"
                     style={{ flex: 1 }}
-                    placeholder="Instructions (e.g. with meals)"
+                    placeholder={t('instructionsPlaceholder')}
                     value={slot.instruction || ''}
                     onChange={e => handleUpdateDoseSlot(idx, 'instruction', e.target.value)}
                   />
@@ -524,10 +526,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>
-              Cancel
+              {t('cancel')}
             </button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-              {medicationToEdit ? 'Save Changes' : 'Create Medication'}
+              {medicationToEdit ? t('saveChanges') : t('createMedication')}
             </button>
           </div>
         </form>

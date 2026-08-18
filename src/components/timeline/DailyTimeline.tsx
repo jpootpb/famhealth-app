@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { Medication, DoseSlot, DoseLog } from '../../types';
 import {
   Calendar,
@@ -31,19 +32,20 @@ interface DailyTimelineProps {
 
 export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedication }) => {
   const { activePatient, medications, doseLogs, toggleDoseTaken, families } = useApp();
+  const { t, language } = useLanguage();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   // Determine current on-duty caregiver
   const currentShiftCaregiver = getCurrentShiftCaregiver(families, new Date());
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>(
-    currentShiftCaregiver ? currentShiftCaregiver.name : 'Primary Caregiver'
+    currentShiftCaregiver ? currentShiftCaregiver.name : (language === 'es' ? 'Cuidador Principal' : 'Primary Caregiver')
   );
 
   if (!activePatient) {
     return (
       <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Please select a patient profile from the header to view schedule.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>{t('selectPatientPrompt')}</p>
       </div>
     );
   }
@@ -86,7 +88,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
   };
 
   const handleNotifyFamilyDose = (med: Medication, slot: DoseSlot) => {
-    const progressText = `${takenDoses} of ${totalDoses} doses completed today`;
+    const progressText = `${takenDoses} ${t('dosesTakenOf')} ${totalDoses} ${t('completedToday')}`;
     const message = buildDoseTakenWhatsAppMessage(
       activePatient,
       med,
@@ -103,7 +105,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     setCurrentDate(next);
   };
 
-  const formattedDateLabel = currentDate.toLocaleDateString('es-MX', {
+  const formattedDateLabel = currentDate.toLocaleDateString(language === 'es' ? 'es-MX' : 'en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long'
@@ -143,7 +145,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               justifyContent: 'center',
               color: isTaken ? 'var(--success)' : 'var(--border-color)'
             }}
-            title={isTaken ? 'Dose taken. Click to undo' : 'Click to confirm dose taken'}
+            title={isTaken ? t('doseTaken') : t('confirmDose')}
           >
             {isTaken ? (
               <CheckCircle2 size={32} fill="var(--success-light)" />
@@ -157,7 +159,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
             <img
               src={med.imageUrl}
               alt={med.name}
-              onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || 'Box Photo'})` })}
+              onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || t('boxPhoto')})` })}
               style={{
                 width: '42px',
                 height: '42px',
@@ -167,7 +169,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
                 border: '1px solid var(--border-color)',
                 flexShrink: 0
               }}
-              title="Click to view full medicine box"
+              title={t('clickToZoomBox')}
             />
           )}
 
@@ -207,7 +209,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
 
             {isTaken && (
               <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '0.2rem', fontWeight: 600 }}>
-                ✓ Administered {log?.actualTakenTime ? `at ${log.actualTakenTime}` : ''} {log?.administeredBy ? `by ${log.administeredBy}` : ''}
+                ✓ {t('administeredAt')} {log?.actualTakenTime ? `${log.actualTakenTime}` : ''} {log?.administeredBy ? `${t('by')} ${log.administeredBy}` : ''}
               </div>
             )}
           </div>
@@ -219,17 +221,17 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => handleNotifyFamilyDose(med, slot)}
-              title="Send administration confirmation to Family WhatsApp"
+              title={t('notifyFamily')}
               style={{ fontSize: '0.75rem', color: '#16a34a', padding: '0.3rem 0.5rem' }}
             >
               <Share2 size={13} />
-              <span className="hide-mobile">Notify Family</span>
+              <span className="hide-mobile">{t('notifyFamily')}</span>
             </button>
           )}
 
           <div style={{ textAlign: 'right' }}>
             <span className={`badge ${stockStatus.badgeClass}`} style={{ fontSize: '0.7rem' }}>
-              {med.currentStock} left
+              {med.currentStock} {t('remainingStockShort')}
             </span>
           </div>
         </div>
@@ -256,7 +258,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
             <UserCheck size={16} color="var(--primary)" />
-            <span>Active Caregiver On-Duty:</span>
+            <span>{t('onDutyCaregiver')}</span>
             <select
               className="form-select"
               style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.8125rem', height: 'auto' }}
@@ -265,14 +267,14 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
             >
               {families.map(f => (
                 <option key={f.id} value={f.name}>
-                  {f.name} ({f.shift ? `${f.shift} shift` : f.relationship || 'Caregiver'})
+                  {f.name} ({f.shift ? `${f.shift}` : f.relationship || 'Caregiver'})
                 </option>
               ))}
             </select>
           </div>
 
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Dose confirmations will be signed by: <strong>{selectedCaregiver}</strong>
+            {t('signedBy')} <strong>{selectedCaregiver}</strong>
           </span>
         </div>
       )}
@@ -291,13 +293,13 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button className="btn btn-secondary btn-sm" onClick={() => shiftDate(-1)}>
-              ← Yesterday
+              ← {t('yesterday')}
             </button>
             <button className="btn btn-secondary btn-sm" onClick={() => setCurrentDate(new Date())}>
-              Today
+              {t('today')}
             </button>
             <button className="btn btn-secondary btn-sm" onClick={() => shiftDate(1)}>
-              Tomorrow →
+              {t('tomorrow')} →
             </button>
           </div>
 
@@ -313,7 +315,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
             <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-              Daily Treatment Compliance: {takenDoses} of {totalDoses} doses taken
+              {t('dailyCompliance')}: {takenDoses} {t('dosesTakenOf')} {totalDoses} {t('completedToday')}
             </span>
             <strong style={{ color: progressPercent === 100 ? 'var(--success)' : 'var(--primary)' }}>
               {progressPercent}%
@@ -337,14 +339,14 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
         <div className="card text-center" style={{ padding: '3.5rem 1.5rem' }}>
           <Pill size={48} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 1rem' }} />
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            No medications scheduled for this date
+            {t('noMedsScheduled')}
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            There are no active prescriptions due today for {activePatient.name}.
+            {t('noMedsScheduledDesc')}
           </p>
           {onOpenAddMedication && (
             <button className="btn btn-primary" onClick={onOpenAddMedication} style={{ margin: '0 auto' }}>
-              <Plus size={18} /> Add New Medication
+              <Plus size={18} /> {t('addNewMedication')}
             </button>
           )}
         </div>
@@ -356,7 +358,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', color: '#d97706' }}>
                 <Sun size={18} />
                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Morning (6:00 AM – 11:59 AM)
+                  {t('morningBucket')}
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -371,7 +373,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>
                 <Sunset size={18} />
                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Afternoon (12:00 PM – 5:59 PM)
+                  {t('afternoonBucket')}
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -386,7 +388,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem', color: 'var(--secondary)' }}>
                 <Moon size={18} />
                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Evening & Night (6:00 PM – 11:59 PM)
+                  {t('eveningBucket')}
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

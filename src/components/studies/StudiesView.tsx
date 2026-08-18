@@ -1,41 +1,42 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { MedicalStudy } from '../../types';
 import {
   FileText,
   Plus,
   Trash2,
-  Calendar,
-  ExternalLink,
+  Paperclip,
   Eye,
+  Calendar,
+  Building2,
   X,
-  Upload,
-  FlaskConical,
-  Activity,
-  Layers
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { formatDateIso } from '../../utils/frequencyEngine';
 
 export const StudiesView: React.FC = () => {
   const { activePatient, studies, addStudy, deleteStudy } = useApp();
+  const { t, language } = useLanguage();
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [previewStudy, setPreviewStudy] = useState<MedicalStudy | null>(null);
+  const [viewFileUrl, setViewFileUrl] = useState<{ url: string; title: string; type: 'pdf' | 'image' } | null>(null);
 
-  // Add form fields
+  // Form State
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<MedicalStudy['category']>('blood_test');
-  const [date, setDate] = useState<string>(formatDateIso(new Date()));
+  const [date, setDate] = useState(formatDateIso(new Date()));
   const [laboratory, setLaboratory] = useState('');
   const [resultsSummary, setResultsSummary] = useState('');
   const [fileUrl, setFileUrl] = useState<string>('');
-  const [fileType, setFileType] = useState<'pdf' | 'image'>('image');
+  const [fileType, setFileType] = useState<'pdf' | 'image'>('pdf');
 
   if (!activePatient) {
     return (
       <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Please select a patient profile to manage lab studies.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>{t('selectPatientPrompt')}</p>
       </div>
     );
   }
@@ -49,7 +50,7 @@ export const StudiesView: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+    const isPdf = file.type === 'application/pdf';
     setFileType(isPdf ? 'pdf' : 'image');
 
     const reader = new FileReader();
@@ -61,7 +62,7 @@ export const StudiesView: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
@@ -80,12 +81,12 @@ export const StudiesView: React.FC = () => {
     setLaboratory('');
     setResultsSummary('');
     setFileUrl('');
-    setIsAddModalOpen(false);
+    setIsModalOpen(false);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Header & Controls */}
+      {/* Header */}
       <div
         className="card"
         style={{
@@ -99,50 +100,62 @@ export const StudiesView: React.FC = () => {
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-            {activePatient.name}'s Digital Lab Studies Archive
+            {language === 'es' ? `${t('studiesTitle')} ${activePatient.name}` : `${activePatient.name}${t('studiesTitle')}`}
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Store laboratory PDFs, blood chemistries, and radiological images offline.
+            {t('studiesSubtitle')}
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
-          <Plus size={18} /> Upload New Study / PDF
+        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} /> {t('uploadStudy')}
         </button>
       </div>
 
-      {/* Category Filter Pills */}
+      {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-        {[
-          { id: 'all', label: 'All Studies' },
-          { id: 'blood_test', label: '🩸 Blood & Lab Chemistries' },
-          { id: 'imaging', label: '🩻 Imaging & X-Rays' },
-          { id: 'cardiology', label: '🫀 Cardiology & ECG' },
-          { id: 'pathology', label: '🔬 Pathology & Other' }
-        ].map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`btn btn-sm ${selectedCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
-          >
-            {cat.label}
-          </button>
-        ))}
+        <button
+          className={`btn btn-sm ${selectedCategory === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedCategory('all')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          {t('allStudies')} ({patientStudies.length})
+        </button>
+        <button
+          className={`btn btn-sm ${selectedCategory === 'blood_test' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedCategory('blood_test')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          {t('bloodTests')}
+        </button>
+        <button
+          className={`btn btn-sm ${selectedCategory === 'imaging' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedCategory('imaging')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          {t('imagingTests')}
+        </button>
+        <button
+          className={`btn btn-sm ${selectedCategory === 'cardiology' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedCategory('cardiology')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          {t('cardioTests')}
+        </button>
       </div>
 
       {/* Studies Grid */}
       {filteredStudies.length === 0 ? (
         <div className="card text-center" style={{ padding: '3.5rem 1.5rem' }}>
-          <FlaskConical size={44} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 1rem' }} />
+          <FileText size={48} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 1rem' }} />
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            No laboratory studies in this category
+            {t('noStudiesLogged')}
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            Upload blood work or radiology reports to keep them handy during medical consults.
+            {t('noStudiesLoggedDesc')}
           </p>
-          <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)} style={{ margin: '0 auto' }}>
-            <Plus size={18} /> Add First Lab Study
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)} style={{ margin: '0 auto' }}>
+            <Plus size={18} /> {t('uploadStudy')}
           </button>
         </div>
       ) : (
@@ -155,68 +168,45 @@ export const StudiesView: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                padding: '1.25rem',
-                borderLeft: '4px solid var(--primary)'
+                padding: '1.25rem'
               }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>
-                    {study.category.replace('_', ' ')}
-                  </span>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                    📅 {study.date}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+                      {study.title}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <span>📅 {study.date}</span>
+                      {study.laboratory && <span>• 🔬 {study.laboratory}</span>}
+                    </div>
+                  </div>
+
+                  <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
+                    {study.category === 'blood_test' ? '🩸 Blood' : study.category === 'imaging' ? '🩻 Imaging' : '🔬 Study'}
                   </span>
                 </div>
 
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                  {study.title}
-                </h3>
-
-                {study.laboratory && (
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                    🏥 {study.laboratory}
-                  </p>
-                )}
-
                 {study.resultsSummary && (
-                  <div
-                    style={{
-                      backgroundColor: 'var(--bg-secondary)',
-                      padding: '0.625rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.8125rem',
-                      color: 'var(--text-secondary)',
-                      marginTop: '0.5rem'
-                    }}
-                  >
-                    <strong>Key Findings:</strong> {study.resultsSummary}
-                  </div>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)', padding: '0.625rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.75rem' }}>
+                    {study.resultsSummary}
+                  </p>
                 )}
               </div>
 
-              {/* Card Footer Actions */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '1rem',
-                  paddingTop: '0.75rem',
-                  borderTop: '1px solid var(--border-color)'
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
                 {study.fileUrl ? (
                   <button
                     className="btn btn-secondary btn-sm"
-                    onClick={() => setPreviewStudy(study)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--primary)' }}
+                    onClick={() => setViewFileUrl({ url: study.fileUrl!, title: study.title, type: study.fileType || 'pdf' })}
+                    style={{ fontSize: '0.75rem', color: 'var(--primary)' }}
                   >
-                    <Eye size={14} /> View Attached {study.fileType === 'pdf' ? 'PDF' : 'Image'}
+                    <Eye size={14} /> {t('viewAttached')}
                   </button>
                 ) : (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    No file attached (summary only)
+                    {language === 'es' ? 'Sin archivo digital' : 'No digital file'}
                   </span>
                 )}
 
@@ -234,26 +224,26 @@ export const StudiesView: React.FC = () => {
       )}
 
       {/* Add Study Modal */}
-      {isAddModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+      {isModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <FileText size={22} color="var(--primary)" />
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Upload Laboratory / Study</h2>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{t('uploadStudy')}</h2>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => setIsAddModalOpen(false)}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setIsModalOpen(false)}>
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleAddSubmit}>
+            <form onSubmit={handleCreate}>
               <div className="form-group">
-                <label className="form-label">Study Title *</label>
+                <label className="form-label">{t('studyTitle')}</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Complete Blood Chemistry (24 Elements), Chest X-Ray"
+                  placeholder="e.g. Química Sanguínea 6 Elementos + HbA1c"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   required
@@ -262,22 +252,18 @@ export const StudiesView: React.FC = () => {
 
               <div className="grid-2">
                 <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select
-                    className="form-select"
-                    value={category}
-                    onChange={e => setCategory(e.target.value as any)}
-                  >
-                    <option value="blood_test">Blood / Urine Chemistry</option>
-                    <option value="imaging">Imaging (X-Ray, Ultrasound, CT)</option>
-                    <option value="cardiology">Cardiology (ECG, Holter)</option>
-                    <option value="pathology">Pathology / Biopsy</option>
-                    <option value="other">Other Medical Document</option>
+                  <label className="form-label">{t('studyCategory')}</label>
+                  <select className="form-select" value={category} onChange={e => setCategory(e.target.value as any)}>
+                    <option value="blood_test">🩸 {language === 'es' ? 'Química Sanguínea' : 'Blood Test'}</option>
+                    <option value="imaging">🩻 {language === 'es' ? 'Rayos X / Imagen' : 'Imaging / X-Ray'}</option>
+                    <option value="cardiology">🫀 {language === 'es' ? 'Cardiología / ECG' : 'Cardiology / ECG'}</option>
+                    <option value="pathology">🔬 {language === 'es' ? 'Patología / Biopsia' : 'Pathology'}</option>
+                    <option value="other">📄 {language === 'es' ? 'Otro Estudio' : 'Other'}</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Date Taken</label>
+                  <label className="form-label">{t('studyDate')}</label>
                   <input
                     type="date"
                     className="form-input"
@@ -289,51 +275,52 @@ export const StudiesView: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Laboratory or Hospital Name</label>
+                <label className="form-label">{t('studyLab')}</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Chopo, Jenner, Faro del Mayab"
+                  placeholder="e.g. Laboratorios Chopo, Salud Digna"
                   value={laboratory}
                   onChange={e => setLaboratory(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Key Results & Summary</label>
+                <label className="form-label">{t('resultsSummary')}</label>
                 <textarea
-                  className="form-textarea"
+                  className="form-input"
                   rows={2}
-                  placeholder="e.g. Glucose: 110 mg/dL, HbA1c: 6.8%, Normal renal function"
+                  placeholder="e.g. Glucosa: 112 mg/dL, HbA1c: 6.8%, Creatinina: 0.9"
                   value={resultsSummary}
                   onChange={e => setResultsSummary(e.target.value)}
                 />
               </div>
 
-              {/* Offline File Upload */}
               <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <Upload size={14} /> Attach Local File (PDF or Photo)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  className="form-input"
-                  onChange={handleFileUpload}
-                />
+                <label className="form-label">{t('attachPdfOrPhoto')}</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', flex: 1, justifyContent: 'center' }}>
+                    <Camera size={14} color="var(--primary)" /> {t('takePhotoCamera')}
+                    <input type="file" accept="image/*" capture="environment" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  </label>
+                  <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', flex: 1, justifyContent: 'center' }}>
+                    <Paperclip size={14} color="var(--secondary)" /> {t('attachGalleryPdf')}
+                    <input type="file" accept="image/*,application/pdf" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
                 {fileUrl && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: '0.25rem', fontWeight: 600 }}>
-                    ✓ File attached successfully for offline storage ({fileType.toUpperCase()})
-                  </p>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600, display: 'block', marginTop: '0.375rem' }}>
+                    ✓ {language === 'es' ? 'Archivo adjuntado correctamente' : 'File attached successfully'}
+                  </span>
                 )}
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsAddModalOpen(false)}>
-                  Cancel
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>
+                  {t('cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  Save to Archive
+                  {language === 'es' ? 'Guardar Estudio' : 'Save Study'}
                 </button>
               </div>
             </form>
@@ -341,41 +328,34 @@ export const StudiesView: React.FC = () => {
         </div>
       )}
 
-      {/* Document Viewer Modal */}
-      {previewStudy && (
-        <div className="modal-backdrop" onClick={() => setPreviewStudy(null)}>
+      {/* PDF / Image Viewer Modal */}
+      {viewFileUrl && (
+        <div className="modal-backdrop" onClick={() => setViewFileUrl(null)}>
           <div
             className="modal-content"
-            style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+            style={{ maxWidth: '680px', textAlign: 'center', padding: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 800 }}>{previewStudy.title}</h3>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {previewStudy.laboratory} • {previewStudy.date}
-                </span>
-              </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => setPreviewStudy(null)}>
-                <X size={18} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <strong style={{ fontSize: '1.05rem' }}>{viewFileUrl.title}</strong>
+              <button className="btn btn-secondary btn-sm" onClick={() => setViewFileUrl(null)}>
+                <X size={16} />
               </button>
             </div>
 
-            <div style={{ flex: 1, minHeight: '350px', backgroundColor: '#000000', borderRadius: 'var(--radius-md)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {previewStudy.fileType === 'pdf' ? (
-                <iframe
-                  src={previewStudy.fileUrl}
-                  title="PDF Preview"
-                  style={{ width: '100%', height: '450px', border: 'none' }}
-                />
-              ) : (
-                <img
-                  src={previewStudy.fileUrl}
-                  alt={previewStudy.title}
-                  style={{ maxWidth: '100%', maxHeight: '450px', objectFit: 'contain' }}
-                />
-              )}
-            </div>
+            {viewFileUrl.type === 'image' ? (
+              <img
+                src={viewFileUrl.url}
+                alt="Medical Study Document"
+                style={{ maxWidth: '100%', maxHeight: '520px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+              />
+            ) : (
+              <iframe
+                src={viewFileUrl.url}
+                title="Study PDF"
+                style={{ width: '100%', height: '520px', border: 'none', borderRadius: 'var(--radius-md)' }}
+              />
+            )}
           </div>
         </div>
       )}

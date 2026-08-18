@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { Medication } from '../../types';
 import {
   Pill,
@@ -20,6 +21,7 @@ import { MedicationModal } from './MedicationModal';
 
 export const MedicationList: React.FC = () => {
   const { activePatient, medications, updateMedication, deleteMedication } = useApp();
+  const { t, language } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState<Medication | null>(null);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
@@ -27,7 +29,7 @@ export const MedicationList: React.FC = () => {
   if (!activePatient) {
     return (
       <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Please select a patient profile to manage medications.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>{t('selectPatientPrompt')}</p>
       </div>
     );
   }
@@ -59,7 +61,7 @@ export const MedicationList: React.FC = () => {
   };
 
   const handleDelete = (med: Medication) => {
-    if (window.confirm(`Are you sure you want to delete "${med.name}" from active treatment?`)) {
+    if (window.confirm(`${t('deleteMedConfirm')} (${med.name})`)) {
       deleteMedication(med.id);
     }
   };
@@ -80,15 +82,15 @@ export const MedicationList: React.FC = () => {
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-            {activePatient.name}'s Medication Cabinet
+            {language === 'es' ? `${t('cabinetTitle')} ${activePatient.name}` : `${activePatient.name}${t('cabinetTitle')}`}
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Track active prescriptions, box photos, laboratory brands, expiration dates, and stock alerts.
+            {t('cabinetSubtitle')}
           </p>
         </div>
 
         <button className="btn btn-primary" onClick={handleOpenAdd}>
-          <Plus size={18} /> Add New Medication
+          <Plus size={18} /> {t('addNewMedication')}
         </button>
       </div>
 
@@ -109,7 +111,7 @@ export const MedicationList: React.FC = () => {
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{safeCount}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Adequate Stock</div>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('adequateStock')}</div>
           </div>
         </div>
 
@@ -128,7 +130,7 @@ export const MedicationList: React.FC = () => {
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{lowStockCount}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Low Stock Alert</div>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('lowStockAlert')}</div>
           </div>
         </div>
 
@@ -147,7 +149,7 @@ export const MedicationList: React.FC = () => {
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{depletedCount}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Depleted (0 remaining)</div>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('depletedStock')}</div>
           </div>
         </div>
       </div>
@@ -157,13 +159,13 @@ export const MedicationList: React.FC = () => {
         <div className="card text-center" style={{ padding: '3.5rem 1.5rem' }}>
           <Pill size={48} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 1rem' }} />
           <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            No medications registered yet
+            {t('noMedsRegistered')}
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            Add your loved one's medications to automate schedules, fractional doses, and stock alerts.
+            {t('noMedsRegisteredDesc')}
           </p>
           <button className="btn btn-primary" onClick={handleOpenAdd} style={{ margin: '0 auto' }}>
-            <Plus size={18} /> Add First Medication
+            <Plus size={18} /> {t('addFirstMed')}
           </button>
         </div>
       ) : (
@@ -198,7 +200,7 @@ export const MedicationList: React.FC = () => {
                         <img
                           src={med.imageUrl}
                           alt={med.name}
-                          onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || 'Box Photo'})` })}
+                          onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || t('boxPhoto')})` })}
                           style={{
                             width: '52px',
                             height: '52px',
@@ -208,7 +210,7 @@ export const MedicationList: React.FC = () => {
                             border: '1px solid var(--border-color)',
                             boxShadow: 'var(--shadow-sm)'
                           }}
-                          title="Click to zoom medicine box"
+                          title={t('clickToZoomBox')}
                         />
                       ) : (
                         <div
@@ -302,19 +304,19 @@ export const MedicationList: React.FC = () => {
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleQuickRestock(med, 30)}
-                      title="Add 30 units (1 Box)"
+                      title={t('quickAdd30')}
                       style={{ fontSize: '0.75rem' }}
                     >
-                      <PackagePlus size={14} /> +30 Units
+                      <PackagePlus size={14} /> {t('quickAdd30')}
                     </button>
 
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleQuickRestock(med, 15)}
-                      title="Add 15 units (Half Box)"
+                      title={t('quickAdd15')}
                       style={{ fontSize: '0.75rem' }}
                     >
-                      <PackagePlus size={14} /> +15
+                      <PackagePlus size={14} /> {t('quickAdd15')}
                     </button>
                   </div>
 

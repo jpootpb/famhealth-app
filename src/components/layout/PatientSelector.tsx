@@ -1,21 +1,34 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { User, Plus, X, HeartPulse, Clock } from 'lucide-react';
-import { PatientType } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { Patient, PatientType } from '../../types';
+import { User, Plus, Check, X, ShieldAlert, Heart } from 'lucide-react';
 
-export const PatientSelector: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+interface PatientSelectorProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClose }) => {
   const { patients, activePatient, setActivePatientId, addPatient } = useApp();
-  const [showAddForm, setShowAddForm] = useState(false);
+  const { t, language } = useLanguage();
+  const [isAddingNew, setIsAddingNew] = useState(false);
+
+  // New Patient Form State
   const [name, setName] = useState('');
   const [age, setAge] = useState<number | ''>('');
   const [type, setType] = useState<PatientType>('chronic');
-  const [diagnosis, setDiagnosis] = useState('');
-  const [durationDays, setDurationDays] = useState<number | ''>('');
+  const [primaryDiagnosis, setPrimaryDiagnosis] = useState('');
   const [notes, setNotes] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSelect = (patient: Patient) => {
+    setActivePatientId(patient.id);
+    onClose();
+  };
+
+  const handleCreatePatient = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
@@ -23,86 +36,90 @@ export const PatientSelector: React.FC<{ isOpen: boolean; onClose: () => void }>
       name: name.trim(),
       age: age ? Number(age) : undefined,
       type,
-      primaryDiagnosis: diagnosis.trim() || undefined,
-      durationDays: durationDays ? Number(durationDays) : undefined,
-      treatmentStartDate: type === 'temporary' ? new Date().toISOString().split('T')[0] : undefined,
+      primaryDiagnosis: primaryDiagnosis.trim() || undefined,
       notes: notes.trim() || undefined
     });
 
     setName('');
     setAge('');
-    setDiagnosis('');
-    setDurationDays('');
+    setPrimaryDiagnosis('');
     setNotes('');
-    setShowAddForm(false);
+    setIsAddingNew(false);
     onClose();
   };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        style={{ maxWidth: '520px' }}
+        onClick={e => e.stopPropagation()}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <User size={22} color="#0284c7" />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Patient Profiles</h2>
+            <Heart size={22} color="var(--primary)" />
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+              {isAddingNew ? t('addNewPatient') : t('selectPatientTitle')}
+            </h2>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close modal">
             <X size={18} />
           </button>
         </div>
 
-        {!showAddForm ? (
+        {!isAddingNew ? (
           <div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-              Select the active patient to manage medications, vitals, and caregiver schedules:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1.25rem' }}>
               {patients.map(p => {
-                const isSelected = activePatient?.id === p.id;
+                const isCurrent = activePatient?.id === p.id;
                 return (
                   <div
                     key={p.id}
-                    onClick={() => {
-                      setActivePatientId(p.id);
-                      onClose();
-                    }}
+                    onClick={() => handleSelect(p)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '1rem',
+                      padding: '0.875rem 1rem',
+                      backgroundColor: isCurrent ? 'var(--primary-light)' : '#ffffff',
+                      border: `1px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`,
                       borderRadius: 'var(--radius-md)',
-                      border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}`,
-                      backgroundColor: isSelected ? 'var(--primary-light)' : '#ffffff',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <strong style={{ fontSize: '1rem', color: isSelected ? 'var(--primary-hover)' : 'var(--text-primary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: p.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.9375rem'
+                        }}
+                      >
+                        {p.name.charAt(0)}
+                      </div>
+                      <div>
+                        <strong style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
                           {p.name}
                         </strong>
-                        {p.type === 'chronic' ? (
-                          <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
-                            <HeartPulse size={12} /> Chronic (Elderly)
-                          </span>
-                        ) : (
-                          <span className="badge badge-yellow" style={{ fontSize: '0.7rem' }}>
-                            <Clock size={12} /> Temporary ({p.durationDays || 7}d)
-                          </span>
-                        )}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {p.type === 'chronic' ? t('chronicCare') : t('tempCare')}
+                          {p.primaryDiagnosis ? ` • ${p.primaryDiagnosis}` : ''}
+                        </div>
                       </div>
-                      {p.primaryDiagnosis && (
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                          {p.primaryDiagnosis}
-                        </p>
-                      )}
                     </div>
 
-                    {isSelected && (
-                      <span className="badge badge-blue">Active</span>
+                    {isCurrent && (
+                      <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
+                        ✓ {language === 'es' ? 'Activo' : 'Active'}
+                      </span>
                     )}
                   </div>
                 );
@@ -111,22 +128,20 @@ export const PatientSelector: React.FC<{ isOpen: boolean; onClose: () => void }>
 
             <button
               className="btn btn-primary"
-              style={{ width: '100%' }}
-              onClick={() => setShowAddForm(true)}
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => setIsAddingNew(true)}
             >
-              <Plus size={18} /> Add New Patient / Family Member
+              <Plus size={18} /> {t('addNewPatient')}
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.125rem', fontWeight: 700 }}>New Patient Profile</h3>
-
+          <form onSubmit={handleCreatePatient}>
             <div className="form-group">
-              <label className="form-label">Full Name *</label>
+              <label className="form-label">{t('patientName')}</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Don Manuel or Maria"
+                placeholder={language === 'es' ? 'e.g. Don Manuel Poot' : 'e.g. Robert Smith'}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
@@ -135,19 +150,7 @@ export const PatientSelector: React.FC<{ isOpen: boolean; onClose: () => void }>
 
             <div className="grid-2">
               <div className="form-group">
-                <label className="form-label">Care Type</label>
-                <select
-                  className="form-select"
-                  value={type}
-                  onChange={e => setType(e.target.value as PatientType)}
-                >
-                  <option value="chronic">Chronic (Elderly / Long-term care)</option>
-                  <option value="temporary">Temporary (Acute course / Fixed days)</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Age (optional)</label>
+                <label className="form-label">{t('patientAge')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -156,49 +159,53 @@ export const PatientSelector: React.FC<{ isOpen: boolean; onClose: () => void }>
                   onChange={e => setAge(e.target.value ? Number(e.target.value) : '')}
                 />
               </div>
+
+              <div className="form-group">
+                <label className="form-label">{t('patientType')}</label>
+                <select
+                  className="form-select"
+                  value={type}
+                  onChange={e => setType(e.target.value as PatientType)}
+                >
+                  <option value="chronic">{t('chronicCare')}</option>
+                  <option value="temporary">{t('tempCare')}</option>
+                </select>
+              </div>
             </div>
 
-            {type === 'temporary' && (
-              <div className="form-group">
-                <label className="form-label">Treatment Duration (Days)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g. 5 or 7"
-                  value={durationDays}
-                  onChange={e => setDurationDays(e.target.value ? Number(e.target.value) : '')}
-                />
-              </div>
-            )}
-
             <div className="form-group">
-              <label className="form-label">Primary Diagnosis or Condition</label>
+              <label className="form-label">{t('primaryDiagnosisLabel')}</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Type 2 Diabetes, Hypertension or Acute Infection"
-                value={diagnosis}
-                onChange={e => setDiagnosis(e.target.value)}
+                placeholder={language === 'es' ? 'e.g. Diabetes Tipo 2, Hipertensión' : 'e.g. Type 2 Diabetes, Hypertension'}
+                value={primaryDiagnosis}
+                onChange={e => setPrimaryDiagnosis(e.target.value)}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">General Notes / Allergies</label>
+              <label className="form-label">{t('patientNotes')}</label>
               <textarea
-                className="form-textarea"
+                className="form-input"
                 rows={2}
-                placeholder="e.g. Allergic to penicillin, check fasting glucose"
+                placeholder={language === 'es' ? 'Alergias a medicamentos, dieta baja en sodio, etc.' : 'Drug allergies, low sodium diet, etc.'}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
               />
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddForm(false)}>
-                Cancel
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setIsAddingNew(false)}
+              >
+                {t('cancel')}
               </button>
               <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                Save Profile
+                {t('savePatient')}
               </button>
             </div>
           </form>
