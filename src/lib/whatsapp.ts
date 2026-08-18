@@ -2,6 +2,16 @@ import { Patient, Medication, DoseLog, FamilyMember, DoseSlot } from '../types';
 import { formatDose } from '../utils/formatters';
 import { getDailyDoseSlots } from '../utils/frequencyEngine';
 
+export function getCaregiversForShift(
+  caregivers: FamilyMember[],
+  shift: 'morning' | 'evening' | 'night' | 'full_day' | 'weekend'
+): FamilyMember[] {
+  const activeCaregivers = caregivers.filter(c => c.isActive);
+  return activeCaregivers.filter(
+    c => c.shift === shift || (shift === 'night' && c.shift === 'evening') || c.shift === 'full_day'
+  );
+}
+
 export function getCurrentShiftCaregiver(
   caregivers: FamilyMember[],
   currentTime: Date = new Date()
@@ -24,11 +34,11 @@ export function getCurrentShiftCaregiver(
     targetShift = 'night';
   }
 
-  const shiftMatch = activeCaregivers.find(
-    c => c.shift === targetShift || (targetShift === 'night' && c.shift === 'evening')
-  );
-
-  if (shiftMatch) return shiftMatch;
+  const shiftMatches = getCaregiversForShift(activeCaregivers, targetShift);
+  if (shiftMatches.length > 0) {
+    const defaultMatch = shiftMatches.find(c => c.isDefaultCaregiver);
+    return defaultMatch || shiftMatches[0];
+  }
 
   // Fallback to default caregiver or first active caregiver
   const defaultCaregiver = activeCaregivers.find(c => c.isDefaultCaregiver);

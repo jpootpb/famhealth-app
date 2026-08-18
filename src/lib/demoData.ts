@@ -306,12 +306,23 @@ export const initialFamilies: FamilyMember[] = [
   {
     id: 'fam-lucia',
     familyId: 'circle-poot',
-    name: 'Lucia Poot',
+    name: 'Lucía Poot',
     relationship: 'Daughter / Night Shift',
     shift: 'night',
     isDefaultCaregiver: false,
     phone: '5219997654321',
-    splitPercentage: 50,
+    splitPercentage: 33.3,
+    isActive: true
+  },
+  {
+    id: 'fam-jorge',
+    familyId: 'circle-poot',
+    name: 'Jorge Poot',
+    relationship: 'Son / Night Shift (Co-Cuidador)',
+    shift: 'night',
+    isDefaultCaregiver: false,
+    phone: '5219995554433',
+    splitPercentage: 33.3,
     isActive: true
   },
   {

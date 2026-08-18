@@ -241,40 +241,58 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Active Shift Caregiver Bar */}
+      {/* Multi-Caregiver On Duty Bar */}
       {families.length > 0 && (
         <div
           style={{
             backgroundColor: '#ffffff',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
-            padding: '0.625rem 1rem',
+            padding: '0.75rem 1rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '0.5rem'
+            gap: '0.75rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
-            <UserCheck size={16} color="var(--primary)" />
-            <span>{t('onDutyCaregiver')}</span>
-            <select
-              className="form-select"
-              style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.8125rem', height: 'auto' }}
-              value={selectedCaregiver}
-              onChange={e => setSelectedCaregiver(e.target.value)}
-            >
-              {families.map(f => (
-                <option key={f.id} value={f.name}>
-                  {f.name} ({f.shift ? `${f.shift}` : f.relationship || 'Caregiver'})
-                </option>
-              ))}
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              <UserCheck size={16} color="var(--primary)" />
+              <span>{language === 'es' ? '¿Quién está cuidando hoy?' : 'Who is on caregiver duty?'}</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+              {families.map(f => {
+                const isSelected = selectedCaregiver === f.name;
+                const shiftEmoji = f.shift === 'morning' ? '🌅' : f.shift === 'night' ? '🌙' : '☀️';
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setSelectedCaregiver(f.name)}
+                    style={{
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: 'var(--radius-full)',
+                      fontWeight: isSelected ? 800 : 500
+                    }}
+                  >
+                    <span>{shiftEmoji} {f.name}</span>
+                    {f.shift && (
+                      <span style={{ opacity: 0.8, fontSize: '0.6875rem' }}>
+                        ({f.shift === 'morning' ? 'Mañana' : f.shift === 'night' ? 'Noche' : f.shift})
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {t('signedBy')} <strong>{selectedCaregiver}</strong>
+            {t('signedBy')} <strong style={{ color: 'var(--primary)' }}>{selectedCaregiver}</strong>
           </span>
         </div>
       )}
