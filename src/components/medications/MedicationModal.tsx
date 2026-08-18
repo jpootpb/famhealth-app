@@ -30,9 +30,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   onClose,
   medicationToEdit
 }) => {
-  const { activePatient, addMedication, updateMedication } = useApp();
+  const { activePatient, patients, addMedication, updateMedication } = useApp();
   const { t, language } = useLanguage();
 
+  const [assignedPatientId, setAssignedPatientId] = useState<string>('');
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
 
   const [name, setName] = useState('');
@@ -93,6 +94,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
   useEffect(() => {
     if (medicationToEdit) {
+      setAssignedPatientId(medicationToEdit.patientId || activePatient?.id || '');
       setName(medicationToEdit.name);
       setPresentation(medicationToEdit.presentation);
       setIndication(medicationToEdit.indication || '');
@@ -125,6 +127,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIntervalHours(medicationToEdit.frequency.intervalHours || 8);
       setDoseSlots(medicationToEdit.frequency.doseSlots.length > 0 ? medicationToEdit.frequency.doseSlots : [{ time: '08:00', dose: 1 }]);
     } else {
+      setAssignedPatientId(activePatient?.id || '');
       setName('');
       setPresentation('tablet');
       setIndication('');
@@ -150,7 +153,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIntervalHours(8);
       setDoseSlots([{ time: '08:00', dose: 1, instruction: language === 'es' ? 'Con el desayuno' : 'With breakfast' }]);
     }
-  }, [medicationToEdit, isOpen, language]);
+  }, [medicationToEdit, isOpen, language, activePatient?.id]);
 
   if (!isOpen || !activePatient) return null;
 
@@ -194,7 +197,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     }
 
     const payload = {
-      patientId: activePatient.id,
+      patientId: assignedPatientId || activePatient.id,
       name: name.trim(),
       presentation,
       indication: indication.trim() || undefined,
@@ -300,6 +303,26 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit}>
+          {/* Assigned Patient / Family Member Selector */}
+          <div className="form-group" style={{ marginBottom: '1rem', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)' }}>
+            <label className="form-label" style={{ color: 'var(--primary)', fontWeight: 800 }}>
+              👤 {language === 'es' ? '¿A quién pertenece este medicamento? (Paciente / Familiar):' : 'Assigned Patient:'}
+            </label>
+            <select
+              className="form-select"
+              value={assignedPatientId}
+              onChange={e => setAssignedPatientId(e.target.value)}
+              style={{ fontWeight: 700, backgroundColor: '#ffffff' }}
+            >
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.id === 'patient-jose' ? '👤 ' : p.id === 'patient-grandfather' ? '👴 ' : p.id === 'patient-maria' ? '👵 ' : '🩺 '}
+                  {p.name} ({p.primaryDiagnosis || 'Cuidado Familiar'})
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Basic Details */}
           <div className="grid-2">
             <div className="form-group">
@@ -735,6 +758,71 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               <option value="every_n_days">{t('everyNDaysOpt')}</option>
               <option value="temporary_hourly">{t('temporaryHourlyOpt')}</option>
             </select>
+
+            {/* Quick Frequency Presets for Surgery / Long-Interval Dosing */}
+            <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', alignSelf: 'center', fontWeight: 600 }}>
+                ⚡ {language === 'es' ? 'Preajustes rápidos:' : 'Quick Presets:'}
+              </span>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setFrequencyType('temporary_hourly');
+                  setIntervalHours(1);
+                  setDurationDays(3);
+                  setDoseSlots([
+                    { time: '08:00', dose: 1, instruction: 'Toma cada 1 hora post-cirugía' },
+                    { time: '09:00', dose: 1, instruction: 'Toma cada 1 hora post-cirugía' },
+                    { time: '10:00', dose: 1, instruction: 'Toma cada 1 hora post-cirugía' },
+                    { time: '11:00', dose: 1, instruction: 'Toma cada 1 hora post-cirugía' },
+                    { time: '12:00', dose: 1, instruction: 'Toma cada 1 hora post-cirugía' }
+                  ]);
+                }}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)', backgroundColor: '#fef3c7', color: '#92400e', borderColor: '#fde68a' }}
+              >
+                🕒 {language === 'es' ? 'Cada 1 hora (Post-cirugía / 3 días)' : 'Every 1 hr (Post-surgery)'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setFrequencyType('every_n_days');
+                  setIntervalDays(10);
+                  setDoseSlots([{ time: '08:00', dose: 1, instruction: 'Toma cada 10 días' }]);
+                }}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)', backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}
+              >
+                📆 {language === 'es' ? 'Cada 10 días' : 'Every 10 days'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setFrequencyType('every_n_days');
+                  setIntervalDays(15);
+                  setDoseSlots([{ time: '08:00', dose: 1, instruction: 'Toma quincenal (cada 15 días)' }]);
+                }}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)', backgroundColor: '#ede9fe', color: '#6d28d9', borderColor: '#ddd6fe' }}
+              >
+                🗓️ {language === 'es' ? 'Cada 15 días (Quincenal)' : 'Every 15 days'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setFrequencyType('alternate_days');
+                  setDoseSlots([{ time: '13:00', dose: 1, instruction: 'Un día sí, un día no' }]);
+                }}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)' }}
+              >
+                🔄 {language === 'es' ? 'Días alternos' : 'Alternate days'}
+              </button>
+            </div>
           </div>
 
           {/* Start Date */}
