@@ -31,6 +31,8 @@ import { getFrequencyLabel } from '../../utils/frequencyEngine';
 import { MedicationModal } from './MedicationModal';
 import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
+import { MedicationBatchesModal } from './MedicationBatchesModal';
+import { getActiveBatch } from '../../utils/medicationBatchEngine';
 import {
   recordLoyaltyPurchase,
   claimLoyaltyReward,
@@ -58,6 +60,7 @@ export const MedicationList: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState<Medication | null>(null);
+  const [batchesModalMed, setBatchesModalMed] = useState<Medication | null>(null);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   // Manual Completion Modal State
@@ -487,6 +490,10 @@ export const MedicationList: React.FC = () => {
       ) : (
         <div className="grid-2">
           {currentDisplayList.map(med => {
+            const activeBatch = getActiveBatch(med);
+            const cardImg = activeBatch?.imageUrl || med.imageUrl;
+            const cardLab = activeBatch?.laboratory || med.laboratory;
+
             const stockStatus = getStockStatus(
               med.currentStock,
               med.minimumStockAlert,
@@ -494,7 +501,7 @@ export const MedicationList: React.FC = () => {
               language as any,
               med.bottlesCount
             );
-            const expStatus = getExpirationStatus(med.expirationDate);
+            const expStatus = getExpirationStatus(activeBatch?.expirationDate || med.expirationDate);
             const freqLabel = getFrequencyLabel(med.frequency);
             const isCompleted = med.status === 'completed' || med.status === 'suspended';
 
@@ -524,18 +531,18 @@ export const MedicationList: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      {med.imageUrl ? (
+                      {cardImg ? (
                         <img
-                          src={med.imageUrl}
+                          src={cardImg}
                           alt={med.name}
-                          onClick={() => setZoomImage({ url: med.imageUrl!, title: `${med.name} (${med.laboratory || t('boxPhoto')})` })}
+                          onClick={() => setZoomImage({ url: cardImg, title: `${med.name} (${cardLab || t('boxPhoto')})` })}
                           style={{
                             width: '52px',
                             height: '52px',
                             borderRadius: 'var(--radius-md)',
                             objectFit: 'cover',
                             cursor: 'pointer',
-                            border: '1px solid var(--border-color)',
+                            border: '1.5px solid #22c55e',
                             boxShadow: 'var(--shadow-sm)',
                             opacity: isCompleted ? 0.75 : 1
                           }}
@@ -562,9 +569,9 @@ export const MedicationList: React.FC = () => {
                         <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, textDecoration: isCompleted ? 'line-through' : 'none' }}>
                           {med.name}
                         </h3>
-                        {med.laboratory && (
+                        {cardLab && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600 }}>
-                            <Building2 size={12} /> {med.laboratory}
+                            <Building2 size={12} /> {cardLab}
                           </div>
                         )}
                         {med.indication && (
@@ -572,13 +579,22 @@ export const MedicationList: React.FC = () => {
                             {med.indication}
                           </p>
                         )}
-                        {med.isMedicalSample && (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700, marginTop: '0.25rem' }}>
-                            <FlaskConical size={11} />
-                            <span>🧪 {language === 'es' ? 'Muestra Médica' : 'Medical Sample'}</span>
-                            {med.sampleNotes && <span>• {med.sampleNotes}</span>}
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                          {med.isMedicalSample && (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                              <FlaskConical size={11} />
+                              <span>🧪 {language === 'es' ? 'Muestra Médica' : 'Medical Sample'}</span>
+                              {med.sampleNotes && <span>• {med.sampleNotes}</span>}
+                            </div>
+                          )}
+
+                          {med.batches && med.batches.length > 1 && (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.68rem', color: '#4338ca', backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                              <Layers size={11} />
+                              <span>{language === 'es' ? `${med.batches.length} Lotes / Laboratorios` : `${med.batches.length} Batches`}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -738,6 +754,16 @@ export const MedicationList: React.FC = () => {
                       </button>
                     ) : (
                       <>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setBatchesModalMed(med)}
+                          style={{ fontSize: '0.75rem', color: '#6366f1', borderColor: '#c7d2fe', backgroundColor: '#eef2ff', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          title={language === 'es' ? 'Ver lotes en reserva, marcas de promoción o ajustar cajas físicas' : 'Manage batches & boxes'}
+                        >
+                          <Layers size={14} />
+                          <span>{language === 'es' ? `📦 Lotes (${med.batches?.length || 1})` : 'Batches'}</span>
+                        </button>
+
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleOpenRestockModal(med)}
@@ -1476,6 +1502,14 @@ export const MedicationList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Multi-Batch, Multi-Lab & Box Inventory Modal */}
+      <MedicationBatchesModal
+        isOpen={Boolean(batchesModalMed)}
+        onClose={() => setBatchesModalMed(null)}
+        medication={batchesModalMed}
+        onOpenZoomImage={(url, title) => setZoomImage({ url, title })}
+      />
     </div>
   );
 };

@@ -20,6 +20,14 @@ import { sendLocalNotification } from '../lib/notifications';
 import { formatDateIso } from '../utils/frequencyEngine';
 import { generateFamilyInviteCode } from '../utils/familyEngine';
 import { getUserVisibleFamilyCircles, joinFamilyWithCode, isUserAuthenticated } from '../utils/authEngine';
+import {
+  ensureBatches,
+  deductDoseFromBatches,
+  finishActiveBoxOrBatch,
+  switchActiveBatch,
+  adjustBatchStockUnits,
+  addNewBatchToMedication
+} from '../utils/medicationBatchEngine';
 
 interface AppContextType {
   // Auth & Current User
@@ -67,6 +75,22 @@ interface AppContextType {
   reactivateMedication: (id: string, newStock?: number) => void;
   customPharmacies: string[];
   addCustomPharmacy: (pharmacyName: string) => void;
+  switchActiveMedicationBatch: (medicationId: string, targetBatchId: string) => void;
+  finishActiveMedicationBox: (medicationId: string, reason?: 'depleted' | 'manual_box_finish' | 'expired' | 'damaged' | 'lost', notes?: string) => { transitioned: boolean; nextBatch?: import('../types').MedicationBatch; remainingBoxesInBatch: number };
+  adjustMedicationBatchStock: (medicationId: string, batchId: string, newUnits: number, reason?: string, newBoxes?: number) => void;
+  addMedicationBatch: (medicationId: string, batchData: {
+    laboratory?: string;
+    boxesCount: number;
+    unitsPerBox: number;
+    cost?: number;
+    expirationDate?: string;
+    imageUrl?: string;
+    preferredStore?: string;
+    isMedicalSample?: boolean;
+    sampleNotes?: string;
+    activateNow?: boolean;
+    name?: string;
+  }) => void;
 
   // Doses
   doseLogs: DoseLog[];
@@ -486,20 +510,74 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           if (m.stockTrackingMode === 'manual_bottle') {
             return m; // Manual bottle control does not decrease pills
           }
-          const newStock = Math.max(0, m.currentStock - dose);
-          if (newStock <= m.minimumStockAlert) {
+          const { updatedMed, transitioned, nextBatch } = deductDoseFromBatches(m, dose);
+          if (transitioned && nextBatch) {
             sendLocalNotification(
-              `⚠️ Low Stock Alert: ${m.name}`,
-              `Only ${newStock} ${m.presentation}(s) remaining. Time to restock.`
+              `🔄 Cambio de Lote Activo: ${m.name}`,
+              `Se agotó el lote anterior. Se activó automáticamente el lote de ${nextBatch.laboratory || 'reserva'} con su foto correspondiente.`
             );
           }
-          return { ...m, currentStock: newStock };
+          if (updatedMed.currentStock <= updatedMed.minimumStockAlert) {
+            sendLocalNotification(
+              `⚠️ Low Stock Alert: ${m.name}`,
+              `Only ${updatedMed.currentStock} ${m.presentation}(s) remaining. Time to restock.`
+            );
+          }
+          return updatedMed;
         }
         return m;
       }));
 
       setAllDoseLogs(prev => [...prev, newLog]);
     }
+  };
+
+  const switchActiveMedicationBatch = (medicationId: string, targetBatchId: string) => {
+    setAllMedications(prev => prev.map(m => m.id === medicationId ? switchActiveBatch(m, targetBatchId) : m));
+  };
+
+  const finishActiveMedicationBox = (
+    medicationId: string,
+    reason: 'depleted' | 'manual_box_finish' | 'expired' | 'damaged' | 'lost' = 'manual_box_finish',
+    notes?: string
+  ) => {
+    const med = allMedications.find(m => m.id === medicationId);
+    if (!med) return { transitioned: false, remainingBoxesInBatch: 0 };
+    const res = finishActiveBoxOrBatch(med, reason, notes);
+    setAllMedications(prev => prev.map(m => m.id === medicationId ? res.updatedMed : m));
+    return res;
+  };
+
+  const adjustMedicationBatchStock = (
+    medicationId: string,
+    batchId: string,
+    newUnits: number,
+    reason: string = 'count_correction',
+    newBoxes?: number
+  ) => {
+    setAllMedications(prev => prev.map(m => m.id === medicationId ? adjustBatchStockUnits(m, batchId, newUnits, reason, newBoxes) : m));
+  };
+
+  const addMedicationBatch = (
+    medicationId: string,
+    batchData: {
+      laboratory?: string;
+      boxesCount: number;
+      unitsPerBox: number;
+      cost?: number;
+      expirationDate?: string;
+      imageUrl?: string;
+      preferredStore?: string;
+      isMedicalSample?: boolean;
+      sampleNotes?: string;
+      activateNow?: boolean;
+      name?: string;
+    }
+  ) => {
+    if (batchData.preferredStore) {
+      addCustomPharmacy(batchData.preferredStore);
+    }
+    setAllMedications(prev => prev.map(m => m.id === medicationId ? addNewBatchToMedication(m, batchData) : m));
   };
 
   const addVital = (v: Omit<VitalSign, 'id'>) => {
@@ -710,6 +788,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         reactivateMedication,
         customPharmacies,
         addCustomPharmacy,
+        switchActiveMedicationBatch,
+        finishActiveMedicationBox,
+        adjustMedicationBatchStock,
+        addMedicationBatch,
 
         doseLogs,
         toggleDoseTaken,

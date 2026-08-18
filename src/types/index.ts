@@ -137,6 +137,30 @@ export interface Medication {
   completedAt?: string; // ISO date string when medicine was finished / stopped
   completionReason?: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other';
   completionNotes?: string;
+  batches?: MedicationBatch[]; // Multi-batch / multi-box inventory with distinct laboratories, photos & stock
+  activeBatchId?: string; // ID of the currently active batch being administered
+}
+
+export interface MedicationBatch {
+  id: string;
+  name?: string; // e.g. "Lote Bayer" or "Lote 3 Cajas Promo"
+  laboratory?: string; // Brand or Lab manufacturer (e.g. "Bayer", "Silanes", "Farmacias del Ahorro")
+  boxesCount?: number; // Initial total boxes in this batch
+  remainingBoxes?: number; // Remaining boxes in this batch
+  unitsPerBox?: number; // Standard units per box (e.g. 28 tabs, 15 caps)
+  totalUnits: number; // Total units in this batch
+  remainingUnits: number; // Remaining units in this batch
+  unitCost?: number; // Cost paid for this batch or unit
+  expirationDate?: string; // YYYY-MM-DD
+  imageUrl?: string; // Specific photo of this box/batch
+  preferredStore?: string; // e.g. "Farmacia del Ahorro", "Farmacia Regina"
+  isMedicalSample?: boolean;
+  sampleNotes?: string;
+  isCurrentActive?: boolean; // True if this batch is currently in use in the medicine cabinet
+  addedAt: string; // ISO date string or YYYY-MM-DD
+  finishedAt?: string;
+  finishReason?: 'depleted' | 'manual_box_finish' | 'expired' | 'damaged' | 'lost' | 'switched';
+  notes?: string;
 }
 
 export interface DoseLog {

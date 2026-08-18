@@ -45,6 +45,7 @@ import { getCurrentShiftCaregiver, buildDoseTakenWhatsAppMessage, shareViaWhatsA
 import { PatientSelector } from '../layout/PatientSelector';
 import { DailyRoutineModal } from '../routines/DailyRoutineModal';
 import { CaregiverTeamModal } from '../caregivers/CaregiverTeamModal';
+import { getActiveBatch } from '../../utils/medicationBatchEngine';
 
 interface DailyTimelineProps {
   onOpenAddMedication?: () => void;
@@ -283,24 +284,30 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
             )}
           </button>
 
-          {/* Photo Thumbnail */}
-          {med?.imageUrl && (
-            <img
-              src={med.imageUrl}
-              alt={slot.medicationName}
-              onClick={() => setZoomImage({ url: med.imageUrl!, title: `${slot.medicationName} (${med.laboratory || t('boxPhoto')})` })}
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: 'var(--radius-sm)',
-                objectFit: 'cover',
-                cursor: 'pointer',
-                border: '1px solid var(--border-color)',
-                flexShrink: 0
-              }}
-              title={t('clickToZoomBox')}
-            />
-          )}
+          {/* Photo Thumbnail of Active Batch / Box in Use */}
+          {(() => {
+            const activeBatch = med ? getActiveBatch(med) : undefined;
+            const displayImg = activeBatch?.imageUrl || med?.imageUrl;
+            const displayLab = activeBatch?.laboratory || med?.laboratory;
+            if (!displayImg) return null;
+            return (
+              <img
+                src={displayImg}
+                alt={slot.medicationName}
+                onClick={() => setZoomImage({ url: displayImg, title: `${slot.medicationName} (${displayLab || t('boxPhoto')})` })}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: 'var(--radius-sm)',
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                  border: '1.5px solid #22c55e',
+                  flexShrink: 0
+                }}
+                title={language === 'es' ? `Caja activa en uso: ${displayLab || 'Ver foto'}` : 'Click to zoom active box'}
+              />
+            );
+          })()}
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
@@ -355,11 +362,16 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
                 </span>
               )}
 
-              {med?.laboratory && (
-                <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
-                  {med.laboratory}
-                </span>
-              )}
+              {(() => {
+                const activeBatch = med ? getActiveBatch(med) : undefined;
+                const displayLab = activeBatch?.laboratory || med?.laboratory;
+                if (!displayLab) return null;
+                return (
+                  <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
+                    🏷️ {displayLab}
+                  </span>
+                );
+              })()}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
