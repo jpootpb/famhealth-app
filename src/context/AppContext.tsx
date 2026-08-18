@@ -12,7 +12,7 @@ import {
   MedicalStudy,
   UserAccount
 } from '../types';
-import { LocalStore } from '../lib/storage';
+import { LocalStore, guestUser } from '../lib/storage';
 import { sendLocalNotification } from '../lib/notifications';
 import { formatDateIso } from '../utils/frequencyEngine';
 import { generateFamilyInviteCode } from '../utils/familyEngine';
@@ -127,20 +127,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const familyCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);
 
   const activeFamilyCircle = familyCircles.find(c => c.id === activeFamilyId) || familyCircles[0];
-  const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : '';
+  const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : (familyCircles[0]?.id || '');
 
-  // Filter entities by active family circle
-  const patients = allPatients.filter(p => p.familyId === currentFamilyId);
-  const medications = allMedications.filter(m => m.familyId === currentFamilyId);
-  const doseLogs = allDoseLogs.filter(d => d.familyId === currentFamilyId);
-  const vitals = allVitals.filter(v => v.familyId === currentFamilyId);
-  const campaigns = allCampaigns.filter(c => c.familyId === currentFamilyId);
-  const families = allFamilies.filter(f => f.familyId === currentFamilyId);
-  const expenses = allExpenses.filter(e => e.familyId === currentFamilyId);
-  const appointments = allAppointments.filter(a => a.familyId === currentFamilyId);
-  const studies = allStudies.filter(s => s.familyId === currentFamilyId);
+  // Filter entities by active family circle with backwards compatibility for unmigrated local storage
+  const patients = allPatients.filter(p => !p.familyId || p.familyId === currentFamilyId);
+  const medications = allMedications.filter(m => !m.familyId || m.familyId === currentFamilyId);
+  const doseLogs = allDoseLogs.filter(d => !d.familyId || d.familyId === currentFamilyId);
+  const vitals = allVitals.filter(v => !v.familyId || v.familyId === currentFamilyId);
+  const campaigns = allCampaigns.filter(c => !c.familyId || c.familyId === currentFamilyId);
+  const families = allFamilies.filter(f => !f.familyId || f.familyId === currentFamilyId);
+  const expenses = allExpenses.filter(e => !e.familyId || e.familyId === currentFamilyId);
+  const appointments = allAppointments.filter(a => !a.familyId || a.familyId === currentFamilyId);
+  const studies = allStudies.filter(s => !s.familyId || s.familyId === currentFamilyId);
 
-  // Active Patient inside current family
+  // Active Patient inside current family with automatic auto-selection fallback
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0];
 
   const switchUser = (userId: string) => {
@@ -152,7 +152,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newActiveFamId = visible.length > 0 ? (visible.find(c => c.id === user.activeFamilyId)?.id || visible[0].id) : '';
     setActiveFamilyIdState(newActiveFamId);
 
-    const familyPatients = allPatients.filter(p => p.familyId === newActiveFamId);
+    const familyPatients = allPatients.filter(p => !p.familyId || p.familyId === newActiveFamId);
     if (familyPatients.length > 0) {
       setActivePatientIdState(familyPatients[0].id);
     }
@@ -184,16 +184,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const logoutUser = () => {
-    // Switch to clean guest state
-    const cleanGuest: UserAccount = {
-      id: 'guest',
-      name: 'Invitado',
-      email: 'guest@famhealth.app',
-      activeFamilyId: '',
-      joinedFamilyIds: []
-    };
-    setCurrentUser(cleanGuest);
+    setCurrentUser(guestUser);
     setActiveFamilyIdState('');
+    setActivePatientIdState('');
   };
 
   const setActiveFamilyId = (id: string) => {
@@ -201,7 +194,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(prev => ({ ...prev, activeFamilyId: id }));
 
     // When switching family, auto-select the first patient of that family
-    const familyPatients = allPatients.filter(p => p.familyId === id);
+    const familyPatients = allPatients.filter(p => !p.familyId || p.familyId === id);
     if (familyPatients.length > 0) {
       setActivePatientIdState(familyPatients[0].id);
     }

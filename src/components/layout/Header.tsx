@@ -13,6 +13,7 @@ import {
   Users,
   Globe,
   User,
+  LogOut,
   ShieldCheck
 } from 'lucide-react';
 import { PatientSelector } from './PatientSelector';
@@ -24,7 +25,7 @@ import { requestNotificationPermission, sendLocalNotification } from '../../lib/
 import { getDailyDoseSlots, formatDateIso } from '../../utils/frequencyEngine';
 
 export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
-  const { currentUser, activePatient, activeFamilyCircle, medications, doseLogs } = useApp();
+  const { currentUser, logoutUser, activePatient, activeFamilyCircle, medications, doseLogs } = useApp();
   const { t, language, setLanguage } = useLanguage();
 
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
@@ -112,8 +113,8 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
             flexWrap: 'wrap'
           }}
         >
-          {/* Left: Brand Logo, User Profile & Family Circle Space Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+          {/* Left: Brand Logo, User Profile, Sign Out & Family Circle Space Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div
                 style={{
@@ -154,6 +155,26 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
               <strong style={{ fontSize: '0.75rem', color: 'var(--primary-hover)' }}>
                 {currentUser.name.split(' ')[0]}
               </strong>
+            </button>
+
+            {/* Direct 1-Click Sign Out Button */}
+            <button
+              onClick={logoutUser}
+              className="btn btn-secondary btn-sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                borderRadius: 'var(--radius-full)',
+                padding: '0.25rem 0.5rem',
+                color: 'var(--danger)'
+              }}
+              title={language === 'es' ? 'Cerrar Sesión' : 'Sign Out'}
+            >
+              <LogOut size={13} />
+              <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+                {language === 'es' ? 'Salir' : 'Logout'}
+              </span>
             </button>
 
             {/* Family Circle Badge Selector */}
