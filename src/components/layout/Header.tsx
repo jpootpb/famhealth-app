@@ -11,23 +11,27 @@ import {
   Clock,
   HeartPulse,
   Users,
-  Globe
+  Globe,
+  User,
+  ShieldCheck
 } from 'lucide-react';
 import { PatientSelector } from './PatientSelector';
 import { WhatsAppModal } from '../sharing/WhatsAppModal';
 import { DoctorSummaryModal } from '../doctor/DoctorSummaryModal';
 import { FamilyManagerModal } from '../auth/FamilyManagerModal';
+import { AuthModal } from '../auth/AuthModal';
 import { requestNotificationPermission, sendLocalNotification } from '../../lib/notifications';
 import { getDailyDoseSlots, formatDateIso } from '../../utils/frequencyEngine';
 
 export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
-  const { activePatient, activeFamilyCircle, medications, doseLogs } = useApp();
+  const { currentUser, activePatient, activeFamilyCircle, medications, doseLogs } = useApp();
   const { t, language, setLanguage } = useLanguage();
 
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isDoctorSummaryOpen, setIsDoctorSummaryOpen] = useState(false);
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [notificationsGranted, setNotificationsGranted] = useState(false);
 
   useEffect(() => {
@@ -108,8 +112,8 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
             flexWrap: 'wrap'
           }}
         >
-          {/* Left: Brand Logo & Family Circle Space Picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+          {/* Left: Brand Logo, User Profile & Family Circle Space Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div
                 style={{
@@ -131,6 +135,27 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
               </span>
             </div>
 
+            {/* Logged-in User Account Button */}
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'var(--primary-light)',
+                border: '1px solid var(--primary)',
+                padding: '0.25rem 0.6rem'
+              }}
+              title={language === 'es' ? 'Cuenta de Usuario / Cambiar Perfil' : 'User Account / Switch Profile'}
+            >
+              <User size={13} color="var(--primary)" />
+              <strong style={{ fontSize: '0.75rem', color: 'var(--primary-hover)' }}>
+                {currentUser.name.split(' ')[0]}
+              </strong>
+            </button>
+
             {/* Family Circle Badge Selector */}
             {activeFamilyCircle && (
               <button
@@ -143,15 +168,15 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
                   borderRadius: 'var(--radius-full)',
                   backgroundColor: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
-                  padding: '0.3rem 0.65rem'
+                  padding: '0.25rem 0.65rem'
                 }}
                 title={t('switchFamily')}
               >
-                <Users size={14} color="var(--primary)" />
-                <strong style={{ fontSize: '0.75rem', color: 'var(--primary-hover)' }}>
+                <Users size={13} color="var(--primary)" />
+                <strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>
                   {activeFamilyCircle.name}
                 </strong>
-                <ChevronDown size={12} color="var(--text-muted)" />
+                <ChevronDown size={11} color="var(--text-muted)" />
               </button>
             )}
           </div>
@@ -165,7 +190,7 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.625rem',
-                padding: '0.4rem 0.75rem',
+                padding: '0.35rem 0.75rem',
                 borderRadius: 'var(--radius-full)',
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
@@ -260,6 +285,11 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
           </div>
         </div>
       </header>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
 
       <PatientSelector
         isOpen={isPatientModalOpen}

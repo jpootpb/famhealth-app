@@ -20,10 +20,40 @@ import {
   FamilyMember,
   HealthExpense,
   MedicalAppointment,
-  MedicalStudy
+  MedicalStudy,
+  UserAccount
 } from '../types';
 
+export const initialUsers: UserAccount[] = [
+  {
+    id: 'user-carlos',
+    name: 'Carlos Poot (Cuidador)',
+    email: 'carlos@famhealth.app',
+    password: 'password123',
+    activeFamilyId: 'circle-poot',
+    joinedFamilyIds: ['circle-poot', 'circle-gomez'] // Has access to both Dad & In-laws
+  },
+  {
+    id: 'user-claudia',
+    name: 'Claudia Gómez (Esposa)',
+    email: 'claudia@famhealth.app',
+    password: 'password123',
+    activeFamilyId: 'circle-gomez',
+    joinedFamilyIds: ['circle-gomez'] // Only has access to her own parents
+  },
+  {
+    id: 'user-laura',
+    name: 'Laura Poot (Prima - Uso Personal)',
+    email: 'laura@famhealth.app',
+    password: 'password123',
+    activeFamilyId: 'circle-personal-laura',
+    joinedFamilyIds: ['circle-personal-laura'] // Only personal self-care
+  }
+];
+
 const STORAGE_KEYS = {
+  USERS: 'famhealth_users',
+  CURRENT_USER: 'famhealth_current_user',
   FAMILY_CIRCLES: 'famhealth_family_circles',
   ACTIVE_FAMILY_ID: 'famhealth_active_family_id',
   PATIENTS: 'famhealth_patients',
@@ -60,6 +90,13 @@ function safeSet<T>(key: string, value: T): void {
 }
 
 export const LocalStore = {
+  // Users & Auth
+  getUsers: (): UserAccount[] => safeGet<UserAccount[]>(STORAGE_KEYS.USERS, initialUsers),
+  saveUsers: (users: UserAccount[]) => safeSet(STORAGE_KEYS.USERS, users),
+
+  getCurrentUser: (): UserAccount => safeGet<UserAccount>(STORAGE_KEYS.CURRENT_USER, initialUsers[0]),
+  saveCurrentUser: (user: UserAccount) => safeSet(STORAGE_KEYS.CURRENT_USER, user),
+
   // Family Circles
   getFamilyCircles: (): FamilyCircle[] => safeGet<FamilyCircle[]>(STORAGE_KEYS.FAMILY_CIRCLES, initialFamilyCircles),
   saveFamilyCircles: (circles: FamilyCircle[]) => safeSet(STORAGE_KEYS.FAMILY_CIRCLES, circles),

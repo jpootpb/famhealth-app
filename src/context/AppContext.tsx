@@ -9,20 +9,33 @@ import {
   FamilyMember,
   HealthExpense,
   MedicalAppointment,
-  MedicalStudy
+  MedicalStudy,
+  UserAccount
 } from '../types';
 import { LocalStore } from '../lib/storage';
 import { sendLocalNotification } from '../lib/notifications';
 import { formatDateIso } from '../utils/frequencyEngine';
 import { generateFamilyInviteCode } from '../utils/familyEngine';
+import { getUserVisibleFamilyCircles, joinFamilyWithCode } from '../utils/authEngine';
 
 interface AppContextType {
+  // Auth & Current User
+  currentUser: UserAccount;
+  allUsers: UserAccount[];
+  switchUser: (userId: string) => void;
+  loginUser: (email: string, password?: string) => boolean;
+  registerUser: (name: string, email: string, password?: string) => UserAccount;
+  logoutUser: () => void;
+
+  // Family Spaces
   familyCircles: FamilyCircle[];
+  allFamilyCircles: FamilyCircle[];
   activeFamilyCircle: FamilyCircle | undefined;
   setActiveFamilyId: (id: string) => void;
-  createFamilyCircle: (name: string) => FamilyCircle;
+  createFamilyCircle: (name: string, isPersonal?: boolean) => FamilyCircle;
   joinFamilyCircleByCode: (code: string) => boolean;
 
+  // Patients
   patients: Patient[];
   allPatients: Patient[];
   activePatient: Patient | undefined;
@@ -30,34 +43,42 @@ interface AppContextType {
   addPatient: (p: Omit<Patient, 'id'>) => void;
   updatePatient: (p: Patient) => void;
 
+  // Medications
   medications: Medication[];
   addMedication: (m: Omit<Medication, 'id'>) => void;
   updateMedication: (m: Medication) => void;
   deleteMedication: (id: string) => void;
 
+  // Doses
   doseLogs: DoseLog[];
   toggleDoseTaken: (medicationId: string, scheduledTime: string, dateStr?: string, administeredBy?: string) => void;
 
+  // Vitals
   vitals: VitalSign[];
   addVital: (v: Omit<VitalSign, 'id'>) => void;
   deleteVital: (id: string) => void;
 
+  // Campaigns
   campaigns: MonitoringCampaign[];
   addCampaign: (c: Omit<MonitoringCampaign, 'id'>) => void;
   toggleCampaignStatus: (id: string) => void;
 
+  // Caregivers
   families: FamilyMember[];
   addFamilyMember: (f: Omit<FamilyMember, 'id'>) => void;
   updateFamilyMember: (f: FamilyMember) => void;
 
+  // Expenses
   expenses: HealthExpense[];
   addExpense: (e: Omit<HealthExpense, 'id'>) => void;
   deleteExpense: (id: string) => void;
 
+  // Appointments
   appointments: MedicalAppointment[];
   addAppointment: (a: Omit<MedicalAppointment, 'id'>) => void;
   toggleAppointmentCompleted: (id: string) => void;
 
+  // Studies
   studies: MedicalStudy[];
   addStudy: (s: Omit<MedicalStudy, 'id'>) => void;
   deleteStudy: (id: string) => void;
@@ -66,8 +87,11 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [familyCircles, setFamilyCircles] = useState<FamilyCircle[]>(() => LocalStore.getFamilyCircles());
-  const [activeFamilyId, setActiveFamilyIdState] = useState<string>(() => LocalStore.getActiveFamilyId());
+  const [allUsers, setAllUsers] = useState<UserAccount[]>(() => LocalStore.getUsers());
+  const [currentUser, setCurrentUser] = useState<UserAccount>(() => LocalStore.getCurrentUser());
+
+  const [allFamilyCircles, setAllFamilyCircles] = useState<FamilyCircle[]>(() => LocalStore.getFamilyCircles());
+  const [activeFamilyId, setActiveFamilyIdState] = useState<string>(() => currentUser.activeFamilyId || LocalStore.getActiveFamilyId());
 
   const [allPatients, setAllPatients] = useState<Patient[]>(() => LocalStore.getPatients());
   const [activePatientId, setActivePatientIdState] = useState<string>(() => LocalStore.getActivePatientId());
@@ -81,7 +105,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [allStudies, setAllStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
 
   // Sync state changes to storage
-  useEffect(() => { LocalStore.saveFamilyCircles(familyCircles); }, [familyCircles]);
+  useEffect(() => { LocalStore.saveUsers(allUsers); }, [allUsers]);
+  useEffect(() => { LocalStore.saveCurrentUser(currentUser); }, [currentUser]);
+  useEffect(() => { LocalStore.saveFamilyCircles(allFamilyCircles); }, [allFamilyCircles]);
   useEffect(() => { LocalStore.setActiveFamilyId(activeFamilyId); }, [activeFamilyId]);
   useEffect(() => { LocalStore.savePatients(allPatients); }, [allPatients]);
   useEffect(() => { LocalStore.setActivePatientId(activePatientId); }, [activePatientId]);
@@ -94,50 +120,123 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.saveAppointments(allAppointments); }, [allAppointments]);
   useEffect(() => { LocalStore.saveStudies(allStudies); }, [allStudies]);
 
+  // Family circles visible to current logged-in user
+  const familyCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);
+
   const activeFamilyCircle = familyCircles.find(c => c.id === activeFamilyId) || familyCircles[0];
+  const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : '';
 
   // Filter entities by active family circle
-  const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : 'circle-poot';
-  const patients = allPatients.filter(p => !p.familyId || p.familyId === currentFamilyId);
-  const medications = allMedications.filter(m => !m.familyId || m.familyId === currentFamilyId);
-  const doseLogs = allDoseLogs.filter(d => !d.familyId || d.familyId === currentFamilyId);
-  const vitals = allVitals.filter(v => !v.familyId || v.familyId === currentFamilyId);
-  const campaigns = allCampaigns.filter(c => !c.familyId || c.familyId === currentFamilyId);
-  const families = allFamilies.filter(f => !f.familyId || f.familyId === currentFamilyId);
-  const expenses = allExpenses.filter(e => !e.familyId || e.familyId === currentFamilyId);
-  const appointments = allAppointments.filter(a => !a.familyId || a.familyId === currentFamilyId);
-  const studies = allStudies.filter(s => !s.familyId || s.familyId === currentFamilyId);
+  const patients = allPatients.filter(p => p.familyId === currentFamilyId);
+  const medications = allMedications.filter(m => m.familyId === currentFamilyId);
+  const doseLogs = allDoseLogs.filter(d => d.familyId === currentFamilyId);
+  const vitals = allVitals.filter(v => v.familyId === currentFamilyId);
+  const campaigns = allCampaigns.filter(c => c.familyId === currentFamilyId);
+  const families = allFamilies.filter(f => f.familyId === currentFamilyId);
+  const expenses = allExpenses.filter(e => e.familyId === currentFamilyId);
+  const appointments = allAppointments.filter(a => a.familyId === currentFamilyId);
+  const studies = allStudies.filter(s => s.familyId === currentFamilyId);
 
   // Active Patient inside current family
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0];
 
-  const setActiveFamilyId = (id: string) => {
-    setActiveFamilyIdState(id);
-    // When switching family, auto-select the first patient of that family
-    const familyPatients = allPatients.filter(p => !p.familyId || p.familyId === id);
+  const switchUser = (userId: string) => {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    setCurrentUser(user);
+    const visible = getUserVisibleFamilyCircles(user, allFamilyCircles);
+    const newActiveFamId = visible.length > 0 ? (visible.find(c => c.id === user.activeFamilyId)?.id || visible[0].id) : '';
+    setActiveFamilyIdState(newActiveFamId);
+
+    const familyPatients = allPatients.filter(p => p.familyId === newActiveFamId);
     if (familyPatients.length > 0) {
       setActivePatientIdState(familyPatients[0].id);
     }
   };
 
-  const createFamilyCircle = (name: string): FamilyCircle => {
+  const loginUser = (email: string, password?: string): boolean => {
+    const user = allUsers.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (user) {
+      switchUser(user.id);
+      return true;
+    }
+    return false;
+  };
+
+  const registerUser = (name: string, email: string, password?: string): UserAccount => {
+    const newUser: UserAccount = {
+      id: 'user-' + Date.now(),
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password: password || 'password123',
+      activeFamilyId: '',
+      joinedFamilyIds: []
+    };
+
+    setAllUsers(prev => [...prev, newUser]);
+    setCurrentUser(newUser);
+    setActiveFamilyIdState('');
+    return newUser;
+  };
+
+  const logoutUser = () => {
+    // Switch to clean guest / login state
+    const cleanGuest: UserAccount = {
+      id: 'guest',
+      name: 'Invitado / Login',
+      email: 'guest@famhealth.app',
+      activeFamilyId: '',
+      joinedFamilyIds: []
+    };
+    setCurrentUser(cleanGuest);
+    setActiveFamilyIdState('');
+  };
+
+  const setActiveFamilyId = (id: string) => {
+    setActiveFamilyIdState(id);
+    setCurrentUser(prev => ({ ...prev, activeFamilyId: id }));
+
+    // When switching family, auto-select the first patient of that family
+    const familyPatients = allPatients.filter(p => p.familyId === id);
+    if (familyPatients.length > 0) {
+      setActivePatientIdState(familyPatients[0].id);
+    }
+  };
+
+  const createFamilyCircle = (name: string, isPersonal: boolean = false): FamilyCircle => {
     const inviteCode = generateFamilyInviteCode(name);
     const newCircle: FamilyCircle = {
       id: 'circle-' + Date.now(),
       name: name.trim(),
       inviteCode,
-      createdAt: formatDateIso(new Date())
+      createdAt: formatDateIso(new Date()),
+      ownerEmail: currentUser.email,
+      isPersonalSpace: isPersonal
     };
-    setFamilyCircles(prev => [...prev, newCircle]);
-    setActiveFamilyId(newCircle.id);
+
+    setAllFamilyCircles(prev => [...prev, newCircle]);
+
+    // Attach to current user
+    const updatedJoined = [...currentUser.joinedFamilyIds, newCircle.id];
+    const updatedUser = {
+      ...currentUser,
+      joinedFamilyIds: updatedJoined,
+      activeFamilyId: newCircle.id
+    };
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    setActiveFamilyIdState(newCircle.id);
+
     return newCircle;
   };
 
   const joinFamilyCircleByCode = (code: string): boolean => {
-    const cleanCode = code.trim().toUpperCase();
-    const found = familyCircles.find(c => c.inviteCode.toUpperCase() === cleanCode);
-    if (found) {
-      setActiveFamilyId(found.id);
+    const result = joinFamilyWithCode(currentUser, code, allFamilyCircles);
+    if (result.success && result.joinedCircle) {
+      setCurrentUser(result.updatedUser);
+      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? result.updatedUser : u));
+      setActiveFamilyId(result.joinedCircle.id);
       return true;
     }
     return false;
@@ -217,7 +316,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         actualTakenTime: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
         dose,
         taken: true,
-        administeredBy: administeredBy || 'Caregiver'
+        administeredBy: administeredBy || currentUser.name || 'Caregiver'
       };
 
       setAllMedications(prev => prev.map(m => {
@@ -319,7 +418,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider
       value={{
+        currentUser,
+        allUsers,
+        switchUser,
+        loginUser,
+        registerUser,
+        logoutUser,
+
         familyCircles,
+        allFamilyCircles,
         activeFamilyCircle,
         setActiveFamilyId,
         createFamilyCircle,

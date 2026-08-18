@@ -23,6 +23,13 @@ export const initialFamilyCircles: FamilyCircle[] = [
     name: 'Familia Gómez (In-Laws / Suegros)',
     inviteCode: 'GOME-3390',
     createdAt: '2026-08-10'
+  },
+  {
+    id: 'circle-personal-laura',
+    name: 'Mi Cuidado Personal (Laura Poot)',
+    inviteCode: 'LAUR-9912',
+    createdAt: '2026-08-15',
+    isPersonalSpace: true
   }
 ];
 
@@ -55,6 +62,17 @@ export const initialPatients: Patient[] = [
     type: 'chronic',
     primaryDiagnosis: 'Hypertension & Osteoarthritis',
     notes: 'Check blood pressure every morning'
+  },
+  {
+    id: 'patient-laura-self',
+    familyId: 'circle-personal-laura',
+    name: 'Laura Poot (Self-Care)',
+    age: 38,
+    type: 'temporary',
+    primaryDiagnosis: 'Hypercholesterolemia / Lipid Profile Control',
+    treatmentStartDate: '2026-08-17',
+    durationDays: 60,
+    notes: 'Atorvastatin 20mg daily for 60 days. Self monitoring.'
   }
 ];
 
@@ -184,6 +202,28 @@ export const initialMedications: Medication[] = [
     currentStock: 30,
     minimumStockAlert: 5,
     unitCost: 150
+  },
+  {
+    id: 'med-atorvastatin-laura',
+    familyId: 'circle-personal-laura',
+    patientId: 'patient-laura-self',
+    name: 'Atorvastatina (20mg)',
+    presentation: 'tablet',
+    indication: 'Cholesterol & Lipid control',
+    laboratory: 'Pfizer / Lipitor',
+    expirationDate: '2027-10-15',
+    frequency: {
+      type: 'temporary_hourly',
+      intervalHours: 24,
+      doseSlots: [
+        { time: '21:00', dose: 1, instruction: 'Night with dinner' }
+      ],
+      startDate: '2026-08-17',
+      endDate: '2026-10-16'
+    },
+    currentStock: 60,
+    minimumStockAlert: 10,
+    unitCost: 480
   }
 ];
 
