@@ -52,14 +52,34 @@ export function getStockStatus(
   current: number,
   minimum: number,
   stockTrackingMode?: 'pieces' | 'manual_bottle',
-  lang: 'es' | 'en' = 'es'
+  lang: 'es' | 'en' = 'es',
+  bottlesCount?: number
 ): StockStatusResult {
   const isEn = lang === 'en';
 
   if (stockTrackingMode === 'manual_bottle') {
+    const count = bottlesCount !== undefined ? bottlesCount : 1;
+    if (count <= 0) {
+      return {
+        status: 'depleted',
+        label: isEn ? 'Bottles Finished (0)' : '🧴 Frascos agotados (0)',
+        color: '#dc2626',
+        badgeClass: 'badge-red'
+      };
+    }
+    if (count > 1) {
+      return {
+        status: 'ok',
+        label: isEn
+          ? `🧴 ${count} Bottles (${count - 1} in reserve)`
+          : `🧴 ${count} Frascos (${count - 1} en reserva)`,
+        color: '#0284c7',
+        badgeClass: 'badge-blue'
+      };
+    }
     return {
       status: 'ok',
-      label: isEn ? '1 Bottle in use (Manual tracking)' : '🧴 1 Frasco / Tubo en uso (Control manual)',
+      label: isEn ? '🧴 1 Bottle in use (Last one)' : '🧴 1 Frasco / Muestra en uso',
       color: '#0284c7',
       badgeClass: 'badge-blue'
     };

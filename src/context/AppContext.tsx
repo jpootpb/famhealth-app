@@ -53,6 +53,17 @@ interface AppContextType {
   updateMedication: (m: Medication) => void;
   deleteMedication: (id: string) => void;
   completeMedication: (id: string, reason?: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other', notes?: string) => void;
+  consumeBottle: (id: string, reason?: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other', notes?: string) => boolean;
+  restockMedication: (id: string, params: {
+    quantityToAdd?: number;
+    boxesCount?: number;
+    unitsPerBox?: number;
+    bottlesToAdd?: number;
+    cost?: number;
+    preferredStore?: string;
+    isMedicalSample?: boolean;
+    sampleNotes?: string;
+  }) => void;
   reactivateMedication: (id: string, newStock?: number) => void;
 
   // Doses
@@ -311,7 +322,78 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           status: 'completed',
           completedAt: new Date().toISOString().split('T')[0],
           completionReason: reason,
-          completionNotes: notes || undefined
+          completionNotes: notes || undefined,
+          bottlesCount: 0
+        };
+      }
+      return item;
+    }));
+  };
+
+  const consumeBottle = (
+    id: string,
+    reason: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other' = 'bottle_finished',
+    notes?: string
+  ): boolean => {
+    const med = allMedications.find(m => m.id === id);
+    if (!med) return false;
+
+    if (med.stockTrackingMode === 'manual_bottle' && (med.bottlesCount || 1) > 1) {
+      const remaining = (med.bottlesCount || 1) - 1;
+      setAllMedications(prev => prev.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            bottlesCount: remaining,
+            currentStock: remaining
+          };
+        }
+        return item;
+      }));
+      return true; // Still has reserve bottles
+    }
+
+    // It was the last bottle
+    completeMedication(id, reason, notes);
+    return false;
+  };
+
+  const restockMedication = (
+    id: string,
+    params: {
+      quantityToAdd?: number;
+      boxesCount?: number;
+      unitsPerBox?: number;
+      bottlesToAdd?: number;
+      cost?: number;
+      preferredStore?: string;
+      isMedicalSample?: boolean;
+      sampleNotes?: string;
+    }
+  ) => {
+    setAllMedications(prev => prev.map(item => {
+      if (item.id === id) {
+        const addedPieces = params.quantityToAdd !== undefined
+          ? params.quantityToAdd
+          : (params.boxesCount && params.unitsPerBox ? params.boxesCount * params.unitsPerBox : 0);
+
+        const isManual = item.stockTrackingMode === 'manual_bottle';
+        const newBottles = (item.bottlesCount || 0) + (params.bottlesToAdd || (isManual && params.boxesCount ? params.boxesCount : 0));
+        const newPieces = item.currentStock + addedPieces;
+
+        return {
+          ...item,
+          status: 'active',
+          currentStock: isManual ? (newBottles > 0 ? newBottles : 1) : newPieces,
+          bottlesCount: isManual ? (newBottles > 0 ? newBottles : 1) : undefined,
+          packageUnits: params.unitsPerBox || item.packageUnits,
+          unitCost: params.cost !== undefined ? params.cost : item.unitCost,
+          preferredStore: params.preferredStore || item.preferredStore,
+          isMedicalSample: params.isMedicalSample !== undefined ? params.isMedicalSample : item.isMedicalSample,
+          sampleNotes: params.sampleNotes || item.sampleNotes,
+          completedAt: undefined,
+          completionReason: undefined,
+          completionNotes: undefined
         };
       }
       return item;
@@ -321,10 +403,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const reactivateMedication = (id: string, newStock?: number) => {
     setAllMedications(prev => prev.map(item => {
       if (item.id === id) {
+        const isManual = item.stockTrackingMode === 'manual_bottle';
         return {
           ...item,
           status: 'active',
-          currentStock: newStock !== undefined && newStock > 0 ? newStock : (item.currentStock > 0 ? item.currentStock : 30),
+          currentStock: isManual ? (newStock || 1) : (newStock !== undefined && newStock > 0 ? newStock : (item.currentStock > 0 ? item.currentStock : 30)),
+          bottlesCount: isManual ? (newStock || 1) : undefined,
           completedAt: undefined,
           completionReason: undefined,
           completionNotes: undefined
@@ -599,6 +683,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateMedication,
         deleteMedication,
         completeMedication,
+        consumeBottle,
+        restockMedication,
         reactivateMedication,
 
         doseLogs,

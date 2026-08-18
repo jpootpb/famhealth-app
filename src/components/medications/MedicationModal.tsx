@@ -42,6 +42,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [laboratory, setLaboratory] = useState('');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [stockTrackingMode, setStockTrackingMode] = useState<'pieces' | 'manual_bottle'>('pieces');
+  const [bottlesCount, setBottlesCount] = useState<number>(1);
+  const [packageUnits, setPackageUnits] = useState<number>(30);
+  const [isMedicalSample, setIsMedicalSample] = useState<boolean>(false);
+  const [sampleNotes, setSampleNotes] = useState<string>('');
   const [currentStock, setCurrentStock] = useState<number>(30);
   const [minimumStockAlert, setMinimumStockAlert] = useState<number>(5);
   const [unitCost, setUnitCost] = useState<number | ''>('');
@@ -101,6 +105,12 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIndication(medicationToEdit.indication || '');
       setLaboratory(medicationToEdit.laboratory || '');
       setImageUrl(medicationToEdit.imageUrl || '');
+      const isManual = medicationToEdit.stockTrackingMode === 'manual_bottle' || ['drops', 'ear_drops', 'nasal_spray', 'syrup', 'cream', 'inhalation'].includes(medicationToEdit.presentation);
+      setStockTrackingMode(isManual ? 'manual_bottle' : 'pieces');
+      setBottlesCount(medicationToEdit.bottlesCount !== undefined ? medicationToEdit.bottlesCount : 1);
+      setPackageUnits(medicationToEdit.packageUnits || 30);
+      setIsMedicalSample(Boolean(medicationToEdit.isMedicalSample));
+      setSampleNotes(medicationToEdit.sampleNotes || '');
       setCurrentStock(medicationToEdit.currentStock);
       setMinimumStockAlert(medicationToEdit.minimumStockAlert);
       setUnitCost(medicationToEdit.unitCost !== undefined ? medicationToEdit.unitCost : '');
@@ -134,6 +144,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIndication('');
       setLaboratory('');
       setImageUrl('');
+      setStockTrackingMode('pieces');
+      setBottlesCount(1);
+      setPackageUnits(30);
+      setIsMedicalSample(false);
+      setSampleNotes('');
       setCurrentStock(30);
       setMinimumStockAlert(5);
       setUnitCost('');
@@ -202,10 +217,14 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       name: name.trim(),
       presentation,
       stockTrackingMode,
+      bottlesCount: stockTrackingMode === 'manual_bottle' ? (Number(bottlesCount) || 1) : undefined,
+      packageUnits: Number(packageUnits) || 30,
+      isMedicalSample,
+      sampleNotes: sampleNotes.trim() || undefined,
       indication: indication.trim() || undefined,
       laboratory: laboratory.trim() || undefined,
       imageUrl: imageUrl || undefined,
-      currentStock: stockTrackingMode === 'manual_bottle' ? 1 : (Number(currentStock) || 0),
+      currentStock: stockTrackingMode === 'manual_bottle' ? (Number(bottlesCount) || 1) : (Number(currentStock) || 0),
       minimumStockAlert: stockTrackingMode === 'manual_bottle' ? 0 : (Number(minimumStockAlert) || 3),
       unitCost: isImssCovered ? 0 : (unitCost ? Number(unitCost) : undefined),
       isImssCovered,
@@ -540,28 +559,107 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
             <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <AlertCircle size={16} color="var(--primary)" /> {t('inventorySettings')}
             </h3>
-            <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">{t('currentStockCount')}</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  min="0"
-                  value={currentStock}
-                  onChange={e => setCurrentStock(Number(e.target.value))}
-                />
-              </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">{t('lowStockThreshold')}</label>
+            {/* Inventory count based on mode */}
+            {stockTrackingMode === 'manual_bottle' ? (
+              <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  🧴 {language === 'es' ? 'Cantidad de Frascos / Muestras Disponibles:' : 'Available Bottles / Samples:'}
+                </label>
                 <input
                   type="number"
                   className="form-input"
                   min="1"
-                  value={minimumStockAlert}
-                  onChange={e => setMinimumStockAlert(Number(e.target.value))}
+                  value={bottlesCount}
+                  onChange={e => setBottlesCount(Number(e.target.value))}
+                />
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  {language === 'es' ? 'ej. Si compraste 2 muestras de 3ml en Farmacia Regina, pon 2 (1 en uso y 1 de reserva).' : 'e.g. 2 sample bottles'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid-3" style={{ marginBottom: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">{t('currentStockCount')}</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="0"
+                    value={currentStock}
+                    onChange={e => setCurrentStock(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">
+                    📦 {language === 'es' ? 'Unid. por caja' : 'Units/box'}
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="1"
+                    value={packageUnits}
+                    onChange={e => setPackageUnits(Number(e.target.value))}
+                    placeholder="30"
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">{t('lowStockThreshold')}</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="1"
+                    value={minimumStockAlert}
+                    onChange={e => setMinimumStockAlert(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Medical Sample / Muestrario Toggle */}
+            <div
+              style={{
+                backgroundColor: isMedicalSample ? '#fef3c7' : '#ffffff',
+                border: `1.5px solid ${isMedicalSample ? '#f59e0b' : 'var(--border-color)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem',
+                marginBottom: '0.75rem',
+                cursor: 'pointer'
+              }}
+              onClick={() => setIsMedicalSample(!isMedicalSample)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <strong style={{ fontSize: '0.8125rem', color: isMedicalSample ? '#92400e' : 'var(--text-primary)' }}>
+                    🧪 {language === 'es' ? 'Adquirido como Muestra Médica / Piezas Sueltas' : 'Medical Sample / Loose Blister'}
+                  </strong>
+                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    {language === 'es'
+                      ? 'Para medicamentos comprados por muestra, blister o frascos de 3ml en farmacias como Farmacia Regina.'
+                      : 'For cost-saving medical samples or loose capsules.'}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isMedicalSample}
+                  onChange={() => {}}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
               </div>
+
+              {isMedicalSample && (
+                <div style={{ marginTop: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ fontSize: '0.78rem', backgroundColor: '#fff' }}
+                    placeholder={language === 'es' ? 'Detalle (ej. 2 muestras de 3ml, cápsula suelta a $20 c/u)' : 'Sample detail'}
+                    value={sampleNotes}
+                    onChange={e => setSampleNotes(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
@@ -674,14 +772,14 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Mercado Libre, Farmacias Guadalajara, Muestras Médicas"
+                    placeholder="e.g. Farmacia Regina (Muestras Médicas), Mercado Libre, Farmacias Guadalajara"
                     value={preferredStore}
                     onChange={e => setPreferredStore(e.target.value)}
                   />
 
                   {/* Quick Store Pill Presets */}
                   <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap' }}>
-                    {['Mercado Libre', 'Farmacias Guadalajara', 'Muestras Médicas', 'Farmacia del Ahorro', 'Farmacias Similares'].map(store => (
+                    {['Farmacia Regina (Muestras Médicas)', 'Mercado Libre', 'Farmacias Guadalajara', 'Muestras Médicas', 'Farmacia del Ahorro', 'Farmacias Similares'].map(store => (
                       <button
                         key={store}
                         type="button"
@@ -702,7 +800,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   <textarea
                     className="form-input"
                     rows={2}
-                    placeholder="e.g. Comprar genérico con mismo compuesto y gramaje a $510 en Mercado Libre (ahorro de $690 vs $1200 en farmacia)."
+                    placeholder="e.g. En Farmacia Regina venden la cápsula a $20 o las muestras de 3ml a mitad de precio que la caja comercial."
                     value={purchaseNotes}
                     onChange={e => setPurchaseNotes(e.target.value)}
                   />

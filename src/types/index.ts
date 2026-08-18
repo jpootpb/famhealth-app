@@ -128,6 +128,10 @@ export interface Medication {
   badgeColor?: string;
   expirationDate?: string; // YYYY-MM-DD
   stockTrackingMode?: 'pieces' | 'manual_bottle'; // 'pieces' = subtract units on each dose; 'manual_bottle' = eye drops/ointments/syrups managed manually until empty
+  bottlesCount?: number; // Quantity of bottles or samples in stock (e.g. 2 bottles of 3ml)
+  packageUnits?: number; // Standard units per box (e.g. 15, 28, 30 capsules)
+  isMedicalSample?: boolean; // True if acquired as medical samples / loose capsules / muestrario
+  sampleNotes?: string; // e.g. "Muestra médica 3ml" or "Cápsulas sueltas a $20 c/u"
   route?: 'oral' | 'ophthalmic' | 'topical' | 'nasal' | 'otic' | 'inhalation' | 'injectable' | 'other';
   status?: 'active' | 'completed' | 'suspended';
   completedAt?: string; // ISO date string when medicine was finished / stopped

@@ -21,7 +21,10 @@ import {
   RotateCcw,
   Check,
   Archive,
-  Info
+  Info,
+  Layers,
+  FlaskConical,
+  ShoppingCart
 } from 'lucide-react';
 import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/formatters';
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
@@ -43,6 +46,8 @@ export const MedicationList: React.FC = () => {
     deleteMedication,
     addMedication,
     completeMedication,
+    consumeBottle,
+    restockMedication,
     reactivateMedication
   } = useApp();
   const { t, language } = useLanguage();
@@ -57,6 +62,18 @@ export const MedicationList: React.FC = () => {
   const [completeModalMed, setCompleteModalMed] = useState<Medication | null>(null);
   const [completionReason, setCompletionReason] = useState<'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other'>('bottle_finished');
   const [completionNotes, setCompletionNotes] = useState('');
+
+  // Multi-Box / Samples Restock Modal State
+  const [restockModalMed, setRestockModalMed] = useState<Medication | null>(null);
+  const [restockMode, setRestockMode] = useState<'boxes' | 'loose_pieces' | 'bottles'>('boxes');
+  const [restockBoxCount, setRestockBoxCount] = useState<number>(3);
+  const [restockUnitsPerBox, setRestockUnitsPerBox] = useState<number>(28);
+  const [restockLooseCount, setRestockLooseCount] = useState<number>(15);
+  const [restockBottlesCount, setRestockBottlesCount] = useState<number>(2);
+  const [restockCost, setRestockCost] = useState<number | ''>('');
+  const [restockStore, setRestockStore] = useState<string>('Farmacia Regina (Muestras Médicas)');
+  const [restockIsSample, setRestockIsSample] = useState<boolean>(false);
+  const [restockSampleNotes, setRestockSampleNotes] = useState<string>('');
 
   // Reactivate / Restock Modal State
   const [reactivateModalMed, setReactivateModalMed] = useState<Medication | null>(null);
@@ -177,17 +194,82 @@ export const MedicationList: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleQuickRestock = (med: Medication, amount: number = 30) => {
-    updateMedication({
-      ...med,
-      currentStock: med.currentStock + amount
+  const handleOpenRestockModal = (med: Medication) => {
+    setRestockModalMed(med);
+    const isManual = med.stockTrackingMode === 'manual_bottle';
+    setRestockMode(isManual ? 'bottles' : 'boxes');
+    setRestockBoxCount(3);
+    setRestockUnitsPerBox(med.packageUnits || 28);
+    setRestockLooseCount(15);
+    setRestockBottlesCount(2);
+    setRestockCost(med.unitCost !== undefined ? med.unitCost : '');
+    setRestockStore(med.preferredStore || 'Farmacia Regina (Muestras Médicas)');
+    setRestockIsSample(Boolean(med.isMedicalSample));
+    setRestockSampleNotes(med.sampleNotes || (isManual ? 'Muestra médica 3ml' : 'Cápsulas sueltas a $20 c/u'));
+  };
+
+  const handleConfirmRestock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restockModalMed) return;
+
+    let addedQty = 0;
+    let addedBottles = 0;
+
+    if (restockMode === 'boxes') {
+      addedQty = Number(restockBoxCount) * Number(restockUnitsPerBox);
+    } else if (restockMode === 'loose_pieces') {
+      addedQty = Number(restockLooseCount);
+    } else if (restockMode === 'bottles') {
+      addedBottles = Number(restockBottlesCount);
+      addedQty = addedBottles;
+    }
+
+    restockMedication(restockModalMed.id, {
+      quantityToAdd: addedQty,
+      boxesCount: restockMode === 'boxes' ? Number(restockBoxCount) : undefined,
+      unitsPerBox: Number(restockUnitsPerBox),
+      bottlesToAdd: addedBottles,
+      cost: restockCost !== '' ? Number(restockCost) : undefined,
+      preferredStore: restockStore.trim() || undefined,
+      isMedicalSample: restockIsSample,
+      sampleNotes: restockIsSample ? restockSampleNotes.trim() : undefined
     });
+
+    const summaryText = restockMode === 'boxes'
+      ? `${restockBoxCount} cajas (+${addedQty} ${restockModalMed.presentation}s)`
+      : restockMode === 'loose_pieces'
+      ? `${addedQty} cápsulas/piezas sueltas`
+      : `${addedBottles} frascos/muestras de reserva`;
+
+    setTransferToast(
+      language === 'es'
+        ? `📦 ¡Resurtido registrado! Se agregaron ${summaryText} para "${restockModalMed.name}".`
+        : `📦 Restocked ${summaryText} for "${restockModalMed.name}".`
+    );
+    setTimeout(() => setTransferToast(null), 5000);
+    setRestockModalMed(null);
   };
 
   const handleDelete = (med: Medication) => {
     if (window.confirm(`${t('deleteMedConfirm')} (${med.name})`)) {
       deleteMedication(med.id);
     }
+  };
+
+  const handleInitiateCompletion = (med: Medication) => {
+    if (med.stockTrackingMode === 'manual_bottle' && (med.bottlesCount || 1) > 1) {
+      consumeBottle(med.id, 'bottle_finished');
+      const remaining = (med.bottlesCount || 1) - 1;
+      setTransferToast(
+        language === 'es'
+          ? `🧴 Se terminó el frasco actual. ¡Se activó 1 frasco de muestra médica de tu reserva! Te queda(n) ${remaining} frasco(s) en uso.`
+          : `🧴 Current bottle finished. Activated next reserve bottle (${remaining} left).`
+      );
+      setTimeout(() => setTransferToast(null), 5000);
+      return;
+    }
+
+    setCompleteModalMed(med);
   };
 
   const handleConfirmCompletion = (e: React.FormEvent) => {
@@ -403,7 +485,13 @@ export const MedicationList: React.FC = () => {
       ) : (
         <div className="grid-2">
           {currentDisplayList.map(med => {
-            const stockStatus = getStockStatus(med.currentStock, med.minimumStockAlert, med.stockTrackingMode, language as any);
+            const stockStatus = getStockStatus(
+              med.currentStock,
+              med.minimumStockAlert,
+              med.stockTrackingMode,
+              language as any,
+              med.bottlesCount
+            );
             const expStatus = getExpirationStatus(med.expirationDate);
             const freqLabel = getFrequencyLabel(med.frequency);
             const isCompleted = med.status === 'completed' || med.status === 'suspended';
@@ -482,6 +570,13 @@ export const MedicationList: React.FC = () => {
                             {med.indication}
                           </p>
                         )}
+                        {med.isMedicalSample && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700, marginTop: '0.25rem' }}>
+                            <FlaskConical size={11} />
+                            <span>🧪 {language === 'es' ? 'Muestra Médica' : 'Medical Sample'}</span>
+                            {med.sampleNotes && <span>• {med.sampleNotes}</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -551,7 +646,7 @@ export const MedicationList: React.FC = () => {
                           className="badge badge-purple"
                           style={{ fontSize: '0.7rem' }}
                         >
-                          {slot.time} → {formatDose(slot.dose, med.presentation)}
+                          {slot.time} → {formatDose(slot.dose, med.presentation, language as any)}
                           {slot.instruction ? ` (${slot.instruction})` : ''}
                         </span>
                       ))}
@@ -641,25 +736,28 @@ export const MedicationList: React.FC = () => {
                       </button>
                     ) : (
                       <>
-                        {med.stockTrackingMode !== 'manual_bottle' && (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => handleQuickRestock(med, 30)}
-                            style={{ fontSize: '0.75rem' }}
-                            title={language === 'es' ? 'Resurtir +30 pastillas o dosis' : 'Restock +30 units'}
-                          >
-                            <PackagePlus size={14} /> +30
-                          </button>
-                        )}
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleOpenRestockModal(med)}
+                          style={{ fontSize: '0.75rem', color: '#0369a1', borderColor: '#bae6fd', backgroundColor: '#f0f9ff', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          title={language === 'es' ? 'Agregar cajas, cápsulas sueltas o frascos de muestra médica' : 'Restock boxes or medical samples'}
+                        >
+                          <PackagePlus size={14} />
+                          <span>{language === 'es' ? '📦 Resurtir / Cajas' : '📦 Restock'}</span>
+                        </button>
 
                         <button
                           className="btn btn-secondary btn-sm"
-                          onClick={() => setCompleteModalMed(med)}
+                          onClick={() => handleInitiateCompletion(med)}
                           style={{ fontSize: '0.75rem', color: '#ea580c', borderColor: '#fed7aa', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                           title={language === 'es' ? 'Marcar cuando se termine el frasco o concluya el tratamiento' : 'Mark completed / bottle finished'}
                         >
                           <Flag size={14} />
-                          <span>{language === 'es' ? '🏁 Terminado / Agotado' : '🏁 Finished'}</span>
+                          <span>
+                            {med.stockTrackingMode === 'manual_bottle' && (med.bottlesCount || 1) > 1
+                              ? (language === 'es' ? '🏁 Terminar Frasco (Usar Reserva)' : '🏁 Finish Bottle')
+                              : (language === 'es' ? '🏁 Terminado / Agotado' : '🏁 Finished')}
+                          </span>
                         </button>
 
                         {med.currentStock > 0 && (
@@ -697,6 +795,239 @@ export const MedicationList: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Multi-Box & Medical Sample Restock Modal */}
+      {restockModalMed && (
+        <div className="modal-backdrop" onClick={() => setRestockModalMed(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '540px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <PackagePlus size={22} color="#0284c7" />
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                  {language === 'es' ? 'Resurtir Inventario / Cajas o Muestras' : 'Restock Medication'}
+                </h2>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setRestockModalMed(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmRestock} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div
+                style={{
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.875rem',
+                  fontSize: '0.85rem',
+                  color: '#0369a1'
+                }}
+              >
+                <strong>💊 {restockModalMed.name}</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.78rem' }}>
+                  {language === 'es'
+                    ? 'Agrega varias cajas compradas a la vez, cápsulas sueltas o frascos de muestra médica sin dar de alta medicamentos duplicados.'
+                    : 'Add multiple boxes, loose capsules or sample bottles without duplicate records.'}
+                </p>
+              </div>
+
+              {/* Restock Mode Selector */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {language === 'es' ? '¿Cómo adquiriste este medicamento?' : 'Purchase Type:'}
+                </label>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${restockMode === 'boxes' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => {
+                      setRestockMode('boxes');
+                      setRestockIsSample(false);
+                    }}
+                    style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                  >
+                    📦 {language === 'es' ? 'Varias Cajas (ej. 3 cajas)' : 'Multiple Boxes'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${restockMode === 'loose_pieces' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => {
+                      setRestockMode('loose_pieces');
+                      setRestockIsSample(true);
+                      setRestockSampleNotes('Cápsulas sueltas a $20 c/u en Farmacia Regina');
+                    }}
+                    style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                  >
+                    🧪 {language === 'es' ? 'Cápsulas Sueltas / Muestra' : 'Loose Capsules'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${restockMode === 'bottles' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => {
+                      setRestockMode('bottles');
+                      setRestockIsSample(true);
+                      setRestockSampleNotes('2 muestras médicas de 3ml');
+                    }}
+                    style={{ fontSize: '0.78rem', fontWeight: 700 }}
+                  >
+                    🧴 {language === 'es' ? 'Frascos / Goteros (Muestras)' : 'Sample Bottles'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode: Multiple Boxes */}
+              {restockMode === 'boxes' && (
+                <div className="grid-2" style={{ backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">
+                      📦 {language === 'es' ? 'Número de Cajas:' : 'Boxes count:'}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-input"
+                      value={restockBoxCount}
+                      onChange={e => setRestockBoxCount(Number(e.target.value))}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">
+                      💊 {language === 'es' ? 'Pastillas por caja:' : 'Units per box:'}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-input"
+                      value={restockUnitsPerBox}
+                      onChange={e => setRestockUnitsPerBox(Number(e.target.value))}
+                      required
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1', fontSize: '0.75rem', color: '#0369a1', fontWeight: 700, marginTop: '0.35rem' }}>
+                    ✨ {language === 'es'
+                      ? `Total a sumar: ${restockBoxCount * restockUnitsPerBox} pastillas al inventario.`
+                      : `Total to add: ${restockBoxCount * restockUnitsPerBox} units.`}
+                  </div>
+                </div>
+              )}
+
+              {/* Mode: Loose pieces / Medical sample */}
+              {restockMode === 'loose_pieces' && (
+                <div className="form-group" style={{ backgroundColor: '#fffbeb', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid #fde68a' }}>
+                  <label className="form-label" style={{ color: '#92400e', fontWeight: 700 }}>
+                    🧪 {language === 'es' ? 'Cantidad de Cápsulas / Pastillas Sueltas:' : 'Loose Capsules Count:'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="form-input"
+                    value={restockLooseCount}
+                    onChange={e => setRestockLooseCount(Number(e.target.value))}
+                    required
+                  />
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', color: '#b45309' }}>
+                    {language === 'es' ? 'ej. Compraste 15 cápsulas sueltas a $20 c/u en Farmacia Regina.' : 'e.g. 15 capsules'}
+                  </p>
+                </div>
+              )}
+
+              {/* Mode: Bottles / Samples */}
+              {restockMode === 'bottles' && (
+                <div className="form-group" style={{ backgroundColor: '#f0fdf4', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid #bbf7d0' }}>
+                  <label className="form-label" style={{ color: '#166534', fontWeight: 700 }}>
+                    🧴 {language === 'es' ? 'Cantidad de Frascos o Goteros Comprados:' : 'Bottles Count:'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="form-input"
+                    value={restockBottlesCount}
+                    onChange={e => setRestockBottlesCount(Number(e.target.value))}
+                    required
+                  />
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', color: '#15803d' }}>
+                    {language === 'es'
+                      ? `ej. Compraste 2 muestras médicas de 3ml en Farmacia Regina. La app mantendrá 1 en uso y ${(restockBottlesCount || 1) - 1} en reserva.`
+                      : 'e.g. 2 sample bottles'}
+                  </p>
+                </div>
+              )}
+
+              {/* Store & Cost Tracking */}
+              <div className="grid-2">
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">
+                    🏪 {language === 'es' ? 'Farmacia o Lugar de Compra:' : 'Pharmacy:'}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={restockStore}
+                    onChange={e => setRestockStore(e.target.value)}
+                    placeholder="e.g. Farmacia Regina (Muestras Médicas)"
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">
+                    💰 {language === 'es' ? 'Costo Total ($ MXN):' : 'Total Cost:'}
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="0"
+                    placeholder="e.g. 300"
+                    value={restockCost}
+                    onChange={e => setRestockCost(e.target.value ? Number(e.target.value) : '')}
+                  />
+                </div>
+              </div>
+
+              {/* Quick Store Preset Buttons */}
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {['Farmacia Regina (Muestras Médicas)', 'Mercado Libre', 'Farmacias Guadalajara', 'Muestras Médicas', 'Farmacia del Ahorro'].map(st => (
+                  <button
+                    key={st}
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setRestockStore(st)}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)' }}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setRestockModalMed(null)}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1, fontWeight: 800, backgroundColor: '#0284c7', borderColor: '#0284c7' }}
+                >
+                  📦 {language === 'es' ? 'Registrar Resurtido' : 'Confirm Restock'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
