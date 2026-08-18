@@ -77,6 +77,8 @@ interface AppContextType {
   // Appointments
   appointments: MedicalAppointment[];
   addAppointment: (a: Omit<MedicalAppointment, 'id'>) => void;
+  updateAppointment: (a: MedicalAppointment) => void;
+  deleteAppointment: (id: string) => void;
   toggleAppointmentCompleted: (id: string) => void;
 
   // Studies
@@ -394,6 +396,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAllAppointments(prev => [...prev, newApp]);
   };
 
+  const updateAppointment = (a: MedicalAppointment) => {
+    setAllAppointments(prev => prev.map(item => item.id === a.id ? a : item));
+  };
+
+  const deleteAppointment = (id: string) => {
+    setAllAppointments(prev => prev.filter(item => item.id !== id));
+  };
+
   const toggleAppointmentCompleted = (id: string) => {
     setAllAppointments(prev => prev.map(a => a.id === id ? { ...a, isCompleted: !a.isCompleted } : a));
   };
@@ -462,6 +472,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         appointments,
         addAppointment,
+        updateAppointment,
+        deleteAppointment,
         toggleAppointmentCompleted,
 
         studies,

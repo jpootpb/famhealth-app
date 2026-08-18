@@ -15,14 +15,21 @@ import {
   FileText,
   Camera,
   Paperclip,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sparkles,
+  Download
 } from 'lucide-react';
+import { AIPrescriptionScannerModal } from '../medications/AIPrescriptionScannerModal';
+import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
 
 export const AppointmentsView: React.FC = () => {
-  const { activePatient, appointments, addAppointment, toggleAppointmentCompleted } = useApp();
+  const { activePatient, appointments, addAppointment, updateAppointment, deleteAppointment, toggleAppointmentCompleted, addMedication } = useApp();
   const { t, language } = useLanguage();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
+  const [targetAppointmentForAi, setTargetAppointmentForAi] = useState<MedicalAppointment | null>(null);
+
   const [doctorName, setDoctorName] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [dateTime, setDateTime] = useState('');
@@ -35,7 +42,7 @@ export const AppointmentsView: React.FC = () => {
   if (!activePatient) {
     return (
       <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Please select a patient profile to view appointments.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>{t('selectPatientPrompt')}</p>
       </div>
     );
   }
@@ -59,6 +66,27 @@ export const AppointmentsView: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  const handlePostConsultationPrescriptionUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    app: MedicalAppointment
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isPdf = file.type === 'application/pdf';
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        updateAppointment({
+          ...app,
+          prescriptionUrl: reader.result,
+          prescriptionFileType: isPdf ? 'pdf' : 'image'
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!doctorName.trim() || !dateTime) return;
@@ -66,7 +94,7 @@ export const AppointmentsView: React.FC = () => {
     addAppointment({
       patientId: activePatient.id,
       doctorName: doctorName.trim(),
-      specialty: specialty.trim() || 'General Medicine',
+      specialty: specialty.trim() || (language === 'es' ? 'Medicina General' : 'General Medicine'),
       dateTime,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -82,6 +110,23 @@ export const AppointmentsView: React.FC = () => {
     setNotes('');
     setPrescriptionUrl('');
     setIsModalOpen(false);
+  };
+
+  const handleAiExtractedMed = (med: ExtractedPrescriptionMed) => {
+    addMedication({
+      patientId: activePatient.id,
+      name: med.name,
+      presentation: med.presentation || 'tablet',
+      indication: med.instructions,
+      laboratory: med.laboratory,
+      currentStock: 30,
+      minimumStockAlert: 5,
+      frequency: {
+        type: med.durationDays ? 'temporary_hourly' : 'daily_fixed',
+        doseSlots: med.scheduledTimes ? med.scheduledTimes.map(time => ({ time, dose: med.dose || 1, instruction: med.instructions })) : [{ time: '08:00', dose: 1 }],
+        startDate: new Date().toISOString().split('T')[0]
+      }
+    });
   };
 
   return (
@@ -100,7 +145,7 @@ export const AppointmentsView: React.FC = () => {
       >
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-            {activePatient.name}{t('appointmentsTitle')}
+            {language === 'es' ? `${t('appointmentsTitle')} ${activePatient.name}` : `${activePatient.name}${t('appointmentsTitle')}`}
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             {t('appointmentsSubtitle')}
@@ -114,30 +159,28 @@ export const AppointmentsView: React.FC = () => {
 
       {/* Appointment Cards List */}
       {sortedApps.length === 0 ? (
-        <div className="card text-center" style={{ padding: '3.5rem 1.5rem' }}>
-          <CalendarDays size={48} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 1rem' }} />
+        <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
+          <CalendarDays size={48} color="var(--text-muted)" style={{ margin: '0 auto 1rem' }} />
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            {language === 'es' ? 'No hay consultas médicas agendadas' : 'No upcoming medical consultations'}
+            {t('noAppointmentsLogged')}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            {language === 'es'
-              ? 'Agenda las citas con especialistas, adjunta fotos de las recetas y prepara los estudios previos.'
-              : 'Schedule specialist checkups, attach prescription photos, and keep track of instructions.'}
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '400px', margin: '0 auto' }}>
+            {t('noAppointmentsLoggedDesc')}
           </p>
-          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)} style={{ margin: '0 auto' }}>
-            <Plus size={18} /> {t('newAppointment')}
-          </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {sortedApps.map(app => {
-            const formattedDate = new Date(app.dateTime).toLocaleString('es-MX', {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
+            const dateObj = new Date(app.dateTime);
+            const formattedDate = !isNaN(dateObj.getTime())
+              ? dateObj.toLocaleString('es-MX', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : app.dateTime;
 
             return (
               <div
@@ -145,15 +188,17 @@ export const AppointmentsView: React.FC = () => {
                 className="card"
                 style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
                   padding: '1.25rem',
                   backgroundColor: app.isCompleted ? 'var(--bg-secondary)' : '#ffffff',
-                  opacity: app.isCompleted ? 0.8 : 1,
+                  opacity: app.isCompleted ? 0.85 : 1,
                   borderLeft: `4px solid ${app.isCompleted ? 'var(--success)' : 'var(--primary)'}`
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', flex: 1, minWidth: '280px' }}>
                   <button
                     onClick={() => toggleAppointmentCompleted(app.id)}
                     style={{
@@ -171,7 +216,7 @@ export const AppointmentsView: React.FC = () => {
                     {app.isCompleted ? <CheckCircle2 size={26} fill="var(--success-light)" /> : <Circle size={26} />}
                   </button>
 
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <strong
                         style={{
@@ -187,7 +232,7 @@ export const AppointmentsView: React.FC = () => {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600, color: 'var(--primary)' }}>
                         <Clock size={14} /> {formattedDate}
                       </span>
@@ -199,14 +244,14 @@ export const AppointmentsView: React.FC = () => {
                     </div>
 
                     {app.notes && (
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.5rem', backgroundColor: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)' }}>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.5rem', backgroundColor: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', margin: '0.5rem 0 0.5rem 0' }}>
                         <strong>{t('prepNotes')}:</strong> {app.notes}
                       </p>
                     )}
 
-                    {/* Prescription Attachment Badge / Button */}
-                    {app.prescriptionUrl && (
-                      <div style={{ marginTop: '0.625rem' }}>
+                    {/* Prescription Section */}
+                    {app.prescriptionUrl ? (
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.625rem' }}>
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
@@ -223,17 +268,65 @@ export const AppointmentsView: React.FC = () => {
                           }}
                         >
                           <FileText size={14} />
-                          {language === 'es' ? '📜 Ver Receta Médica Adjunta' : '📜 View Attached Prescription'}
+                          {language === 'es' ? '📜 Ver Receta Médica' : '📜 View Prescription'}
                         </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setTargetAppointmentForAi(app);
+                            setIsAiScannerOpen(true);
+                          }}
+                          style={{
+                            fontSize: '0.75rem',
+                            color: '#059669',
+                            borderColor: '#059669',
+                            backgroundColor: '#ecfdf5'
+                          }}
+                        >
+                          <Sparkles size={14} />
+                          {language === 'es' ? '🤖 Escanear Receta con IA' : 'Scan Prescription with AI'}
+                        </button>
+                      </div>
+                    ) : (
+                      /* Attach Prescription Post-Consultation Option */
+                      <div style={{ marginTop: '0.625rem' }}>
+                        <label
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            borderStyle: 'dashed',
+                            color: 'var(--primary)'
+                          }}
+                        >
+                          <Camera size={14} />
+                          <span>{language === 'es' ? '📷 Adjuntar / Tomar Foto de la Receta de esta Consulta' : '📷 Attach / Take Photo of Prescription'}</span>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={e => handlePostConsultationPrescriptionUpload(e, app)}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span className={`badge ${app.isCompleted ? 'badge-green' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
                     {app.isCompleted ? (language === 'es' ? 'Realizada' : 'Completed') : (language === 'es' ? 'Pendiente' : 'Upcoming')}
                   </span>
+
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => deleteAppointment(app.id)}
+                    aria-label="Delete appointment"
+                  >
+                    <Trash2 size={14} color="var(--danger)" />
+                  </button>
                 </div>
               </div>
             );
@@ -252,9 +345,7 @@ export const AppointmentsView: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CalendarDays size={22} color="var(--primary)" />
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                  {t('newAppointment')}
-                </h2>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{t('newAppointment')}</h2>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setIsModalOpen(false)}>
                 <X size={18} />
@@ -262,40 +353,32 @@ export const AppointmentsView: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreate}>
-              <div className="grid-2">
-                <div className="form-group">
-                  <label className="form-label">
-                    {language === 'es' ? 'Nombre del Médico / Especialista *' : 'Doctor / Specialist Name *'}
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Dr. Alejandro Hernández"
-                    value={doctorName}
-                    onChange={e => setDoctorName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    {language === 'es' ? 'Especialidad' : 'Specialty'}
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Geriatría, Cardiología, Urología"
-                    value={specialty}
-                    onChange={e => setSpecialty(e.target.value)}
-                  />
-                </div>
+              <div className="form-group">
+                <label className="form-label">{t('doctorNameLabel')}</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Dr. Alejandro Hernández"
+                  value={doctorName}
+                  onChange={e => setDoctorName(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="grid-2">
                 <div className="form-group">
-                  <label className="form-label">
-                    {language === 'es' ? 'Fecha y Hora *' : 'Date & Time *'}
-                  </label>
+                  <label className="form-label">{t('specialtyLabel')}</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Medicina Interna / Geriatría"
+                    value={specialty}
+                    onChange={e => setSpecialty(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{t('dateTimeLabel')}</label>
                   <input
                     type="datetime-local"
                     className="form-input"
@@ -304,122 +387,94 @@ export const AppointmentsView: React.FC = () => {
                     required
                   />
                 </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    {language === 'es' ? 'Ubicación / Consultorio' : 'Location / Clinic'}
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Clínica Mérida - Consultorio 402"
-                    value={location}
-                    onChange={e => setLocation(e.target.value)}
-                  />
-                </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">
-                  {language === 'es' ? 'Indicaciones Previas / Notas' : 'Prep Instructions / Notes'}
-                </label>
+                <label className="form-label">{t('locationLabel')}</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Clínica Mérida - Consultorio 402"
+                  value={location}
+                  onChange={e => setLocation(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">{t('prepNotes')}</label>
                 <textarea
                   className="form-input"
                   rows={2}
-                  placeholder={language === 'es' ? 'e.g. Llevar bitácora de glucosa de 3 días y estudios de sangre en ayunas.' : 'e.g. Bring 3-day glucose log and fasting blood test.'}
+                  placeholder="e.g. Llevar bitácora de glucosa de 3 días y estudios de sangre recientes"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                 />
               </div>
 
-              {/* Prescription Attachment Options: Camera & Gallery/File */}
-              <div
-                className="card"
-                style={{
-                  padding: '1rem',
-                  backgroundColor: 'var(--bg-secondary)',
-                  marginBottom: '1.25rem'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div>
-                    <strong style={{ fontSize: '0.875rem', display: 'block' }}>
-                      {language === 'es' ? '📜 Foto de la Receta Médica' : '📜 Doctor Prescription Document'}
-                    </strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {language === 'es' ? 'Guarda la receta en foto o PDF para no perderla.' : 'Attach the prescription sheet via camera or PDF.'}
-                    </span>
-                  </div>
+              {/* Prescription Attachment (Optional during appointment creation) */}
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.875rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
+                  📜 {language === 'es' ? 'Receta Médica (Opcional):' : 'Prescription Photo (Optional):'}
+                </span>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
+                  {language === 'es'
+                    ? '💡 Puedes agendar la cita ahora y adjuntar la foto de la receta médica cuando salgas del consultorio.'
+                    : '💡 You can schedule now and attach the prescription photo after the doctor consultation.'}
+                </p>
 
-                  {prescriptionUrl && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <label
+                    className="btn btn-secondary btn-sm"
+                    style={{ justifyContent: 'center', cursor: 'pointer', padding: '0.5rem' }}
+                  >
+                    <Camera size={15} color="var(--primary)" />
+                    <span>{language === 'es' ? 'Tomar con Cámara' : 'Camera'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={e => handleFileUpload(e, true)}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+
+                  <label
+                    className="btn btn-secondary btn-sm"
+                    style={{ justifyContent: 'center', cursor: 'pointer', padding: '0.5rem' }}
+                  >
+                    <Paperclip size={15} />
+                    <span>{language === 'es' ? 'Subir Archivo / PDF' : 'Upload File'}</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleFileUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+
+                {prescriptionUrl && (
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>
+                      ✓ {language === 'es' ? 'Receta cargada con éxito' : 'Prescription file loaded'}
+                    </span>
                     <button
                       type="button"
                       onClick={() => setPrescriptionUrl('')}
-                      className="btn btn-secondary btn-sm"
-                      style={{ color: 'var(--danger)', fontSize: '0.75rem' }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}
                     >
-                      <Trash2 size={13} /> {language === 'es' ? 'Quitar Receta' : 'Remove'}
+                      <X size={14} />
                     </button>
-                  )}
-                </div>
-
-                {prescriptionUrl ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                    {prescriptionFileType === 'image' ? (
-                      <img
-                        src={prescriptionUrl}
-                        alt="Prescription Preview"
-                        style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <FileText size={32} color="var(--primary)" />
-                    )}
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--success)' }}>
-                      ✓ {language === 'es' ? 'Receta médica adjuntada correctamente' : 'Prescription attached successfully'}
-                    </span>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {/* Option 1: Take Photo with Mobile Camera */}
-                    <label
-                      className="btn btn-secondary btn-sm"
-                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', flex: 1, justifyContent: 'center' }}
-                    >
-                      <Camera size={15} color="var(--primary)" />
-                      {language === 'es' ? 'Tomar Foto con Cámara' : 'Take Photo (Camera)'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={e => handleFileUpload(e, true)}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-
-                    {/* Option 2: Attach from Gallery / PDF */}
-                    <label
-                      className="btn btn-secondary btn-sm"
-                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', flex: 1, justifyContent: 'center' }}
-                    >
-                      <Paperclip size={15} color="var(--secondary)" />
-                      {language === 'es' ? 'Adjuntar de Galería / PDF' : 'Attach from Gallery / PDF'}
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={e => handleFileUpload(e, false)}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
                   </div>
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
                 <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>
                   {t('cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {language === 'es' ? 'Guardar Consulta' : 'Save Appointment'}
+                  {t('saveAppointment')}
                 </button>
               </div>
             </form>
@@ -427,37 +482,72 @@ export const AppointmentsView: React.FC = () => {
         </div>
       )}
 
-      {/* Prescription Viewer Zoom Modal */}
+      {/* Prescription Viewer Modal */}
       {viewPrescription && (
         <div className="modal-backdrop" onClick={() => setViewPrescription(null)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: '640px', textAlign: 'center', padding: '1.25rem', maxHeight: '90vh', overflowY: 'auto' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <strong style={{ fontSize: '1.05rem' }}>{viewPrescription.title}</strong>
+          <div className="modal-content" style={{ maxWidth: '650px', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FileText size={20} color="var(--primary)" />
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, margin: 0 }}>
+                  {viewPrescription.title}
+                </h3>
+              </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setViewPrescription(null)}>
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            {viewPrescription.type === 'image' ? (
-              <img
-                src={viewPrescription.url}
-                alt="Prescription Document"
-                style={{ maxWidth: '100%', maxHeight: '500px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
-              />
-            ) : (
-              <iframe
-                src={viewPrescription.url}
-                title="Prescription PDF"
-                style={{ width: '100%', height: '500px', border: 'none', borderRadius: 'var(--radius-md)' }}
-              />
-            )}
+            <div style={{ textAlign: 'center', maxHeight: '60vh', overflowY: 'auto' }}>
+              {viewPrescription.type === 'pdf' ? (
+                <iframe
+                  src={viewPrescription.url}
+                  title="PDF Viewer"
+                  style={{ width: '100%', height: '450px', border: 'none', borderRadius: 'var(--radius-md)' }}
+                />
+              ) : (
+                <img
+                  src={viewPrescription.url}
+                  alt="Prescription"
+                  style={{ maxWidth: '100%', maxHeight: '450px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+                />
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsAiScannerOpen(true);
+                  setViewPrescription(null);
+                }}
+                style={{ color: '#059669' }}
+              >
+                <Sparkles size={16} /> {language === 'es' ? 'Escanear Receta con IA' : 'Scan with AI'}
+              </button>
+
+              <a
+                href={viewPrescription.url}
+                download="Receta_Medica.png"
+                className="btn btn-primary"
+              >
+                <Download size={16} /> {language === 'es' ? 'Descargar Receta' : 'Download Prescription'}
+              </a>
+            </div>
           </div>
         </div>
       )}
+
+      {/* AI Prescription Scanner Modal */}
+      <AIPrescriptionScannerModal
+        isOpen={isAiScannerOpen}
+        onClose={() => {
+          setIsAiScannerOpen(false);
+          setTargetAppointmentForAi(null);
+        }}
+        onSelectMedication={handleAiExtractedMed}
+      />
     </div>
   );
 };
