@@ -18,6 +18,9 @@ export type ExpensePeriodType =
   | 'current_fortnight'
   | 'current_month'
   | 'previous_month'
+  | 'bimonthly'
+  | 'quarterly'
+  | 'semiannual'
   | 'year'
   | 'all';
 
@@ -70,6 +73,30 @@ export function filterExpensesByPeriod(
         const prevMonthDate = new Date(refDate);
         prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
         return eYear === prevMonthDate.getFullYear() && eMonth === prevMonthDate.getMonth();
+      }
+
+      case 'bimonthly': {
+        // Last 2 Months (approx 60 days)
+        const past60Days = new Date(refDate);
+        past60Days.setDate(past60Days.getDate() - 60);
+        past60Days.setHours(0, 0, 0, 0);
+        return expDate >= past60Days && expDate <= refDate;
+      }
+
+      case 'quarterly': {
+        // Last 3 Months (approx 90 days - standard HbA1c medical review cycle)
+        const past90Days = new Date(refDate);
+        past90Days.setDate(past90Days.getDate() - 90);
+        past90Days.setHours(0, 0, 0, 0);
+        return expDate >= past90Days && expDate <= refDate;
+      }
+
+      case 'semiannual': {
+        // Last 6 Months (approx 180 days)
+        const past180Days = new Date(refDate);
+        past180Days.setDate(past180Days.getDate() - 180);
+        past180Days.setHours(0, 0, 0, 0);
+        return expDate >= past180Days && expDate <= refDate;
       }
 
       case 'year': {

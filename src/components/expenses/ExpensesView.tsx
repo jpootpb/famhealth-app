@@ -203,6 +203,27 @@ export const ExpensesView: React.FC = () => {
           ⏪ {t('periodPrevMonth')}
         </button>
         <button
+          className={`btn btn-sm ${selectedPeriod === 'bimonthly' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedPeriod('bimonthly')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          🗓️ {t('periodBimonthly')}
+        </button>
+        <button
+          className={`btn btn-sm ${selectedPeriod === 'quarterly' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedPeriod('quarterly')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          🔬 {t('periodQuarterly')}
+        </button>
+        <button
+          className={`btn btn-sm ${selectedPeriod === 'semiannual' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSelectedPeriod('semiannual')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          🩻 {t('periodSemiannual')}
+        </button>
+        <button
           className={`btn btn-sm ${selectedPeriod === 'year' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setSelectedPeriod('year')}
           style={{ borderRadius: 'var(--radius-full)' }}

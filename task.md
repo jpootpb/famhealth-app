@@ -7,7 +7,7 @@
 
 ---
 
-## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 10 Advanced Enhancements Completed)
+## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 11 Advanced Enhancements Completed)
 
 ### - [x] Task 1: Scaffolding, TypeScript, Design Tokens & Vitest Harness
 - **Status:** `COMPLETED & VERIFIED` (Git Commit: `69ec57a`)
@@ -93,15 +93,14 @@
 
 ---
 
-### - [x] Advanced Enhancements: Multi-Period Expenses, Deletion Safety & Full i18n
+### - [x] Advanced Enhancements: Extended Periods (Bimestral, Trimestral, Semestral)
 - **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🧪 `test-driven-development`: 18 test files, 50 passing tests.
-  - 📅 **Multi-Period Expense Slices & Annual Analytics:** Filter and settle expenses by *Esta Quincena*, *Este Mes*, *Esta Semana*, *Mes Anterior*, *Anual (2026)* y *Histórico Total* with annual category breakdown (Farmacia vs Consultas vs Estudios) (`tests/expensePeriods.test.ts`).
+  - 🧪 `test-driven-development`: 19 test files, 53 passing tests (`tests/expenseExtendedPeriods.test.ts`).
+  - 🗓️ **Extended Clinical & Financial Periods:** Added *Bimestral (Últimos 2 Meses / 60 días)*, *Trimestral (Últimos 3 Meses / 90 días - ciclo HbA1c)* y *Semestral (Cada 6 Meses / 180 días)* for clinical routine reviews and checkups.
   - 🛡️ **Accidental Deletion Safety Modal:** 2-step confirmation modal with amount, payer, and warning before deleting expenses.
   - 📜 **Prescription Attachment (Camera & File):** In `AppointmentsView`, added dual buttons for mobile camera photo capture (`accept="image/*" capture="environment"`) and file attachment (PDF/Gallery) with full-screen zoom modal (`tests/appointmentPrescription.test.ts`).
   - 🙋‍♀️ **1-Click Personal Care Mode (*Solo para Mí*):** Single-user self-care spaces for individuals without caregivers or expense splitting.
   - 🌐 **100% Bilingual i18n System:** `LanguageContext` with dynamic toggle (Español 🇲🇽 / English 🇺🇸) across all tabs, modals, clinical statuses, and WhatsApp messages (`tests/i18n.test.ts`).
   - 👨‍👩‍👧‍👦 **Multi-Tenant Family Circles (`FamilyCircle`):** Total data partitioning by `familyId` with unique invite codes (`POOT-7821`, `GOME-3390`) (`tests/authFamilyTenant.test.ts`).
-  - 📸 **Box Photo Recognition & Brands:** `imageUrl` and `laboratory` fields with offline Base64 capture and timeline thumbnails (`tests/medicationPhoto.test.ts`).
-- **Verification:** 50/50 tests passed across 18 suites & `npm run build` clean in 1.14s.
+- **Verification:** 53/53 tests passed across 19 suites & `npm run build` clean in 1.13s.
