@@ -12,7 +12,6 @@ import {
   PackagePlus,
   Clock,
   Building2,
-  Image as ImageIcon,
   X,
   Gift,
   Award,

@@ -9,8 +9,6 @@ import {
   ExternalLink,
   Download,
   Calendar,
-  Building,
-  Upload,
   X,
   Share2,
   Mail,
@@ -18,6 +16,7 @@ import {
   Check,
   Copy,
   Layers,
+  Maximize2,
   Eye,
   FileCheck
 } from 'lucide-react';
@@ -25,7 +24,6 @@ import { formatDateIso } from '../../utils/frequencyEngine';
 import { buildStudyWhatsAppMessage, buildStudyEmailLink } from '../../utils/studySharingEngine';
 import { shareViaWhatsApp } from '../../lib/whatsapp';
 import { openDocumentInNewTab } from '../../utils/pdfHelper';
-import { Maximize2 } from 'lucide-react';
 
 export const StudiesView: React.FC = () => {
   const { activePatient, studies, addStudy, deleteStudy } = useApp();
