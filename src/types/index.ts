@@ -6,7 +6,7 @@ export interface FamilyCircle {
   inviteCode: string; // e.g. "POOT-7821"
   createdAt: string;
   ownerEmail?: string;
-  patientCount?: number;
+  isPersonalSpace?: boolean;
 }
 
 export interface UserAccount {
@@ -143,6 +143,8 @@ export interface MedicalAppointment {
   dateTime: string;
   location?: string;
   notes?: string;
+  prescriptionUrl?: string; // Base64 data URL for doctor's prescription sheet photo / PDF
+  prescriptionFileType?: 'image' | 'pdf';
   isCompleted: boolean;
 }
 

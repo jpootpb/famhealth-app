@@ -7,7 +7,7 @@
 
 ---
 
-## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 6 Advanced Enhancements Completed)
+## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 8 Advanced Enhancements Completed)
 
 ### - [x] Task 1: Scaffolding, TypeScript, Design Tokens & Vitest Harness
 - **Status:** `COMPLETED & VERIFIED` (Git Commit: `69ec57a`)
@@ -93,14 +93,15 @@
 
 ---
 
-### - [x] Advanced Enhancements & SaaS Multi-Tenancy Architecture
+### - [x] Advanced Enhancements: SaaS Multi-Tenancy, Prescriptions & Personal Care
 - **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🧪 `test-driven-development`: 16 test files, 43 passing tests.
-  - 🌐 **Bilingual i18n System:** `LanguageContext` with dynamic toggle (Español 🇲🇽 / English 🇺🇸) across all tabs, modals, clinical statuses, and WhatsApp messages (`tests/i18n.test.ts`).
-  - 👨‍👩‍👧‍👦 **Multi-Tenant Family Circles (`FamilyCircle`):** Total data partitioning by `familyId`. Allows any user in the world to create their own family space or join an existing family with a unique 6-8 character code (`POOT-7821`, `GOME-3390`) without mixing data (`tests/authFamilyTenant.test.ts`).
-  - 🔄 **Multi-Family Switching:** Seamless 1-click switching in the header between "My Family" and "My In-laws (Suegros)" with instant patient swapping.
-  - 📸 **Box Photo Recognition & Brands:** `imageUrl` and `laboratory` fields with offline Base64 capture, timeline thumbnails, and click-to-zoom modal (`tests/medicationPhoto.test.ts`).
+  - 🧪 `test-driven-development`: 17 test files, 45 passing tests.
+  - 📜 **Prescription Attachment (Camera & File):** In `AppointmentsView`, added dual buttons for mobile camera photo capture (`accept="image/*" capture="environment"`) and file attachment (PDF/Gallery) with full-screen zoom modal (`tests/appointmentPrescription.test.ts`).
+  - 🙋‍♀️ **1-Click Personal Care Mode (*Solo para Mí*):** Single-user self-care spaces for individuals (e.g. 2-month cholesterol/Atorvastatin courses) without caregivers or expense splitting.
+  - 🌐 **Bilingual i18n System:** `LanguageContext` with dynamic toggle (Español 🇲🇽 / English 🇺🇸) (`tests/i18n.test.ts`).
+  - 👨‍👩‍👧‍👦 **Multi-Tenant Family Circles (`FamilyCircle`):** Total data partitioning by `familyId` with unique invite codes (`POOT-7821`, `GOME-3390`) (`tests/authFamilyTenant.test.ts`).
+  - 📸 **Box Photo Recognition & Brands:** `imageUrl` and `laboratory` fields with offline Base64 capture and timeline thumbnails (`tests/medicationPhoto.test.ts`).
   - 📅 **Expiration Date Traffic Lights:** Automated warnings for expired or expiring medications.
   - 👥 **Caregiver Shifts & Defaults:** Auto-resolution of on-duty shift caregivers and 1-click WhatsApp dose administration alerts (`tests/caregiverDoseNotifications.test.ts`).
-- **Verification:** 43/43 tests passed across 16 suites & `npm run build` clean in 1.11s.
+- **Verification:** 45/45 tests passed across 17 suites & `npm run build` clean in 1.12s.

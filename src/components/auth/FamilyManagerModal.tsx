@@ -11,7 +11,8 @@ import {
   X,
   Share2,
   Building2,
-  HeartHandshake
+  HeartHandshake,
+  User
 } from 'lucide-react';
 import { shareViaWhatsApp } from '../../lib/whatsapp';
 
@@ -21,11 +22,21 @@ interface FamilyManagerModalProps {
 }
 
 export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, onClose }) => {
-  const { familyCircles, activeFamilyCircle, setActiveFamilyId, createFamilyCircle, joinFamilyCircleByCode, allPatients } = useApp();
+  const {
+    familyCircles,
+    activeFamilyCircle,
+    setActiveFamilyId,
+    createFamilyCircle,
+    joinFamilyCircleByCode,
+    allPatients,
+    addPatient
+  } = useApp();
   const { t, language } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'switch' | 'create' | 'join'>('switch');
   const [newFamilyName, setNewFamilyName] = useState('');
+  const [personalName, setPersonalName] = useState('');
+  const [isPersonalMode, setIsPersonalMode] = useState(false);
   const [inviteCodeInput, setInviteCodeInput] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [joinError, setJoinError] = useState('');
@@ -53,10 +64,26 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFamilyName.trim()) return;
+    const finalName = isPersonalMode
+      ? (personalName.trim() ? `Mi Cuidado Personal (${personalName.trim()})` : 'Mi Cuidado Personal')
+      : newFamilyName.trim();
 
-    createFamilyCircle(newFamilyName.trim());
+    if (!finalName) return;
+
+    const newCircle = createFamilyCircle(finalName);
+
+    if (isPersonalMode) {
+      // Auto-create personal patient
+      addPatient({
+        name: personalName.trim() || 'Mi Perfil',
+        type: 'temporary',
+        notes: 'Uso personal individual. Registro de tratamientos y signos vitales.'
+      });
+    }
+
     setNewFamilyName('');
+    setPersonalName('');
+    setIsPersonalMode(false);
     setActiveTab('switch');
     onClose();
   };
@@ -109,12 +136,12 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
             </div>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                {language === 'es' ? 'Espacios y Círculos Familiares' : 'Family Circles & Spaces'}
+                {language === 'es' ? 'Espacios Familiares y Personales' : 'Family Circles & Personal Spaces'}
               </h2>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {language === 'es'
-                  ? 'Gestiona el cuidado de tus padres, suegros o familiares de forma aislada y privada.'
-                  : 'Manage care for your parents, in-laws, or loved ones privately and separately.'}
+                  ? 'Gestiona el cuidado de tus padres, suegros o tu propio tratamiento personal de forma aislada.'
+                  : 'Manage care for your parents, in-laws, or your own personal treatment separately.'}
               </p>
             </div>
           </div>
@@ -138,7 +165,7 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  {language === 'es' ? 'Espacio Familiar Activo:' : 'Active Family Circle:'}
+                  {language === 'es' ? 'Espacio Activo:' : 'Active Space:'}
                 </span>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary-hover)', margin: '0.1rem 0' }}>
                   {activeFamilyCircle.name}
@@ -147,7 +174,7 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
 
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  {language === 'es' ? 'Código de Invitación:' : 'Family Invite Code:'}
+                  {language === 'es' ? 'Código de Acceso:' : 'Access Code:'}
                 </span>
                 <div
                   style={{
@@ -196,14 +223,14 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
             className={`btn btn-sm ${activeTab === 'switch' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ flex: 1, borderRadius: 'var(--radius-full)' }}
           >
-            {language === 'es' ? 'Mis Familias' : 'My Family Spaces'}
+            {language === 'es' ? 'Mis Espacios' : 'My Spaces'}
           </button>
           <button
             onClick={() => setActiveTab('create')}
             className={`btn btn-sm ${activeTab === 'create' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ flex: 1, borderRadius: 'var(--radius-full)' }}
           >
-            <Plus size={14} /> {language === 'es' ? 'Crear Familia' : 'Create Space'}
+            <Plus size={14} /> {language === 'es' ? 'Crear Nuevo' : 'Create New'}
           </button>
           <button
             onClick={() => setActiveTab('join')}
@@ -278,27 +305,68 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
           </div>
         )}
 
-        {/* Tab 2: Create New Family Circle */}
+        {/* Tab 2: Create New Family Circle or Personal Space */}
         {activeTab === 'create' && (
           <form onSubmit={handleCreate}>
-            <div className="form-group">
-              <label className="form-label">
-                {language === 'es' ? 'Nombre de la Familia o Espacio *' : 'Family Space Name *'}
-              </label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder={language === 'es' ? 'e.g. Familia Gómez (Suegros), Mi Tratamiento Personal' : 'e.g. In-Laws Care Circle, Personal Health Space'}
-                value={newFamilyName}
-                onChange={e => setNewFamilyName(e.target.value)}
-                required
-              />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                {language === 'es'
-                  ? 'Se creará un espacio totalmente aislado con su propio código de invitación.'
-                  : 'A completely isolated space will be created with its own unique invite code.'}
-              </span>
+            {/* Mode Toggle: Family vs Personal */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button
+                type="button"
+                className={`btn btn-sm ${!isPersonalMode ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setIsPersonalMode(false)}
+                style={{ flex: 1 }}
+              >
+                <Users size={14} /> {language === 'es' ? 'Familia / Cuidadores' : 'Family / Caregivers'}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${isPersonalMode ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setIsPersonalMode(true)}
+                style={{ flex: 1 }}
+              >
+                <User size={14} /> {language === 'es' ? 'Solo para Mí (Personal)' : 'Just for Me (Personal)'}
+              </button>
             </div>
+
+            {isPersonalMode ? (
+              <div className="form-group">
+                <label className="form-label">
+                  {language === 'es' ? 'Tu Nombre *' : 'Your Name *'}
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Laura Poot, Carlos"
+                  value={personalName}
+                  onChange={e => setPersonalName(e.target.value)}
+                  required
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                  {language === 'es'
+                    ? 'Se creará tu espacio privado e individual sin cuidadores ni división de gastos.'
+                    : 'A private single-user space will be created without caregivers or expense splitting.'}
+                </span>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label">
+                  {language === 'es' ? 'Nombre de la Familia o Espacio *' : 'Family Space Name *'}
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={language === 'es' ? 'e.g. Familia Gómez (Suegros), Familia Pérez' : 'e.g. In-Laws Care Circle, Smith Family'}
+                  value={newFamilyName}
+                  onChange={e => setNewFamilyName(e.target.value)}
+                  required
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                  {language === 'es'
+                    ? 'Se creará un espacio totalmente aislado con su propio código de invitación para compartir con tus hermanos o cuidadores.'
+                    : 'A completely isolated space will be created with its own unique invite code.'}
+                </span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
               <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setActiveTab('switch')}>
