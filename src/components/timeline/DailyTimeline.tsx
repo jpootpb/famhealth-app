@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { Medication, DoseSlot, DoseLog } from '../../types';
+import { Medication } from '../../types';
 import {
-  Calendar,
   CheckCircle2,
   Circle,
   Clock,
-  Pill,
   Sun,
   Sunset,
   Moon,
-  AlertTriangle,
   Send,
   Plus,
   Share2,
   UserCheck,
-  Building2,
   X,
-  Users,
-  HeartPulse
+  Users
 } from 'lucide-react';
 import {
   formatDateIso

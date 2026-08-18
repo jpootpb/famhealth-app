@@ -52,9 +52,6 @@ export function generateUnifiedCaregiverTimeline({
     ? patients
     : patients.filter(p => p.id === selectedPatientId);
 
-  const patientMap = new Map<string, Patient>();
-  patients.forEach(p => patientMap.set(p.id, p));
-
   const slots: CaregiverTimelineSlot[] = [];
 
   targetPatients.forEach(patient => {
