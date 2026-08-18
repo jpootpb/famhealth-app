@@ -24,6 +24,8 @@ import {
 import { formatDateIso } from '../../utils/frequencyEngine';
 import { buildStudyWhatsAppMessage, buildStudyEmailLink } from '../../utils/studySharingEngine';
 import { shareViaWhatsApp } from '../../lib/whatsapp';
+import { openDocumentInNewTab } from '../../utils/pdfHelper';
+import { Maximize2 } from 'lucide-react';
 
 export const StudiesView: React.FC = () => {
   const { activePatient, studies, addStudy, deleteStudy } = useApp();
@@ -444,51 +446,97 @@ export const StudiesView: React.FC = () => {
         </div>
       )}
 
-      {/* File Viewer Modal */}
+      {/* Full-Resolution File & Nutrition Plan Viewer Modal */}
       {selectedFileStudy && (
         <div className="modal-backdrop" onClick={() => setSelectedFileStudy(null)}>
-          <div className="modal-content" style={{ maxWidth: '750px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 800 }}>
-                {selectedFileStudy.title}
-              </h3>
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedFileStudy(null)}>
-                <X size={18} />
-              </button>
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '1150px',
+              width: '95vw',
+              height: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '1.25rem'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                  {selectedFileStudy.title}
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  📅 {selectedFileStudy.date} {selectedFileStudy.laboratory ? `• ${selectedFileStudy.laboratory}` : ''}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {selectedFileStudy.fileUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => openDocumentInNewTab(selectedFileStudy.fileUrl!, selectedFileStudy.title)}
+                    title={language === 'es' ? 'Abrir en pestaña completa' : 'Open full window'}
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <Maximize2 size={15} /> {language === 'es' ? 'Pantalla Completa' : 'Full Screen'}
+                  </button>
+                )}
+
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedFileStudy(null)}>
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            <div style={{ textAlign: 'center', maxHeight: '70vh', overflowY: 'auto' }}>
+            {/* Document Content Area */}
+            <div style={{ flex: 1, width: '100%', minHeight: 0, backgroundColor: '#0f172a', borderRadius: 'var(--radius-md)', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {selectedFileStudy.fileType === 'pdf' ? (
                 <iframe
-                  src={selectedFileStudy.fileUrl}
+                  src={selectedFileStudy.fileUrl ? `${selectedFileStudy.fileUrl}#view=FitH&navpanes=0&toolbar=1` : undefined}
                   title="PDF Viewer"
-                  style={{ width: '100%', height: '500px', border: 'none', borderRadius: 'var(--radius-md)' }}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
                 />
               ) : (
                 <img
                   src={selectedFileStudy.fileUrl}
                   alt="Study Document"
-                  style={{ maxWidth: '100%', maxHeight: '500px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                 />
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  setStudyToShare(selectedFileStudy);
-                  setSelectedFileStudy(null);
-                }}
-                style={{ color: '#16a34a' }}
-              >
-                <Share2 size={16} /> {t('shareStudy')}
-              </button>
+            {/* Footer Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setStudyToShare(selectedFileStudy);
+                    setSelectedFileStudy(null);
+                  }}
+                  style={{ color: '#16a34a' }}
+                >
+                  <Share2 size={16} /> {t('shareStudy')}
+                </button>
+
+                {selectedFileStudy.fileUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => openDocumentInNewTab(selectedFileStudy.fileUrl!, selectedFileStudy.title)}
+                  >
+                    <Maximize2 size={14} /> {language === 'es' ? 'Abrir en Pestaña Nueva' : 'Open in New Tab'}
+                  </button>
+                )}
+              </div>
 
               <a
                 href={selectedFileStudy.fileUrl}
                 download={`${selectedFileStudy.title.replace(/\s+/g, '_')}.${selectedFileStudy.fileType === 'pdf' ? 'pdf' : 'png'}`}
-                className="btn btn-primary"
+                className="btn btn-primary btn-sm"
               >
                 <Download size={16} /> {language === 'es' ? 'Descargar Archivo' : 'Download File'}
               </a>

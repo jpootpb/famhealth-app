@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { AIPrescriptionScannerModal } from '../medications/AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
+import { openDocumentInNewTab } from '../../utils/pdfHelper';
+import { Maximize2 } from 'lucide-react';
 
 export const AppointmentsView: React.FC = () => {
   const { activePatient, appointments, addAppointment, updateAppointment, deleteAppointment, toggleAppointmentCompleted, addMedication } = useApp();
@@ -533,42 +535,66 @@ export const AppointmentsView: React.FC = () => {
         </div>
       )}
 
-      {/* Prescription Viewer Modal */}
+      {/* Full-Resolution Prescription Viewer Modal */}
       {viewPrescription && (
         <div className="modal-backdrop" onClick={() => setViewPrescription(null)}>
-          <div className="modal-content" style={{ maxWidth: '650px', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '1150px',
+              width: '95vw',
+              height: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '1.25rem'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <FileText size={20} color="var(--primary)" />
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, margin: 0 }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
                   {viewPrescription.title}
                 </h3>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => setViewPrescription(null)}>
-                <X size={18} />
-              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => openDocumentInNewTab(viewPrescription.url, viewPrescription.title)}
+                  title={language === 'es' ? 'Abrir en pestaña completa' : 'Open full window'}
+                  style={{ fontSize: '0.78rem' }}
+                >
+                  <Maximize2 size={15} /> {language === 'es' ? 'Pantalla Completa' : 'Full Screen'}
+                </button>
+
+                <button className="btn btn-secondary btn-sm" onClick={() => setViewPrescription(null)}>
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            <div style={{ textAlign: 'center', maxHeight: '60vh', overflowY: 'auto' }}>
+            <div style={{ flex: 1, width: '100%', minHeight: 0, backgroundColor: '#0f172a', borderRadius: 'var(--radius-md)', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               {viewPrescription.type === 'pdf' ? (
                 <iframe
-                  src={viewPrescription.url}
+                  src={`${viewPrescription.url}#view=FitH&navpanes=0&toolbar=1`}
                   title="PDF Viewer"
-                  style={{ width: '100%', height: '450px', border: 'none', borderRadius: 'var(--radius-md)' }}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
                 />
               ) : (
                 <img
                   src={viewPrescription.url}
                   alt="Prescription"
-                  style={{ maxWidth: '100%', maxHeight: '450px', borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                 />
               )}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setIsAiScannerOpen(true);
                   setViewPrescription(null);
@@ -580,8 +606,8 @@ export const AppointmentsView: React.FC = () => {
 
               <a
                 href={viewPrescription.url}
-                download="Receta_Medica.png"
-                className="btn btn-primary"
+                download="Receta_Medica.pdf"
+                className="btn btn-primary btn-sm"
               >
                 <Download size={16} /> {language === 'es' ? 'Descargar Receta' : 'Download Prescription'}
               </a>
