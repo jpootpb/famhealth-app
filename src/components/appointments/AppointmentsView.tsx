@@ -17,7 +17,8 @@ import {
   Paperclip,
   Image as ImageIcon,
   Sparkles,
-  Download
+  Download,
+  Edit2
 } from 'lucide-react';
 import { AIPrescriptionScannerModal } from '../medications/AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
@@ -27,6 +28,7 @@ export const AppointmentsView: React.FC = () => {
   const { t, language } = useLanguage();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [appointmentToEdit, setAppointmentToEdit] = useState<MedicalAppointment | null>(null);
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [targetAppointmentForAi, setTargetAppointmentForAi] = useState<MedicalAppointment | null>(null);
 
@@ -49,6 +51,29 @@ export const AppointmentsView: React.FC = () => {
 
   const patientApps = appointments.filter(a => a.patientId === activePatient.id);
   const sortedApps = [...patientApps].sort((a, b) => a.dateTime.localeCompare(b.dateTime));
+
+  const handleOpenAdd = () => {
+    setAppointmentToEdit(null);
+    setDoctorName('');
+    setSpecialty('');
+    setDateTime('');
+    setLocation('');
+    setNotes('');
+    setPrescriptionUrl('');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (app: MedicalAppointment) => {
+    setAppointmentToEdit(app);
+    setDoctorName(app.doctorName);
+    setSpecialty(app.specialty);
+    setDateTime(app.dateTime);
+    setLocation(app.location || '');
+    setNotes(app.notes || '');
+    setPrescriptionUrl(app.prescriptionUrl || '');
+    setPrescriptionFileType(app.prescriptionFileType || 'image');
+    setIsModalOpen(true);
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isCamera: boolean = false) => {
     const file = e.target.files?.[0];
@@ -87,28 +112,35 @@ export const AppointmentsView: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!doctorName.trim() || !dateTime) return;
 
-    addAppointment({
-      patientId: activePatient.id,
-      doctorName: doctorName.trim(),
-      specialty: specialty.trim() || (language === 'es' ? 'Medicina General' : 'General Medicine'),
-      dateTime,
-      location: location.trim() || undefined,
-      notes: notes.trim() || undefined,
-      prescriptionUrl: prescriptionUrl || undefined,
-      prescriptionFileType: prescriptionUrl ? prescriptionFileType : undefined,
-      isCompleted: false
-    });
+    if (appointmentToEdit) {
+      updateAppointment({
+        ...appointmentToEdit,
+        doctorName: doctorName.trim(),
+        specialty: specialty.trim() || (language === 'es' ? 'Medicina General' : 'General Medicine'),
+        dateTime,
+        location: location.trim() || undefined,
+        notes: notes.trim() || undefined,
+        prescriptionUrl: prescriptionUrl || undefined,
+        prescriptionFileType: prescriptionUrl ? prescriptionFileType : undefined
+      });
+    } else {
+      addAppointment({
+        patientId: activePatient.id,
+        doctorName: doctorName.trim(),
+        specialty: specialty.trim() || (language === 'es' ? 'Medicina General' : 'General Medicine'),
+        dateTime,
+        location: location.trim() || undefined,
+        notes: notes.trim() || undefined,
+        prescriptionUrl: prescriptionUrl || undefined,
+        prescriptionFileType: prescriptionUrl ? prescriptionFileType : undefined,
+        isCompleted: false
+      });
+    }
 
-    setDoctorName('');
-    setSpecialty('');
-    setDateTime('');
-    setLocation('');
-    setNotes('');
-    setPrescriptionUrl('');
     setIsModalOpen(false);
   };
 
@@ -152,7 +184,7 @@ export const AppointmentsView: React.FC = () => {
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenAdd}>
           <Plus size={18} /> {t('newAppointment')}
         </button>
       </div>
@@ -320,6 +352,17 @@ export const AppointmentsView: React.FC = () => {
                     {app.isCompleted ? (language === 'es' ? 'Realizada' : 'Completed') : (language === 'es' ? 'Pendiente' : 'Upcoming')}
                   </span>
 
+                  {/* Edit / Reschedule Button */}
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleOpenEdit(app)}
+                    title={language === 'es' ? 'Modificar datos / Cambiar horario' : 'Edit appointment / Reschedule'}
+                    aria-label="Edit appointment"
+                  >
+                    <Edit2 size={14} color="var(--primary)" />
+                  </button>
+
+                  {/* Delete Button */}
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => deleteAppointment(app.id)}
@@ -334,7 +377,7 @@ export const AppointmentsView: React.FC = () => {
         </div>
       )}
 
-      {/* Appointment Modal Form */}
+      {/* Appointment Modal Form (Add & Edit / Reschedule) */}
       {isModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <div
@@ -345,14 +388,18 @@ export const AppointmentsView: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CalendarDays size={22} color="var(--primary)" />
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{t('newAppointment')}</h2>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+                  {appointmentToEdit
+                    ? (language === 'es' ? 'Modificar Consulta / Cambiar Horario' : 'Edit Appointment / Reschedule')
+                    : t('newAppointment')}
+                </h2>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setIsModalOpen(false)}>
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreate}>
+            <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label className="form-label">{t('doctorNameLabel')}</label>
                 <input
@@ -411,7 +458,7 @@ export const AppointmentsView: React.FC = () => {
                 />
               </div>
 
-              {/* Prescription Attachment (Optional during appointment creation) */}
+              {/* Prescription Attachment */}
               <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.875rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
                   📜 {language === 'es' ? 'Receta Médica (Opcional):' : 'Prescription Photo (Optional):'}
@@ -474,7 +521,9 @@ export const AppointmentsView: React.FC = () => {
                   {t('cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  {t('saveAppointment')}
+                  {appointmentToEdit
+                    ? (language === 'es' ? 'Guardar Cambios' : 'Save Changes')
+                    : t('saveAppointment')}
                 </button>
               </div>
             </form>
