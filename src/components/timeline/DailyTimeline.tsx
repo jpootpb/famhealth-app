@@ -14,7 +14,9 @@ import {
   Share2,
   UserCheck,
   X,
-  Users
+  Users,
+  AlertTriangle,
+  BellRing
 } from 'lucide-react';
 import {
   formatDateIso
@@ -23,6 +25,11 @@ import {
   generateUnifiedCaregiverTimeline,
   CaregiverTimelineSlot
 } from '../../utils/multiPatientCaregiverEngine';
+import {
+  findOverdueUncheckedDoses,
+  buildOverdueDoseVerificationMessage,
+  OverdueDoseItem
+} from '../../utils/caregiverOverdueEngine';
 import { formatDose, getStockStatus, getExpirationStatus } from '../../utils/formatters';
 import { getCurrentShiftCaregiver, buildDoseTakenWhatsAppMessage, shareViaWhatsApp } from '../../lib/whatsapp';
 
@@ -45,6 +52,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
   );
 
   const currentDateIso = formatDateIso(currentDate);
+  const isToday = currentDateIso === formatDateIso(new Date());
 
   // Compute all due doses for the selected date and patient filter
   const timelineSlots = generateUnifiedCaregiverTimeline({
@@ -54,6 +62,20 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     date: currentDate,
     selectedPatientId: caregiverFilter
   });
+
+  // Compute overdue unchecked doses (only for today)
+  const targetPatientsForOverdue = caregiverFilter === 'all'
+    ? patients
+    : patients.filter(p => p.id === caregiverFilter);
+
+  const overdueDoses: OverdueDoseItem[] = isToday
+    ? findOverdueUncheckedDoses({
+        patients: targetPatientsForOverdue,
+        medications,
+        doseLogs,
+        currentDateTime: new Date()
+      })
+    : [];
 
   // Compliance metrics
   const totalDoses = timelineSlots.length;
@@ -65,8 +87,9 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
   const afternoonBucket = timelineSlots.filter(item => item.timeOfDay === 'afternoon');
   const eveningBucket = timelineSlots.filter(item => item.timeOfDay === 'evening' || item.timeOfDay === 'night');
 
-  const handleToggleDoseSlot = (slot: CaregiverTimelineSlot) => {
-    toggleDoseTaken(slot.medicationId, slot.time, currentDateIso, selectedCaregiver);
+  const handleToggleDoseSlot = (slot: CaregiverTimelineSlot | OverdueDoseItem) => {
+    const timeToToggle = 'time' in slot ? slot.time : slot.scheduledTime;
+    toggleDoseTaken(slot.medicationId, timeToToggle, currentDateIso, selectedCaregiver);
   };
 
   const handleNotifyFamilyDose = (slot: CaregiverTimelineSlot) => {
@@ -83,6 +106,15 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       progressText
     );
     shareViaWhatsApp(message);
+  };
+
+  const handleSendOverdueVerificationWhatsApp = (overdueItem: OverdueDoseItem) => {
+    const msg = buildOverdueDoseVerificationMessage({
+      overdueItem,
+      caregiverName: selectedCaregiver,
+      currentDate: currentDateIso
+    });
+    shareViaWhatsApp(msg);
   };
 
   const handleShareHouseholdDailySummary = () => {
@@ -128,11 +160,21 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     return { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' };
   };
 
+  const isDoseOverdue = (time: string): boolean => {
+    if (!isToday) return false;
+    const now = new Date();
+    const [h, m] = time.split(':').map(Number);
+    const currentTotalMin = now.getHours() * 60 + now.getMinutes();
+    const slotTotalMin = h * 60 + m;
+    return currentTotalMin > slotTotalMin;
+  };
+
   const renderDoseCard = (slot: CaregiverTimelineSlot) => {
     const med = medications.find(m => m.id === slot.medicationId);
     const stockStatus = med ? getStockStatus(med.currentStock, med.minimumStockAlert) : { status: 'safe', label: '', badgeClass: '' };
     const expStatus = med ? getExpirationStatus(med.expirationDate, currentDate) : { status: 'valid', label: '', badgeClass: '' };
     const patientBadge = getPatientBadgeStyle(slot.patientId);
+    const overdue = !slot.isTaken && isDoseOverdue(slot.time);
 
     return (
       <div
@@ -143,8 +185,9 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0.875rem 1rem',
-          backgroundColor: slot.isTaken ? 'var(--bg-secondary)' : '#ffffff',
-          borderColor: slot.isTaken ? 'var(--success)' : 'var(--border-color)',
+          backgroundColor: slot.isTaken ? 'var(--bg-secondary)' : overdue ? '#fffbeb' : '#ffffff',
+          borderColor: slot.isTaken ? 'var(--success)' : overdue ? '#f59e0b' : 'var(--border-color)',
+          borderLeft: overdue ? '4px solid #f59e0b' : undefined,
           transition: 'all 0.2s ease',
           opacity: slot.isTaken ? 0.9 : 1
         }}
@@ -160,7 +203,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: slot.isTaken ? 'var(--success)' : 'var(--border-color)'
+              color: slot.isTaken ? 'var(--success)' : overdue ? '#f59e0b' : 'var(--border-color)'
             }}
             title={slot.isTaken ? t('doseTaken') : t('confirmDose')}
           >
@@ -192,7 +235,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
-              {/* Patient Badge (Essential for multi-patient caregiver view) */}
+              {/* Patient Badge */}
               <span
                 style={{
                   ...patientBadge,
@@ -223,6 +266,26 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
                 {formatDose(slot.dose, slot.presentation)}
               </span>
 
+              {overdue && (
+                <span
+                  style={{
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: 'var(--radius-full)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <AlertTriangle size={11} color="#d97706" />
+                  {language === 'es' ? 'Pendiente / No checada' : 'Overdue'}
+                </span>
+              )}
+
               {med?.laboratory && (
                 <span className="badge badge-purple" style={{ fontSize: '0.65rem' }}>
                   {med.laboratory}
@@ -242,8 +305,8 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700, color: 'var(--primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700, color: overdue ? '#d97706' : 'var(--primary)' }}>
                 <Clock size={14} /> {slot.time}
               </span>
 
@@ -260,7 +323,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
           </div>
         </div>
 
-        {/* WhatsApp Notification Share Button */}
+        {/* Card Right Actions */}
         <div>
           {slot.isTaken ? (
             <button
@@ -272,6 +335,37 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               <Send size={14} />
               <span className="desktop-only">{language === 'es' ? 'Notificar WhatsApp' : 'Notify WhatsApp'}</span>
             </button>
+          ) : overdue ? (
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleSendOverdueVerificationWhatsApp({
+                  id: slot.id,
+                  patientId: slot.patientId,
+                  patientName: slot.patientName,
+                  medicationId: slot.medicationId,
+                  medicationName: slot.medicationName,
+                  presentation: slot.presentation,
+                  dose: slot.dose,
+                  instruction: slot.instruction,
+                  scheduledTime: slot.time,
+                  minutesOverdue: 0
+                })}
+                title={language === 'es' ? 'Preguntar a cuidadora/familia por WhatsApp' : 'Check with caregiver on WhatsApp'}
+                style={{ color: '#d97706', borderColor: '#fde68a', backgroundColor: '#fffbeb' }}
+              >
+                <BellRing size={14} />
+                <span className="desktop-only">{language === 'es' ? 'Preguntar si ya se dio' : 'Ask Caregiver'}</span>
+              </button>
+
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => handleToggleDoseSlot(slot)}
+                style={{ backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+              >
+                {language === 'es' ? '✓ Ya se dio' : '✓ Taken'}
+              </button>
+            </div>
           ) : (
             <button
               className="btn btn-primary btn-sm"
@@ -287,7 +381,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Caregiver Multi-Patient Switcher Bar (Father + Mother + Self-Care) */}
+      {/* Caregiver Multi-Patient Switcher Bar */}
       <div
         className="card"
         style={{
@@ -344,6 +438,95 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
         </div>
       </div>
 
+      {/* Overdue / Unchecked Doses Safety Alert Banner */}
+      {overdueDoses.length > 0 && (
+        <div
+          className="card"
+          style={{
+            backgroundColor: '#fffbeb',
+            border: '1.5px solid #fde68a',
+            borderLeft: '5px solid #f59e0b',
+            padding: '1.1rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertTriangle size={22} color="#d97706" />
+              <div>
+                <strong style={{ color: '#92400e', fontSize: '0.9375rem', display: 'block' }}>
+                  {language === 'es'
+                    ? `⚠️ ${overdueDoses.length} Toma(s) Pendiente(s) de Verificación con el Cuidador`
+                    : `⚠️ ${overdueDoses.length} Overdue Dose(s) Pending Verification`}
+                </strong>
+                <span style={{ fontSize: '0.75rem', color: '#78350f' }}>
+                  {language === 'es'
+                    ? 'La hora de estas tomas ya transcurrió y no han sido marcadas en la aplicación.'
+                    : 'Scheduled time passed and doses are not signed off yet.'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {overdueDoses.map(od => (
+              <div
+                key={od.id}
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #fde047',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.65rem 0.875rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 800, color: '#92400e' }}>
+                    <span>{od.patientName}</span>
+                    <span>•</span>
+                    <span style={{ color: '#d97706' }}>Programada: {od.scheduledTime} ({od.minutesOverdue} min transcurridos)</span>
+                  </div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    💊 {od.medicationName} ({formatDose(od.dose, od.presentation)})
+                  </div>
+                  {od.instruction && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      📝 {od.instruction}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleSendOverdueVerificationWhatsApp(od)}
+                    style={{ color: '#d97706', borderColor: '#fde68a', backgroundColor: '#fffbeb', fontSize: '0.75rem' }}
+                    title="Enviar mensaje por WhatsApp para preguntar si ya se dio"
+                  >
+                    <BellRing size={13} />
+                    <span>{language === 'es' ? '📲 Preguntar a Cuidadora' : 'Ask Caregiver'}</span>
+                  </button>
+
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleToggleDoseSlot(od)}
+                    style={{ backgroundColor: '#16a34a', borderColor: '#16a34a', fontSize: '0.75rem' }}
+                  >
+                    {language === 'es' ? '✓ Sí, ya se administró' : '✓ Suministrada'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Date Navigation & Actions */}
       <div
         className="card"
@@ -365,7 +548,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               {formattedDateLabel}
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {currentDateIso === formatDateIso(new Date()) ? `(${t('today')})` : ''}
+              {isToday ? `(${t('today')})` : ''}
             </span>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={() => shiftDate(1)}>
