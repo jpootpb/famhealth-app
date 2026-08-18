@@ -203,51 +203,58 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
           </div>
 
           {/* Center: Active Patient Pill Selector */}
-          {activePatient && (
-            <button
-              onClick={() => setIsPatientModalOpen(true)}
-              className="btn btn-secondary"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                padding: '0.35rem 0.75rem',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                cursor: 'pointer'
-              }}
-              title={t('changePatient')}
-            >
-              <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  backgroundColor: activePatient.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 700
-                }}
-              >
-                {activePatient.name.charAt(0)}
-              </div>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <strong style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
-                    {activePatient.name}
-                  </strong>
-                  <ChevronDown size={12} color="var(--text-muted)" />
+          <button
+            onClick={() => setIsPatientModalOpen(true)}
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.35rem 0.75rem',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: activePatient ? 'var(--bg-secondary)' : 'var(--primary-light)',
+              border: `1.5px solid ${activePatient ? 'var(--border-color)' : 'var(--primary)'}`,
+              cursor: 'pointer'
+            }}
+            title={activePatient ? t('changePatient') : (language === 'es' ? 'Dar de alta o seleccionar persona' : 'Register or select person')}
+          >
+            {activePatient ? (
+              <>
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: activePatient.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {activePatient.name.charAt(0)}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: activePatient.type === 'chronic' ? 'var(--secondary)' : '#d97706' }}>
-                  {activePatient.type === 'chronic' ? t('chronicCare') : t('tempCare')}
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <strong style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                      {activePatient.name}
+                    </strong>
+                    <ChevronDown size={12} color="var(--text-muted)" />
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: activePatient.type === 'chronic' ? 'var(--secondary)' : '#d97706' }}>
+                    {activePatient.type === 'chronic' ? t('chronicCare') : t('tempCare')}
+                  </div>
                 </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--primary)', fontWeight: 700, fontSize: '0.8125rem' }}>
+                <User size={15} />
+                <span>{language === 'es' ? '👤 + Dar de Alta / Seleccionar Persona' : '👤 + Register / Select Person'}</span>
               </div>
-            </button>
-          )}
+            )}
+          </button>
 
           {/* Right: Language Switcher & Quick Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>

@@ -16,7 +16,8 @@ import {
   X,
   Users,
   AlertTriangle,
-  BellRing
+  BellRing,
+  UserPlus
 } from 'lucide-react';
 import {
   formatDateIso
@@ -32,6 +33,7 @@ import {
 } from '../../utils/caregiverOverdueEngine';
 import { formatDose, getStockStatus, getExpirationStatus } from '../../utils/formatters';
 import { getCurrentShiftCaregiver, buildDoseTakenWhatsAppMessage, shareViaWhatsApp } from '../../lib/whatsapp';
+import { PatientSelector } from '../layout/PatientSelector';
 
 interface DailyTimelineProps {
   onOpenAddMedication?: () => void;
@@ -43,6 +45,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [caregiverFilter, setCaregiverFilter] = useState<string | 'all'>('all');
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   // Determine current on-duty caregiver
@@ -444,13 +447,15 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
         </div>
 
         {/* Patient Filter Pills */}
-        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             className={`btn btn-sm ${caregiverFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setCaregiverFilter('all')}
             style={{ borderRadius: 'var(--radius-full)', fontWeight: 800 }}
           >
-            🏠 {language === 'es' ? 'Todo el Hogar (Papá + Mamá + Mi Salud)' : 'All Household (Parents + Self)'}
+            🏠 {language === 'es'
+              ? (patients.length > 0 ? `Todo el Hogar (${patients.map(p => p.name.split(' ')[0]).join(' + ')})` : 'Todo el Hogar')
+              : (patients.length > 0 ? `All Household (${patients.map(p => p.name.split(' ')[0]).join(' + ')})` : 'All Household')}
           </button>
 
           {patients.map(p => (
@@ -463,6 +468,26 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
               {getPatientAvatar(p.id)} {p.name}
             </button>
           ))}
+
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setIsPatientModalOpen(true)}
+            style={{
+              borderRadius: 'var(--radius-full)',
+              borderStyle: 'dashed',
+              borderColor: 'var(--primary)',
+              color: 'var(--primary)',
+              fontWeight: 700,
+              backgroundColor: 'var(--primary-light)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+            title={language === 'es' ? 'Dar de alta una nueva persona o familiar a cuidar' : 'Register a new person to care for'}
+          >
+            <UserPlus size={14} />
+            <span>{language === 'es' ? '+ Dar de Alta Persona a Cuidar' : '+ Register Person'}</span>
+          </button>
         </div>
       </div>
 
@@ -713,6 +738,12 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
           </div>
         </div>
       )}
+
+      {/* Patient Registration & Selection Modal */}
+      <PatientSelector
+        isOpen={isPatientModalOpen}
+        onClose={() => setIsPatientModalOpen(false)}
+      />
     </div>
   );
 };

@@ -2,12 +2,26 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Patient, PatientType } from '../../types';
-import { User, Plus, Check, X, ShieldAlert, Heart } from 'lucide-react';
+import { User, Plus, Check, X, ShieldAlert, Heart, Users, UserPlus } from 'lucide-react';
 
 interface PatientSelectorProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const RELATIONSHIP_PRESETS = [
+  { label: 'Hermana', labelEn: 'Sister', icon: '👧' },
+  { label: 'Hermano', labelEn: 'Brother', icon: '👦' },
+  { label: 'Sobrino / Sobrina', labelEn: 'Nephew / Niece', icon: '👶' },
+  { label: 'Mamá', labelEn: 'Mother', icon: '👵' },
+  { label: 'Papá', labelEn: 'Father', icon: '👴' },
+  { label: 'Hijo / Hija', labelEn: 'Son / Daughter', icon: '🧒' },
+  { label: 'Abuelo / Abuela', labelEn: 'Grandparent', icon: '🧓' },
+  { label: 'Pareja / Esposo(a)', labelEn: 'Partner / Spouse', icon: '❤️' },
+  { label: 'Tío / Tía', labelEn: 'Uncle / Aunt', icon: '🧑' },
+  { label: 'Yo Mismo (Autocuidado)', labelEn: 'Self Care', icon: '👤' },
+  { label: 'Familiar a Cuidar', labelEn: 'Family Member', icon: '👥' }
+];
 
 export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClose }) => {
   const { patients, activePatient, setActivePatientId, addPatient } = useApp();
@@ -16,6 +30,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
 
   // New Patient Form State
   const [name, setName] = useState('');
+  const [relationship, setRelationship] = useState('');
   const [age, setAge] = useState<number | ''>('');
   const [type, setType] = useState<PatientType>('chronic');
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState('');
@@ -32,8 +47,12 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
     e.preventDefault();
     if (!name.trim()) return;
 
+    const formattedName = relationship && !name.includes('(')
+      ? `${name.trim()} (${relationship})`
+      : name.trim();
+
     addPatient({
-      name: name.trim(),
+      name: formattedName,
       age: age ? Number(age) : undefined,
       type,
       primaryDiagnosis: primaryDiagnosis.trim() || undefined,
@@ -41,6 +60,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
     });
 
     setName('');
+    setRelationship('');
     setAge('');
     setPrimaryDiagnosis('');
     setNotes('');
@@ -52,14 +72,16 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content"
-        style={{ maxWidth: '520px' }}
+        style={{ maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Heart size={22} color="var(--primary)" />
+            <Users size={22} color="var(--primary)" />
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-              {isAddingNew ? t('addNewPatient') : t('selectPatientTitle')}
+              {isAddingNew
+                ? (language === 'es' ? 'Dar de Alta Persona / Familiar a Cuidar' : 'Register Person to Care For')
+                : (language === 'es' ? 'Seleccionar o Administrar Personas Cuidadas' : 'Select or Manage Cared Persons')}
             </h2>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close modal">
@@ -69,6 +91,12 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
 
         {!isAddingNew ? (
           <div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              {language === 'es'
+                ? 'Elige qué persona deseas consultar o da de alta a un nuevo familiar (hermana, sobrino, papá, etc.):'
+                : 'Choose a person to view or register a new family member (sister, nephew, father, etc.):'}
+            </p>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1.25rem' }}>
               {patients.map(p => {
                 const isCurrent = activePatient?.id === p.id;
@@ -82,7 +110,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                       justifyContent: 'space-between',
                       padding: '0.875rem 1rem',
                       backgroundColor: isCurrent ? 'var(--primary-light)' : '#ffffff',
-                      border: `1px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`,
+                      border: `1.5px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`,
                       borderRadius: 'var(--radius-md)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
@@ -91,8 +119,8 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div
                         style={{
-                          width: '36px',
-                          height: '36px',
+                          width: '38px',
+                          height: '38px',
                           borderRadius: '50%',
                           backgroundColor: p.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
                           color: '#ffffff',
@@ -106,7 +134,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                         {p.name.charAt(0)}
                       </div>
                       <div>
-                        <strong style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                        <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                           {p.name}
                         </strong>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -117,8 +145,8 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                     </div>
 
                     {isCurrent && (
-                      <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
-                        ✓ {language === 'es' ? 'Activo' : 'Active'}
+                      <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                        ✓ {language === 'es' ? 'Seleccionado' : 'Selected'}
                       </span>
                     )}
                   </div>
@@ -128,20 +156,54 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
 
             <button
               className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
+              style={{ width: '100%', justifyContent: 'center', padding: '0.75rem' }}
               onClick={() => setIsAddingNew(true)}
             >
-              <Plus size={18} /> {t('addNewPatient')}
+              <UserPlus size={18} /> {language === 'es' ? '+ Dar de Alta Nueva Persona / Familiar a Cuidar' : '+ Register New Person to Care For'}
             </button>
           </div>
         ) : (
           <form onSubmit={handleCreatePatient}>
+            {/* Quick Relationship Preset Pills */}
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label className="form-label" style={{ fontWeight: 700 }}>
+                {language === 'es' ? '👤 Parentesco o Relación:' : '👤 Relationship:'}
+              </label>
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {RELATIONSHIP_PRESETS.map(preset => {
+                  const label = language === 'es' ? preset.label : preset.labelEn;
+                  const isSelected = relationship === preset.label;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => setRelationship(preset.label)}
+                      style={{
+                        padding: '0.25rem 0.6rem',
+                        fontSize: '0.75rem',
+                        borderRadius: 'var(--radius-full)',
+                        border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}`,
+                        backgroundColor: isSelected ? 'var(--primary-light)' : '#ffffff',
+                        color: isSelected ? 'var(--primary-hover)' : 'var(--text-primary)',
+                        fontWeight: isSelected ? 800 : 500,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {preset.icon} {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="form-group">
-              <label className="form-label">{t('patientName')}</label>
+              <label className="form-label" style={{ fontWeight: 700 }}>
+                {language === 'es' ? 'Nombre Completo de la Persona:' : 'Full Name:'}
+              </label>
               <input
                 type="text"
                 className="form-input"
-                placeholder={language === 'es' ? 'e.g. Don Manuel Poot' : 'e.g. Robert Smith'}
+                placeholder={language === 'es' ? 'e.g. Lucía Poot, Mateo, Don Manuel' : 'e.g. Lucy Smith, Matthew'}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
@@ -154,7 +216,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                 <input
                   type="number"
                   className="form-input"
-                  placeholder="e.g. 78"
+                  placeholder="e.g. 35, 78, 8"
                   value={age}
                   onChange={e => setAge(e.target.value ? Number(e.target.value) : '')}
                 />
@@ -167,8 +229,9 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                   value={type}
                   onChange={e => setType(e.target.value as PatientType)}
                 >
-                  <option value="chronic">{t('chronicCare')}</option>
-                  <option value="temporary">{t('tempCare')}</option>
+                  <option value="chronic">{language === 'es' ? 'Tratamiento Crónico / Continuo' : 'Chronic Care'}</option>
+                  <option value="temporary">{language === 'es' ? 'Tratamiento Temporal / Post-cirugía' : 'Temporary / Post-surgery'}</option>
+                  <option value="preventive">{language === 'es' ? 'Preventivo / Autocuidado' : 'Preventive / Self-care'}</option>
                 </select>
               </div>
             </div>
@@ -178,7 +241,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
               <input
                 type="text"
                 className="form-input"
-                placeholder={language === 'es' ? 'e.g. Diabetes Tipo 2, Hipertensión' : 'e.g. Type 2 Diabetes, Hypertension'}
+                placeholder={language === 'es' ? 'e.g. Asma, Post-cirugía rodilla, Hipertensión' : 'e.g. Asthma, Knee surgery, Hypertension'}
                 value={primaryDiagnosis}
                 onChange={e => setPrimaryDiagnosis(e.target.value)}
               />
@@ -189,7 +252,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
               <textarea
                 className="form-input"
                 rows={2}
-                placeholder={language === 'es' ? 'Alergias a medicamentos, dieta baja en sodio, etc.' : 'Drug allergies, low sodium diet, etc.'}
+                placeholder={language === 'es' ? 'Alergias a penicilina, cuidados especiales, etc.' : 'Allergies, special care notes, etc.'}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
               />
@@ -204,8 +267,8 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
               >
                 {t('cancel')}
               </button>
-              <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                {t('savePatient')}
+              <button type="submit" className="btn btn-primary" style={{ flex: 1, fontWeight: 800 }}>
+                {language === 'es' ? 'Guardar y Dar de Alta' : 'Save & Register'}
               </button>
             </div>
           </form>
