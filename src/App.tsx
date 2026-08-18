@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { DailyTimeline } from './components/timeline/DailyTimeline';
 import { MedicationList } from './components/medications/MedicationList';
@@ -7,6 +7,7 @@ import { StudiesView } from './components/studies/StudiesView';
 import { AppointmentsView } from './components/appointments/AppointmentsView';
 import { ExpensesView } from './components/expenses/ExpensesView';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { JoinFamilyModal } from './components/auth/JoinFamilyModal';
 import { useApp } from './context/AppContext';
 import { useLanguage } from './i18n/LanguageContext';
 import {
@@ -22,6 +23,20 @@ export default function App() {
   const { isAuthenticated, activePatient } = useApp();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'timeline' | 'medications' | 'vitals' | 'studies' | 'expenses' | 'appointments'>('timeline');
+  const [joinCode, setJoinCode] = useState<string>('');
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
+
+  // Check URL query parameters for ?join=CODE
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const join = params.get('join');
+      if (join) {
+        setJoinCode(join.toUpperCase());
+        setIsJoinModalOpen(true);
+      }
+    }
+  }, []);
 
   // If user is not logged in, enforce Auth Gate
   if (!isAuthenticated) {
@@ -102,8 +117,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Mobile Bottom Navigation Bar for Ergonomic One-Handed Use */}
-      <nav className="bottom-nav-mobile" aria-label="Navegación móvil">
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-bottom-nav">
         {navTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -111,8 +126,7 @@ export default function App() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`nav-tab-item ${isActive ? 'active' : ''}`}
-              aria-label={tab.label}
+              className={`mobile-nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={20} />
               <span>{tab.label}</span>
@@ -120,6 +134,13 @@ export default function App() {
           );
         })}
       </nav>
+
+      {/* 1-Click Family Join Modal */}
+      <JoinFamilyModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+        prefilledCode={joinCode}
+      />
     </div>
   );
 }

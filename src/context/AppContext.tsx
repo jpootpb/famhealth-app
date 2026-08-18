@@ -11,6 +11,8 @@ import {
   MedicalAppointment,
   MedicalStudy,
   FutureBookingReminder,
+  RoutineLog,
+  DailyCareRoutine,
   UserAccount
 } from '../types';
 import { LocalStore, guestUser } from '../lib/storage';
@@ -55,6 +57,11 @@ interface AppContextType {
   doseLogs: DoseLog[];
   toggleDoseTaken: (medicationId: string, scheduledTime: string, dateStr?: string, administeredBy?: string) => void;
 
+  // Daily Care Routines (Meals, Bath, Wound Care, Exercise)
+  routineLogs: RoutineLog[];
+  toggleRoutineCompleted: (patientId: string, routineType: 'breakfast' | 'lunch' | 'dinner' | 'bath' | 'wound_care' | 'exercise', scheduledTime: string, dateStr?: string, completedBy?: string) => void;
+  updatePatientRoutines: (patientId: string, routines: DailyCareRoutine) => void;
+
   // Vitals
   vitals: VitalSign[];
   addVital: (v: Omit<VitalSign, 'id'>) => void;
@@ -69,6 +76,7 @@ interface AppContextType {
   families: FamilyMember[];
   addFamilyMember: (f: Omit<FamilyMember, 'id'>) => void;
   updateFamilyMember: (f: FamilyMember) => void;
+  deleteFamilyMember: (id: string) => void;
 
   // Expenses
   expenses: HealthExpense[];
@@ -114,6 +122,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [allExpenses, setAllExpenses] = useState<HealthExpense[]>(() => LocalStore.getExpenses());
   const [allAppointments, setAllAppointments] = useState<MedicalAppointment[]>(() => LocalStore.getAppointments());
   const [allBookingReminders, setAllBookingReminders] = useState<FutureBookingReminder[]>(() => LocalStore.getBookingReminders());
+  const [allRoutineLogs, setAllRoutineLogs] = useState<RoutineLog[]>(() => LocalStore.getRoutineLogs());
   const [allStudies, setAllStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
 
   const isAuthenticated = isUserAuthenticated(currentUser);
@@ -127,6 +136,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.setActivePatientId(activePatientId); }, [activePatientId]);
   useEffect(() => { LocalStore.saveMedications(allMedications); }, [allMedications]);
   useEffect(() => { LocalStore.saveDoseLogs(allDoseLogs); }, [allDoseLogs]);
+  useEffect(() => { LocalStore.saveRoutineLogs(allRoutineLogs); }, [allRoutineLogs]);
   useEffect(() => { LocalStore.saveVitals(allVitals); }, [allVitals]);
   useEffect(() => { LocalStore.saveCampaigns(allCampaigns); }, [allCampaigns]);
   useEffect(() => { LocalStore.saveFamilies(allFamilies); }, [allFamilies]);
@@ -372,6 +382,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAllCampaigns(prev => prev.map(c => c.id === id ? { ...c, isActive: !c.isActive } : c));
   };
 
+  const updatePatientRoutines = (patientId: string, routines: DailyCareRoutine) => {
+    setAllPatients(prev => prev.map(p => p.id === patientId ? { ...p, dailyRoutines: routines } : p));
+  };
+
+  const toggleRoutineCompleted = (
+    patientId: string,
+    routineType: 'breakfast' | 'lunch' | 'dinner' | 'bath' | 'wound_care' | 'exercise',
+    scheduledTime: string,
+    dateStr?: string,
+    completedBy?: string
+  ) => {
+    const today = dateStr || formatDateIso(new Date());
+    const existing = allRoutineLogs.find(
+      l => l.patientId === patientId && l.routineType === routineType && l.date === today && l.scheduledTime === scheduledTime
+    );
+
+    if (existing) {
+      setAllRoutineLogs(prev => prev.map(l => l.id === existing.id ? { ...l, completed: !l.completed } : l));
+    } else {
+      const newLog: RoutineLog = {
+        id: 'rlog-' + Date.now(),
+        familyId: currentFamilyId,
+        patientId,
+        routineType,
+        date: today,
+        scheduledTime,
+        actualTime: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        completed: true,
+        completedBy: completedBy || currentUser.name || 'Caregiver'
+      };
+      setAllRoutineLogs(prev => [...prev, newLog]);
+    }
+  };
+
   const addFamilyMember = (f: Omit<FamilyMember, 'id'>) => {
     const newFam: FamilyMember = {
       ...f,
@@ -383,6 +427,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateFamilyMember = (f: FamilyMember) => {
     setAllFamilies(prev => prev.map(item => item.id === f.id ? f : item));
+  };
+
+  const deleteFamilyMember = (id: string) => {
+    setAllFamilies(prev => prev.filter(item => item.id !== id));
   };
 
   const addExpense = (e: Omit<HealthExpense, 'id'>) => {
@@ -514,6 +562,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         doseLogs,
         toggleDoseTaken,
 
+        routineLogs: allRoutineLogs.filter(l => !currentFamilyId || l.familyId === currentFamilyId),
+        toggleRoutineCompleted,
+        updatePatientRoutines,
+
         vitals,
         addVital,
         deleteVital,
@@ -525,6 +577,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         families,
         addFamilyMember,
         updateFamilyMember,
+        deleteFamilyMember,
 
         expenses,
         addExpense,

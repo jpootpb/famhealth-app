@@ -23,6 +23,7 @@ import {
   MedicalAppointment,
   MedicalStudy,
   FutureBookingReminder,
+  RoutineLog,
   UserAccount
 } from '../types';
 
@@ -173,6 +174,10 @@ export const LocalStore = {
   // Future Booking Reminders (Apertura de Agenda)
   getBookingReminders: (): FutureBookingReminder[] => safeGet<FutureBookingReminder[]>('famhealth_booking_reminders', initialBookingReminders),
   saveBookingReminders: (reminders: FutureBookingReminder[]) => safeSet('famhealth_booking_reminders', reminders),
+
+  // Routine Logs (Meals, Bath, Wound Care)
+  getRoutineLogs: (): RoutineLog[] => safeGet<RoutineLog[]>('famhealth_routine_logs', []),
+  saveRoutineLogs: (logs: RoutineLog[]) => safeSet('famhealth_routine_logs', logs),
 
   // Studies
   getStudies: (): MedicalStudy[] => safeGet<MedicalStudy[]>(STORAGE_KEYS.STUDIES, initialStudies),

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../i18n/LanguageContext';
-import { Medication } from '../../types';
+import { Medication, Patient } from '../../types';
 import {
   CheckCircle2,
   Circle,
@@ -17,7 +17,12 @@ import {
   Users,
   AlertTriangle,
   BellRing,
-  UserPlus
+  UserPlus,
+  Utensils,
+  Coffee,
+  ShowerHead,
+  Bandage,
+  Footprints
 } from 'lucide-react';
 import {
   formatDateIso
@@ -31,21 +36,38 @@ import {
   buildOverdueDoseVerificationMessage,
   OverdueDoseItem
 } from '../../utils/caregiverOverdueEngine';
+import {
+  getPatientDailyRoutineSlots,
+  CareRoutineSlot
+} from '../../utils/dailyRoutineEngine';
 import { formatDose, getStockStatus, getExpirationStatus } from '../../utils/formatters';
 import { getCurrentShiftCaregiver, buildDoseTakenWhatsAppMessage, shareViaWhatsApp } from '../../lib/whatsapp';
 import { PatientSelector } from '../layout/PatientSelector';
+import { DailyRoutineModal } from '../routines/DailyRoutineModal';
+import { CaregiverTeamModal } from '../caregivers/CaregiverTeamModal';
 
 interface DailyTimelineProps {
   onOpenAddMedication?: () => void;
 }
 
 export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedication }) => {
-  const { activePatient, patients, medications, doseLogs, toggleDoseTaken, families } = useApp();
+  const {
+    activePatient,
+    patients,
+    medications,
+    doseLogs,
+    routineLogs,
+    toggleDoseTaken,
+    toggleRoutineCompleted,
+    families
+  } = useApp();
   const { t, language } = useLanguage();
 
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [caregiverFilter, setCaregiverFilter] = useState<string | 'all'>('all');
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
+  const [isCaregiverTeamModalOpen, setIsCaregiverTeamModalOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   // Determine current on-duty caregiver
@@ -80,15 +102,24 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       })
     : [];
 
+  // Compute Daily Care Routines (Meals, Bath, Wound Care, Exercise)
+  const allRoutineSlots: CareRoutineSlot[] = targetPatientsForOverdue.flatMap(p =>
+    getPatientDailyRoutineSlots(p, currentDate, routineLogs, language)
+  );
+
   // Compliance metrics
   const totalDoses = timelineSlots.length;
   const takenDoses = timelineSlots.filter(item => item.isTaken).length;
   const progressPercent = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 100;
 
-  // Time-of-day Buckets
+  // Time-of-day Buckets (Medications & Routines)
   const morningBucket = timelineSlots.filter(item => item.timeOfDay === 'morning');
   const afternoonBucket = timelineSlots.filter(item => item.timeOfDay === 'afternoon');
   const eveningBucket = timelineSlots.filter(item => item.timeOfDay === 'evening' || item.timeOfDay === 'night');
+
+  const morningRoutines = allRoutineSlots.filter(r => r.timeOfDay === 'morning');
+  const afternoonRoutines = allRoutineSlots.filter(r => r.timeOfDay === 'afternoon');
+  const eveningRoutines = allRoutineSlots.filter(r => r.timeOfDay === 'evening' || r.timeOfDay === 'night');
 
   const handleToggleDoseSlot = (slot: CaregiverTimelineSlot | OverdueDoseItem) => {
     const timeToToggle = 'time' in slot ? slot.time : slot.scheduledTime;
@@ -127,12 +158,21 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     let msg = '';
 
     if (isEn) {
-      msg += `📋 *FamHealth - Household Daily Medication Summary* ✨\n\n`;
+      msg += `📋 *FamHealth - Household Daily Medication & Care Summary* ✨\n\n`;
       msg += `📅 *Date:* ${currentDateIso}\n`;
       msg += `👨‍⚕️ *Caregiver on Shift:* ${selectedCaregiver}\n`;
-      msg += `📊 *Household Progress:* ${takenDoses} of ${totalDoses} doses completed (${progressPercent}%)\n\n`;
-      msg += `*Scheduled Household Doses:*\n\n`;
+      msg += `📊 *Household Medication Progress:* ${takenDoses} of ${totalDoses} doses completed (${progressPercent}%)\n\n`;
 
+      if (allRoutineSlots.length > 0) {
+        msg += `*Daily Care & Meal Routines:*\n`;
+        allRoutineSlots.forEach(r => {
+          const status = r.isCompleted ? '✅ [DONE]' : '⏳ [PENDING]';
+          msg += `${status} *${r.time}* • ${r.icon} ${r.title} (${r.patientName})\n`;
+        });
+        msg += `\n`;
+      }
+
+      msg += `*Scheduled Household Doses:*\n\n`;
       timelineSlots.forEach(s => {
         const statusIcon = s.isTaken ? '✅ [DONE]' : '⏳ [PENDING]';
         msg += `${statusIcon} *${s.time}* • *${s.patientName}*\n`;
@@ -144,12 +184,21 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
 
       msg += `💬 _FamHealth Household Care_`;
     } else {
-      msg += `📋 *FamHealth - Resumen Diario del Hogar* ✨\n\n`;
+      msg += `📋 *FamHealth - Resumen Diario de Cuidados y Medicamentos* ✨\n\n`;
       msg += `📅 *Fecha:* ${currentDateIso}\n`;
       msg += `👨‍⚕️ *Cuidador en Turno:* ${selectedCaregiver}\n`;
-      msg += `📊 *Progreso del Hogar:* ${takenDoses} de ${totalDoses} tomas cumplidas (${progressPercent}%)\n\n`;
-      msg += `*Tomas del Hogar Programadas:*\n\n`;
+      msg += `📊 *Progreso de Medicamentos:* ${takenDoses} de ${totalDoses} tomas cumplidas (${progressPercent}%)\n\n`;
 
+      if (allRoutineSlots.length > 0) {
+        msg += `*Rutinas y Cuidados del Día:*\n`;
+        allRoutineSlots.forEach(r => {
+          const status = r.isCompleted ? '✅ [REALIZADO]' : '⏳ [PENDIENTE]';
+          msg += `${status} *${r.time}* • ${r.icon} ${r.title} (${r.patientName})\n`;
+        });
+        msg += `\n`;
+      }
+
+      msg += `*Tomas del Hogar Programadas:*\n\n`;
       timelineSlots.forEach(s => {
         const statusIcon = s.isTaken ? '✅ [REALIZADO]' : '⏳ [PENDIENTE]';
         msg += `${statusIcon} *${s.time}* • *${s.patientName}*\n`;
@@ -171,75 +220,64 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     setCurrentDate(next);
   };
 
-  const formattedDateLabel = currentDate.toLocaleDateString(language === 'es' ? 'es-MX' : 'en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  });
+  const formattedDateLabel = currentDate.toLocaleDateString(
+    language === 'es' ? 'es-MX' : 'en-US',
+    { weekday: 'long', day: 'numeric', month: 'long' }
+  );
 
   const getPatientAvatar = (patientId: string) => {
-    if (patientId === 'patient-jose') return '👤';
-    if (patientId === 'patient-grandfather') return '👴';
-    if (patientId === 'patient-maria') return '👵';
-    return '🩺';
+    if (patientId === 'patient-father' || patientId.includes('manuel')) return '👴';
+    if (patientId === 'patient-maria' || patientId.includes('maria')) return '👵';
+    if (patientId === 'patient-jose' || patientId.includes('jose')) return '👤';
+    return '🧑';
   };
 
   const getPatientBadgeStyle = (patientId: string) => {
-    if (patientId === 'patient-jose') return { backgroundColor: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' };
-    if (patientId === 'patient-grandfather') return { backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' };
-    if (patientId === 'patient-maria') return { backgroundColor: '#fdf4ff', color: '#86198f', border: '1px solid #f0abfc' };
-    return { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' };
+    if (patientId === 'patient-father' || patientId.includes('manuel')) {
+      return { backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' };
+    }
+    if (patientId === 'patient-maria' || patientId.includes('maria')) {
+      return { backgroundColor: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8' };
+    }
+    return { backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' };
   };
 
-  const isDoseOverdue = (time: string): boolean => {
-    if (!isToday) return false;
-    const now = new Date();
-    const [h, m] = time.split(':').map(Number);
-    const currentTotalMin = now.getHours() * 60 + now.getMinutes();
-    const slotTotalMin = h * 60 + m;
-    return currentTotalMin > slotTotalMin;
-  };
-
+  // Render a Single Medication Card
   const renderDoseCard = (slot: CaregiverTimelineSlot) => {
     const med = medications.find(m => m.id === slot.medicationId);
-    const stockStatus = med ? getStockStatus(med.currentStock, med.minimumStockAlert) : { status: 'safe', label: '', badgeClass: '' };
-    const expStatus = med ? getExpirationStatus(med.expirationDate, currentDate) : { status: 'valid', label: '', badgeClass: '' };
+    const overdue = !slot.isTaken && overdueDoses.some(od => od.id === slot.id);
     const patientBadge = getPatientBadgeStyle(slot.patientId);
-    const overdue = !slot.isTaken && isDoseOverdue(slot.time);
 
     return (
       <div
         key={slot.id}
-        className="card"
+        className="card dose-item"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.875rem 1rem',
-          backgroundColor: slot.isTaken ? 'var(--bg-secondary)' : overdue ? '#fffbeb' : '#ffffff',
-          borderColor: slot.isTaken ? 'var(--success)' : overdue ? '#f59e0b' : 'var(--border-color)',
-          borderLeft: overdue ? '4px solid #f59e0b' : undefined,
+          borderLeft: `6px solid ${slot.isTaken ? 'var(--success)' : overdue ? '#f59e0b' : 'var(--primary)'}`,
+          backgroundColor: slot.isTaken ? 'var(--bg-secondary)' : '#ffffff',
           transition: 'all 0.2s ease',
-          opacity: slot.isTaken ? 0.9 : 1
+          padding: '1rem 1.25rem'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+          {/* Toggle Checkbox Button */}
           <button
+            className={`dose-checkbox ${slot.isTaken ? 'taken' : ''}`}
             onClick={() => handleToggleDoseSlot(slot)}
+            aria-label={slot.isTaken ? (language === 'es' ? 'Marcar como pendiente' : 'Mark as pending') : (language === 'es' ? 'Marcar como tomada' : 'Mark as taken')}
             style={{
+              cursor: 'pointer',
               background: 'none',
               border: 'none',
-              cursor: 'pointer',
-              padding: '0.25rem',
+              padding: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: slot.isTaken ? 'var(--success)' : overdue ? '#f59e0b' : 'var(--border-color)'
+              color: slot.isTaken ? 'var(--success)' : 'var(--text-muted)'
             }}
-            title={slot.isTaken ? t('doseTaken') : t('confirmDose')}
           >
             {slot.isTaken ? (
-              <CheckCircle2 size={32} fill="var(--success-light)" />
+              <CheckCircle2 size={32} />
             ) : (
               <Circle size={32} />
             )}
@@ -322,49 +360,48 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
                   {med.laboratory}
                 </span>
               )}
-
-              {med?.expirationDate && expStatus.status !== 'valid' && (
-                <span className={`badge ${expStatus.badgeClass}`} style={{ fontSize: '0.65rem' }}>
-                  {expStatus.label}
-                </span>
-              )}
-
-              {med && stockStatus.status !== 'safe' && (
-                <span className={`badge ${stockStatus.badgeClass}`} style={{ fontSize: '0.65rem' }}>
-                  {stockStatus.label}
-                </span>
-              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700, color: overdue ? '#d97706' : 'var(--primary)' }}>
-                <Clock size={14} /> {slot.time}
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
+                <Clock size={13} color="var(--primary)" />
+                {slot.time}
               </span>
 
               {slot.instruction && (
                 <span>• {slot.instruction}</span>
               )}
 
-              {slot.isTaken && slot.administeredBy && (
-                <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                  ✓ {t('signedBy')}: {slot.administeredBy} {slot.actualTakenTime ? `(${slot.actualTakenTime})` : ''}
+              {med?.indication && (
+                <span className="desktop-only">• {med.indication}</span>
+              )}
+
+              {med?.expirationDate && (
+                <span className="desktop-only">
+                  • {getExpirationStatus(med.expirationDate).label}
                 </span>
               )}
             </div>
+
+            {slot.isTaken && slot.administeredBy && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--success)', marginTop: '0.25rem', fontWeight: 600 }}>
+                ✓ {language === 'es' ? `Registrado por: ${slot.administeredBy}` : `Recorded by: ${slot.administeredBy}`}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Card Right Actions */}
-        <div>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {slot.isTaken ? (
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => handleNotifyFamilyDose(slot)}
-              title={language === 'es' ? 'Notificar por WhatsApp' : 'Notify Family WhatsApp'}
-              style={{ color: '#16a34a', borderColor: '#86efac' }}
+              title={language === 'es' ? 'Notificar toma a la familia por WhatsApp' : 'Notify dose taken on WhatsApp'}
+              style={{ color: '#16a34a', borderColor: '#bbf7d0', backgroundColor: '#f0fdf4' }}
             >
               <Send size={14} />
-              <span className="desktop-only">{language === 'es' ? 'Notificar WhatsApp' : 'Notify WhatsApp'}</span>
+              <span className="desktop-only">{language === 'es' ? 'Avisar a Familia' : 'WhatsApp'}</span>
             </button>
           ) : overdue ? (
             <div style={{ display: 'flex', gap: '0.35rem' }}>
@@ -410,6 +447,71 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     );
   };
 
+  // Render a Single Daily Care Routine Card (Breakfast, Bath, Wound Care, etc.)
+  const renderRoutineCard = (routine: CareRoutineSlot) => {
+    return (
+      <div
+        key={routine.id}
+        className="card"
+        style={{
+          padding: '0.875rem 1.25rem',
+          backgroundColor: routine.isCompleted ? '#f8fafc' : '#ffffff',
+          borderLeft: `6px solid ${routine.isCompleted ? '#16a34a' : '#f59e0b'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+          <button
+            onClick={() => toggleRoutineCompleted(routine.patientId, routine.routineType, routine.time, currentDateIso, selectedCaregiver)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: routine.isCompleted ? '#16a34a' : '#94a3b8' }}
+            title={routine.isCompleted ? 'Desmarcar' : 'Marcar como cumplido'}
+          >
+            {routine.isCompleted ? <CheckCircle2 size={30} /> : <Circle size={30} />}
+          </button>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge badge-purple" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                {routine.icon} {routine.patientName}
+              </span>
+              <strong style={{ fontSize: '0.95rem', textDecoration: routine.isCompleted ? 'line-through' : 'none', color: routine.isCompleted ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+                {routine.title}
+              </strong>
+              <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.72rem', fontWeight: 700 }}>
+                ⏰ {routine.time}
+              </span>
+            </div>
+
+            {routine.notes && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                📝 {routine.notes}
+              </div>
+            )}
+
+            {routine.isCompleted && routine.completedBy && (
+              <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: '0.15rem', fontWeight: 600 }}>
+                ✓ {language === 'es' ? `Realizado por ${routine.completedBy}` : `Completed by ${routine.completedBy}`}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          className={`btn btn-sm ${routine.isCompleted ? 'btn-secondary' : 'btn-primary'}`}
+          onClick={() => toggleRoutineCompleted(routine.patientId, routine.routineType, routine.time, currentDateIso, selectedCaregiver)}
+          style={{ fontSize: '0.75rem', backgroundColor: routine.isCompleted ? undefined : '#16a34a', borderColor: '#16a34a' }}
+        >
+          {routine.isCompleted ? (language === 'es' ? '✓ Listo' : '✓ Done') : (language === 'es' ? 'Completar' : 'Complete')}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Caregiver Multi-Patient Switcher Bar */}
@@ -431,18 +533,38 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
             </strong>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            <UserCheck size={14} color="var(--success)" />
-            <span>{language === 'es' ? 'Cuidador activo:' : 'Caregiver:'}</span>
-            <select
-              value={selectedCaregiver}
-              onChange={e => setSelectedCaregiver(e.target.value)}
-              style={{ fontSize: '0.75rem', padding: '0.15rem 0.35rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsCaregiverTeamModalOpen(true)}
+              style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              {families.map(f => (
-                <option key={f.id} value={f.name}>{f.name}</option>
-              ))}
-            </select>
+              <Users size={14} color="var(--primary)" />
+              <span>{language === 'es' ? '👥 Equipo y Turnos' : '👥 Team & Shifts'}</span>
+            </button>
+
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsRoutineModalOpen(true)}
+              style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#ea580c', borderColor: '#fed7aa', backgroundColor: '#fff7ed' }}
+            >
+              <Utensils size={14} />
+              <span>{language === 'es' ? '🍽️ Rutinas y Comidas' : '🍽️ Routines & Meals'}</span>
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <UserCheck size={14} color="var(--success)" />
+              <span>{language === 'es' ? 'En turno:' : 'On shift:'}</span>
+              <select
+                value={selectedCaregiver}
+                onChange={e => setSelectedCaregiver(e.target.value)}
+                style={{ fontSize: '0.75rem', padding: '0.15rem 0.35rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
+              >
+                {families.map(f => (
+                  <option key={f.id} value={f.name}>{f.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -609,7 +731,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={handleShareHouseholdDailySummary} style={{ color: '#16a34a' }}>
             <Share2 size={18} /> {language === 'es' ? 'Compartir Resumen del Hogar' : 'Share Daily Summary'}
           </button>
@@ -654,12 +776,12 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       </div>
 
       {/* Timeline Section Buckets */}
-      {timelineSlots.length === 0 ? (
+      {timelineSlots.length === 0 && allRoutineSlots.length === 0 ? (
         <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1rem' }}>
             {language === 'es'
-              ? 'No hay tomas de medicamentos programadas para esta fecha en los perfiles seleccionados.'
-              : 'No scheduled doses for this date in selected profiles.'}
+              ? 'No hay tomas de medicamentos ni rutinas programadas para esta fecha en los perfiles seleccionados.'
+              : 'No scheduled doses or routines for this date in selected profiles.'}
           </p>
           {onOpenAddMedication && (
             <button className="btn btn-primary" onClick={onOpenAddMedication}>
@@ -670,45 +792,48 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Morning Bucket */}
-          {morningBucket.length > 0 && (
+          {(morningBucket.length > 0 || morningRoutines.length > 0) && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
                 <Sun size={18} color="#f59e0b" />
                 <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>
-                  {t('morningBucket')} ({morningBucket.length})
+                  {t('morningBucket')} ({morningBucket.length + morningRoutines.length})
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                {morningRoutines.map(renderRoutineCard)}
                 {morningBucket.map(renderDoseCard)}
               </div>
             </div>
           )}
 
           {/* Afternoon Bucket */}
-          {afternoonBucket.length > 0 && (
+          {(afternoonBucket.length > 0 || afternoonRoutines.length > 0) && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
                 <Sunset size={18} color="#ea580c" />
                 <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>
-                  {t('afternoonBucket')} ({afternoonBucket.length})
+                  {t('afternoonBucket')} ({afternoonBucket.length + afternoonRoutines.length})
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                {afternoonRoutines.map(renderRoutineCard)}
                 {afternoonBucket.map(renderDoseCard)}
               </div>
             </div>
           )}
 
           {/* Evening / Night Bucket */}
-          {eveningBucket.length > 0 && (
+          {(eveningBucket.length > 0 || eveningRoutines.length > 0) && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
                 <Moon size={18} color="#6366f1" />
                 <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>
-                  {t('eveningBucket')} ({eveningBucket.length})
+                  {t('eveningBucket')} ({eveningBucket.length + eveningRoutines.length})
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                {eveningRoutines.map(renderRoutineCard)}
                 {eveningBucket.map(renderDoseCard)}
               </div>
             </div>
@@ -743,6 +868,18 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       <PatientSelector
         isOpen={isPatientModalOpen}
         onClose={() => setIsPatientModalOpen(false)}
+      />
+
+      {/* Daily Care Routine (Meals, Bath, Wound Care) Modal */}
+      <DailyRoutineModal
+        isOpen={isRoutineModalOpen}
+        onClose={() => setIsRoutineModalOpen(false)}
+      />
+
+      {/* Caregiver Team & Shifts Modal */}
+      <CaregiverTeamModal
+        isOpen={isCaregiverTeamModalOpen}
+        onClose={() => setIsCaregiverTeamModalOpen(false)}
       />
     </div>
   );

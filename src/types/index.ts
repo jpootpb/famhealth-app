@@ -18,6 +18,35 @@ export interface UserAccount {
   joinedFamilyIds: string[];
 }
 
+export interface DailyCareRoutine {
+  enabled?: boolean;
+  breakfastTime?: string; // e.g. "08:30"
+  breakfastNotes?: string; // e.g. "Dieta blanda / baja en sodio"
+  lunchTime?: string; // e.g. "14:00"
+  lunchNotes?: string; // e.g. "Comida normal sin grasas"
+  dinnerTime?: string; // e.g. "20:00"
+  dinnerNotes?: string; // e.g. "Cena ligera"
+  bathTime?: string; // e.g. "10:00"
+  bathNotes?: string; // e.g. "Baño asistido / evitar mojar herida"
+  woundCareTime?: string; // e.g. "10:30"
+  woundCareNotes?: string; // e.g. "Curación de herida con apósito estéril"
+  exerciseTime?: string; // e.g. "17:00"
+  exerciseNotes?: string; // e.g. "Caminata suave de 15 minutos"
+}
+
+export interface RoutineLog {
+  id: string;
+  familyId?: string;
+  patientId: string;
+  date: string; // YYYY-MM-DD
+  routineType: 'breakfast' | 'lunch' | 'dinner' | 'bath' | 'wound_care' | 'exercise';
+  scheduledTime: string; // HH:MM
+  actualTime?: string; // HH:MM
+  completed: boolean;
+  completedBy?: string; // Caregiver name
+  notes?: string;
+}
+
 export interface Patient {
   id: string;
   familyId?: string;
@@ -28,6 +57,7 @@ export interface Patient {
   treatmentStartDate?: string;
   durationDays?: number;
   notes?: string;
+  dailyRoutines?: DailyCareRoutine;
 }
 
 export type FrequencyType =
@@ -147,6 +177,7 @@ export interface FamilyMember {
   name: string;
   relationship?: string;
   phone?: string;
+  email?: string;
   shift?: CaregiverShift;
   isDefaultCaregiver?: boolean;
   splitPercentage: number;
@@ -216,4 +247,3 @@ export interface FutureBookingReminder {
   confirmedAppointmentId?: string;
   createdAt?: string;
 }
-
