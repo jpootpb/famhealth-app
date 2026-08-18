@@ -16,7 +16,10 @@ import {
   Mail,
   Send,
   Check,
-  Copy
+  Copy,
+  Layers,
+  Eye,
+  FileCheck
 } from 'lucide-react';
 import { formatDateIso } from '../../utils/frequencyEngine';
 import { buildStudyWhatsAppMessage, buildStudyEmailLink } from '../../utils/studySharingEngine';
@@ -36,10 +39,13 @@ export const StudiesView: React.FC = () => {
 
   // Form State
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<MedicalStudy['category']>('blood_test');
+  const [category, setCategory] = useState<MedicalStudy['category']>('imaging');
   const [date, setDate] = useState(formatDateIso(new Date()));
-  const [laboratory, setLaboratory] = useState('Laboratorios Chopo');
+  const [laboratory, setLaboratory] = useState('Laboratorios Chopo / Eva Center');
   const [resultsSummary, setResultsSummary] = useState('');
+  const [viewerUrl, setViewerUrl] = useState('');
+  const [reportUrl, setReportUrl] = useState('');
+  const [accessCredentials, setAccessCredentials] = useState('');
   const [fileUrl, setFileUrl] = useState<string | undefined>(undefined);
   const [fileType, setFileType] = useState<'pdf' | 'image' | undefined>(undefined);
 
@@ -81,12 +87,18 @@ export const StudiesView: React.FC = () => {
       date,
       laboratory: laboratory.trim() || undefined,
       resultsSummary: resultsSummary.trim() || undefined,
+      viewerUrl: viewerUrl.trim() || undefined,
+      reportUrl: reportUrl.trim() || undefined,
+      accessCredentials: accessCredentials.trim() || undefined,
       fileUrl,
       fileType
     });
 
     setTitle('');
     setResultsSummary('');
+    setViewerUrl('');
+    setReportUrl('');
+    setAccessCredentials('');
     setFileUrl(undefined);
     setFileType(undefined);
     setIsModalOpen(false);
@@ -205,22 +217,30 @@ export const StudiesView: React.FC = () => {
                     width: '44px',
                     height: '44px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--primary-light)',
+                    backgroundColor: study.viewerUrl ? '#ecfdf5' : 'var(--primary-light)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--primary)',
+                    color: study.viewerUrl ? '#059669' : 'var(--primary)',
                     flexShrink: 0
                   }}
                 >
-                  <FileText size={22} />
+                  {study.viewerUrl ? <Layers size={22} /> : <FileText size={22} />}
                 </div>
 
-                <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.25rem' }}>
-                    {study.title}
-                  </h4>
-                  <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>
+                      {study.title}
+                    </h4>
+                    {study.viewerUrl && (
+                      <span className="badge badge-green" style={{ fontSize: '0.6875rem' }}>
+                        🌐 Visor PACS 3D
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', flexWrap: 'wrap', margin: '0.35rem 0 0.5rem' }}>
                     <span>📅 {study.date}</span>
                     {study.laboratory && <span>🏥 {study.laboratory}</span>}
                     <span className="badge badge-blue" style={{ fontSize: '0.6875rem' }}>
@@ -236,11 +256,49 @@ export const StudiesView: React.FC = () => {
                         backgroundColor: 'var(--bg-secondary)',
                         padding: '0.5rem 0.75rem',
                         borderRadius: 'var(--radius-sm)',
-                        margin: 0
+                        margin: '0 0 0.5rem 0'
                       }}
                     >
                       <strong>{language === 'es' ? 'Hallazgos / Resultados:' : 'Findings / Results:'}</strong> {study.resultsSummary}
                     </p>
+                  )}
+
+                  {/* PACS Viewer & Online Report Direct Badges */}
+                  {(study.viewerUrl || study.reportUrl) && (
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.375rem' }}>
+                      {study.viewerUrl && (
+                        <a
+                          href={study.viewerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            backgroundColor: '#059669',
+                            color: '#ffffff',
+                            borderColor: '#059669',
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.6rem'
+                          }}
+                        >
+                          <Eye size={13} /> {t('openPacsViewer')}
+                        </a>
+                      )}
+                      {study.reportUrl && (
+                        <a
+                          href={study.reportUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.6rem'
+                          }}
+                        >
+                          <FileCheck size={13} color="var(--primary)" /> {t('openOnlineReport')}
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -283,7 +341,7 @@ export const StudiesView: React.FC = () => {
       {/* Share to Doctor Modal */}
       {studyToShare && (
         <div className="modal-backdrop" onClick={() => setStudyToShare(null)}>
-          <div className="modal-content" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Share2 size={22} color="#16a34a" />
@@ -298,8 +356,8 @@ export const StudiesView: React.FC = () => {
 
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               {language === 'es'
-                ? `Envía el reporte del estudio de ${activePatient.name} directamente al médico o especialista:`
-                : `Send ${activePatient.name}'s lab study report directly to the physician or specialist:`}
+                ? `Envía el reporte del estudio (y enlaces PACS si aplican) de ${activePatient.name} directamente al médico:`
+                : `Send ${activePatient.name}'s lab study report (including PACS viewer links) directly to the physician:`}
             </p>
 
             <div className="form-group">
@@ -333,9 +391,9 @@ export const StudiesView: React.FC = () => {
                   border: '1px solid var(--border-color)',
                   padding: '0.875rem',
                   borderRadius: 'var(--radius-md)',
-                  fontSize: '0.8125rem',
+                  fontSize: '0.78rem',
                   whiteSpace: 'pre-wrap',
-                  maxHeight: '160px',
+                  maxHeight: '180px',
                   overflowY: 'auto',
                   fontFamily: 'var(--font-mono)'
                 }}
@@ -433,7 +491,7 @@ export const StudiesView: React.FC = () => {
       {/* Add Study Modal */}
       {isModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
-          <div className="modal-content" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <FileText size={22} color="var(--primary)" />
@@ -450,7 +508,7 @@ export const StudiesView: React.FC = () => {
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Química Sanguínea 6 Elementos + HbA1c"
+                  placeholder="e.g. Tomografía Computarizada de Abdomen / Angiotomografía"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   required
@@ -461,8 +519,8 @@ export const StudiesView: React.FC = () => {
                 <div className="form-group">
                   <label className="form-label">{t('studyCategory')}</label>
                   <select className="form-select" value={category} onChange={e => setCategory(e.target.value as any)}>
+                    <option value="imaging">{t('imagingTests')} (Tomografía, TAC, Rayos X, Resonancia)</option>
                     <option value="blood_test">{t('bloodTests')}</option>
-                    <option value="imaging">{t('imagingTests')}</option>
                     <option value="cardiology">{t('cardioTests')}</option>
                     <option value="pathology">🧪 {language === 'es' ? 'Patología y Biopsia' : 'Pathology & Biopsy'}</option>
                     <option value="other">📋 {language === 'es' ? 'Otro' : 'Other'}</option>
@@ -486,18 +544,64 @@ export const StudiesView: React.FC = () => {
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Laboratorios Chopo, Salud Digna, Jenner"
+                  placeholder="e.g. Eva Center, Unirad Mérida, Laboratorios Chopo, Cedir"
                   value={laboratory}
                   onChange={e => setLaboratory(e.target.value)}
                 />
+              </div>
+
+              {/* Online PACS Viewer URL & Report Links */}
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '0.875rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '0.5rem' }}>
+                  🌐 {language === 'es' ? 'Enlaces Web del Laboratorio / Centro de Imagen (PACS):' : 'Online PACS / Radiology Portal Links:'}
+                </span>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                    {t('pacsViewerUrl')}
+                  </label>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="https://pacs.evacenter.com/viewer/..."
+                    value={viewerUrl}
+                    onChange={e => setViewerUrl(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                    {t('reportUrlLabel')}
+                  </label>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="https://apps.evacenter.com/pacs/report-detail/..."
+                    value={reportUrl}
+                    onChange={e => setReportUrl(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                    {language === 'es' ? 'Instrucciones o Claves de Acceso (Opcional)' : 'Access Instructions or PIN (Optional)'}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Usuario y contraseña incluidos en el enlace"
+                    value={accessCredentials}
+                    onChange={e => setAccessCredentials(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">{t('resultsSummary')}</label>
                 <textarea
                   className="form-input"
-                  rows={3}
-                  placeholder="e.g. Glucosa: 118 mg/dL, HbA1c: 6.8%, Creatinina: 1.0 mg/dL"
+                  rows={2}
+                  placeholder="e.g. Hallazgos principales, estenosis, calcificaciones o conclusiones del radiólogo"
                   value={resultsSummary}
                   onChange={e => setResultsSummary(e.target.value)}
                 />

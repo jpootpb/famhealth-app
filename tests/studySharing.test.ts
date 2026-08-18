@@ -2,42 +2,43 @@ import { describe, it, expect } from 'vitest';
 import { Patient, MedicalStudy } from '../src/types';
 import { buildStudyWhatsAppMessage, buildStudyEmailLink } from '../src/utils/studySharingEngine';
 
-describe('Medical Study Sharing via WhatsApp and Email to Doctor (TDD)', () => {
+describe('Medical Study Sharing with Online PACS Viewer & Report Links (TDD)', () => {
   const patient: Patient = {
     id: 'p-1',
     name: 'Don Manuel Poot',
     age: 78,
     type: 'chronic',
-    primaryDiagnosis: 'Diabetes Tipo 2'
+    primaryDiagnosis: 'Diabetes Tipo 2 y Pie Diabético'
   };
 
-  const sampleStudy: MedicalStudy = {
-    id: 's-1',
+  const sampleTomography: MedicalStudy = {
+    id: 's-tomo',
     patientId: 'p-1',
-    title: 'Química Sanguínea 6 Elementos + HbA1c',
-    category: 'blood_test',
-    date: '2026-08-10',
-    laboratory: 'Laboratorios Chopo',
-    resultsSummary: 'HbA1c: 6.8%. Glucosa en ayunas: 115 mg/dL. Creatinina: 1.0 mg/dL.',
-    fileUrl: 'data:image/png;base64,mockImageBase64',
-    fileType: 'image'
+    title: 'Tomografía Computarizada / Angiotomografía de Miembros Inferiores',
+    category: 'imaging',
+    date: '2026-08-17',
+    laboratory: 'Eva Center / Unirad Mérida',
+    resultsSummary: 'Estenosis arterial en arteria tibial posterior. Visualización 3D disponible en PACS.',
+    viewerUrl: 'https://pacs.evacenter.com/viewer/30b08ba1-be06-4459-ad48-ec455a42f147/?ac=token123',
+    reportUrl: 'https://apps.evacenter.com/pacs/report-detail/30b08ba1-be06-4459-ad48-ec455a42f147/?ac=token123'
   };
 
-  it('1. Should format clinical WhatsApp message for doctor', () => {
-    const message = buildStudyWhatsAppMessage(patient, sampleStudy);
+  it('1. Should include direct PACS Viewer and Online Report URLs in WhatsApp message', () => {
+    const message = buildStudyWhatsAppMessage(patient, sampleTomography);
 
     expect(message).toContain('ESTUDIO DE LABORATORIO - DON MANUEL POOT');
-    expect(message).toContain('Química Sanguínea 6 Elementos + HbA1c');
-    expect(message).toContain('Laboratorios Chopo');
-    expect(message).toContain('HbA1c: 6.8%');
-    expect(message).toContain('FamHealth');
+    expect(message).toContain('Tomografía Computarizada');
+    expect(message).toContain('Eva Center / Unirad Mérida');
+    expect(message).toContain('🖼️ *Visor de Imágenes PACS (Tomografía):*');
+    expect(message).toContain('https://pacs.evacenter.com/viewer/30b08ba1');
+    expect(message).toContain('📑 *Reporte Radiológico Online:*');
+    expect(message).toContain('https://apps.evacenter.com/pacs/report-detail/30b08ba1');
   });
 
-  it('2. Should generate mailto email link with subject and pre-filled body', () => {
-    const emailLink = buildStudyEmailLink(patient, sampleStudy, 'doctor@clinica.com');
+  it('2. Should include direct PACS Viewer and Online Report URLs in Email link', () => {
+    const emailLink = buildStudyEmailLink(patient, sampleTomography, 'cirujano@hospital.com');
 
-    expect(emailLink.startsWith('mailto:doctor@clinica.com?')).toBe(true);
-    expect(emailLink).toContain('subject=');
-    expect(emailLink).toContain('body=');
+    expect(emailLink).toContain('mailto:cirujano@hospital.com?');
+    expect(emailLink).toContain('https%3A%2F%2Fpacs.evacenter.com');
   });
 });

@@ -160,4 +160,7 @@ export interface MedicalStudy {
   resultsSummary?: string;
   fileUrl?: string;
   fileType?: 'pdf' | 'image';
+  viewerUrl?: string; // Web PACS / DICOM / 3D CT/MRI Viewer URL (e.g. Eva Center, Cedir, PACS)
+  reportUrl?: string; // Online Laboratory / Radiology Interpretation Portal URL
+  accessCredentials?: string; // User/Pass/PIN instructions if requested by the radiology center
 }

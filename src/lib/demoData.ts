@@ -369,10 +369,22 @@ export const initialStudies: MedicalStudy[] = [
     id: 'study-1',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    title: 'Complete Metabolic Panel & HbA1c (6.8%)',
+    title: 'Química Sanguínea 6 Elementos & HbA1c (6.8%)',
     category: 'blood_test',
     date: '2026-08-10',
     laboratory: 'Laboratorios Chopo',
-    resultsSummary: 'HbA1c: 6.8% (Target < 7.0%). Fasting Glucose: 115 mg/dL. Creatinine: 1.0 mg/dL.'
+    resultsSummary: 'HbA1c: 6.8% (Objetivo < 7.0%). Glucosa en ayunas: 115 mg/dL. Creatinina: 1.0 mg/dL.'
+  },
+  {
+    id: 'study-2',
+    familyId: 'circle-poot',
+    patientId: 'patient-grandfather',
+    title: 'Tomografía Computarizada / Angiotomografía de Miembros Inferiores',
+    category: 'imaging',
+    date: '2026-08-17',
+    laboratory: 'Eva Center / Unirad Mérida',
+    resultsSummary: 'Estudio tomográfico de arterias de miembro pélvico. Visualización DICOM en 3D disponible en portal PACS.',
+    viewerUrl: 'https://pacs.evacenter.com/viewer/30b08ba1-be06-4459-ad48-ec455a42f147/?ac=dXNlcj11bmlyYWQtbWVyaWRhQHZpc2l0YW50LmNvbSZwYXNzd29yZD0xYzE5NmI4Ni1hNjc3LTQ5ZmQtOGMzMS0xOWM5ODc5YzkwMTkmZXh0cmFfdmFsaWRhdGlvbj04NDJlNGQ5NC01YjQ0LTQ1MDgtODAxNC00NWJiYTgzYmY2NDk===&mv=1&md=1',
+    reportUrl: 'https://apps.evacenter.com/pacs/report-detail/30b08ba1-be06-4459-ad48-ec455a42f147/?ac=dXNlcj11bmlyYWQtbWVyaWRhQHZpc2l0YW50LmNvbSZwYXNzd29yZD0xYzE5NmI4Ni1hNjc3LTQ5ZmQtOGMzMS0xOWM5ODc5YzkwMTkmZXh0cmFfdmFsaWRhdGlvbj04NDJlNGQ5NC01YjQ0LTQ1MDgtODAxNC00NWJiYTgzYmY2NDk===&mv=1&md=1'
   }
 ];

@@ -166,6 +166,10 @@ export const translations = {
     shareEmailDoctor: 'Enviar por Correo al Médico',
     doctorPhoneOptional: 'Teléfono de WhatsApp del Médico (Opcional)',
     doctorEmailOptional: 'Correo Electrónico del Médico (Opcional)',
+    pacsViewerUrl: 'Enlace al Visor PACS / Imágenes 3D (Tomografía, Resonancia, Rayos X)',
+    reportUrlLabel: 'Enlace al Reporte / Interpretación Radiológica Online',
+    openPacsViewer: '👁️ Abrir Visor PACS (Imágenes 3D)',
+    openOnlineReport: '📑 Ver Reporte Radiológico Online',
 
     // Appointments
     appointmentsTitle: 'Agenda de Consultas Médicas de',
@@ -438,6 +442,10 @@ export const translations = {
     shareEmailDoctor: 'Send via Email to Doctor',
     doctorPhoneOptional: "Doctor's WhatsApp Phone (Optional)",
     doctorEmailOptional: "Doctor's Email (Optional)",
+    pacsViewerUrl: 'PACS / 3D Images Viewer URL (CT, MRI, X-Ray Portal)',
+    reportUrlLabel: 'Online Radiology Report / Interpretation URL',
+    openPacsViewer: '👁️ Open PACS Viewer (3D Scans)',
+    openOnlineReport: '📑 View Online Radiology Report',
 
     // Appointments
     appointmentsTitle: "'s Medical Appointments Agenda",
