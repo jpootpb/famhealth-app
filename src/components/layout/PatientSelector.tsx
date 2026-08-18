@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { Patient, PatientType } from '../../types';
-import { User, Plus, Check, X, ShieldAlert, Heart, Users, UserPlus } from 'lucide-react';
+import { User, Plus, Check, X, ShieldAlert, Heart, Users, UserPlus, Calendar } from 'lucide-react';
+import { calculateAge, formatPatientAge } from '../../utils/formatters';
 
 interface PatientSelectorProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const RELATIONSHIP_PRESETS = [
   { label: 'Hijo / Hija', labelEn: 'Son / Daughter', icon: '🧒' },
   { label: 'Abuelo / Abuela', labelEn: 'Grandparent', icon: '🧓' },
   { label: 'Pareja / Esposo(a)', labelEn: 'Partner / Spouse', icon: '❤️' },
+  { label: 'Amigo / Amiga', labelEn: 'Friend', icon: '🤝' },
   { label: 'Tío / Tía', labelEn: 'Uncle / Aunt', icon: '🧑' },
   { label: 'Yo Mismo (Autocuidado)', labelEn: 'Self Care', icon: '👤' },
   { label: 'Familiar a Cuidar', labelEn: 'Family Member', icon: '👥' }
@@ -31,6 +33,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
   // New Patient Form State
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [age, setAge] = useState<number | ''>('');
   const [type, setType] = useState<PatientType>('chronic');
   const [primaryDiagnosis, setPrimaryDiagnosis] = useState('');
@@ -43,6 +46,8 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
     onClose();
   };
 
+  const computedAge = birthDate ? calculateAge(birthDate) : undefined;
+
   const handleCreatePatient = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -51,9 +56,12 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
       ? `${name.trim()} (${relationship})`
       : name.trim();
 
+    const finalAge = computedAge ?? (age ? Number(age) : undefined);
+
     addPatient({
       name: formattedName,
-      age: age ? Number(age) : undefined,
+      birthDate: birthDate || undefined,
+      age: finalAge,
       type,
       primaryDiagnosis: primaryDiagnosis.trim() || undefined,
       notes: notes.trim() || undefined
@@ -61,6 +69,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
 
     setName('');
     setRelationship('');
+    setBirthDate('');
     setAge('');
     setPrimaryDiagnosis('');
     setNotes('');
@@ -91,15 +100,11 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
 
         {!isAddingNew ? (
           <div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              {language === 'es'
-                ? 'Elige qué persona deseas consultar o da de alta a un nuevo familiar (hermana, sobrino, papá, etc.):'
-                : 'Choose a person to view or register a new family member (sister, nephew, father, etc.):'}
-            </p>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1.25rem' }}>
               {patients.map(p => {
                 const isCurrent = activePatient?.id === p.id;
+                const formattedAgeStr = formatPatientAge(p.birthDate, p.age, language);
+
                 return (
                   <div
                     key={p.id}
@@ -138,6 +143,7 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                           {p.name}
                         </strong>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {formattedAgeStr && <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formattedAgeStr} • </span>}
                           {p.type === 'chronic' ? t('chronicCare') : t('tempCare')}
                           {p.primaryDiagnosis ? ` • ${p.primaryDiagnosis}` : ''}
                         </div>
@@ -179,17 +185,21 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                       type="button"
                       onClick={() => setRelationship(preset.label)}
                       style={{
-                        padding: '0.25rem 0.6rem',
+                        padding: '0.3rem 0.65rem',
                         fontSize: '0.75rem',
-                        borderRadius: 'var(--radius-full)',
-                        border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}`,
-                        backgroundColor: isSelected ? 'var(--primary-light)' : '#ffffff',
-                        color: isSelected ? 'var(--primary-hover)' : 'var(--text-primary)',
                         fontWeight: isSelected ? 800 : 500,
-                        cursor: 'pointer'
+                        backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg-secondary)',
+                        color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                        border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-full)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
                       }}
                     >
-                      {preset.icon} {label}
+                      <span>{preset.icon}</span>
+                      <span>{label}</span>
                     </button>
                   );
                 })}
@@ -210,16 +220,26 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
               />
             </div>
 
+            {/* Birth Date (Dynamic Age) & Type */}
             <div className="grid-2">
               <div className="form-group">
-                <label className="form-label">{t('patientAge')}</label>
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>📅 {language === 'es' ? 'Fecha de Nacimiento:' : 'Birth Date:'}</span>
+                  {computedAge !== undefined && (
+                    <span className="badge badge-green" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                      🎂 {computedAge} {language === 'es' ? 'años' : 'years'}
+                    </span>
+                  )}
+                </label>
                 <input
-                  type="number"
+                  type="date"
                   className="form-input"
-                  placeholder="e.g. 35, 78, 8"
-                  value={age}
-                  onChange={e => setAge(e.target.value ? Number(e.target.value) : '')}
+                  value={birthDate}
+                  onChange={e => setBirthDate(e.target.value)}
                 />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
+                  {language === 'es' ? 'Calcula la edad automáticamente y se actualiza cada año.' : 'Calculates age dynamically and updates every year.'}
+                </span>
               </div>
 
               <div className="form-group">
@@ -235,6 +255,22 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
                 </select>
               </div>
             </div>
+
+            {/* Fallback Age Input if Birth Date is not known */}
+            {!birthDate && (
+              <div className="form-group" style={{ marginTop: '-0.5rem' }}>
+                <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                  {language === 'es' ? 'O introduce la edad aproximada si no sabes la fecha exacta:' : 'Or enter approximate age if exact date is unknown:'}
+                </label>
+                <input
+                  type="number"
+                  className="form-input"
+                  placeholder="e.g. 80, 45, 12"
+                  value={age}
+                  onChange={e => setAge(e.target.value ? Number(e.target.value) : '')}
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">{t('primaryDiagnosisLabel')}</label>

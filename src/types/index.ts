@@ -51,7 +51,8 @@ export interface Patient {
   id: string;
   familyId?: string;
   name: string;
-  age?: number;
+  birthDate?: string; // YYYY-MM-DD for automatic dynamic age calculation
+  age?: number; // Optional legacy or fallback approximate age
   type: PatientType;
   primaryDiagnosis?: string;
   treatmentStartDate?: string;

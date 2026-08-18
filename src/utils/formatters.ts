@@ -96,3 +96,36 @@ export function calculateCampaignProgress(campaign: MonitoringCampaign, vitals: 
     isCompleted: recordedCount >= totalRequired
   };
 }
+
+/**
+ * Automatically calculates precise age from birth date (YYYY-MM-DD), updating dynamically over time
+ */
+export function calculateAge(birthDate?: string, fallbackAge?: number, referenceDate: Date = new Date()): number | undefined {
+  if (!birthDate) return fallbackAge;
+  const parts = birthDate.split('-').map(Number);
+  if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+    return fallbackAge;
+  }
+
+  const [year, month, day] = parts;
+  const birth = new Date(year, month - 1, day);
+  const now = referenceDate;
+
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  return Math.max(0, age);
+}
+
+/**
+ * Formats a patient's age in a clean, readable string (e.g., "80 años" or "80 years old")
+ */
+export function formatPatientAge(birthDate?: string, fallbackAge?: number, lang: 'es' | 'en' = 'es'): string {
+  const age = calculateAge(birthDate, fallbackAge);
+  if (age === undefined) return '';
+  return lang === 'es' ? `${age} años` : `${age} years old`;
+}
+

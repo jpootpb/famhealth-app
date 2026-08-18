@@ -39,6 +39,7 @@ export const initialPatients: Patient[] = [
     id: 'patient-grandfather',
     familyId: 'circle-poot',
     name: 'Don Manuel Poot (Papá)',
+    birthDate: '1948-03-15',
     age: 78,
     type: 'chronic',
     primaryDiagnosis: 'Diabetes Tipo 2 e Hipertensión',
@@ -48,6 +49,7 @@ export const initialPatients: Patient[] = [
     id: 'patient-maria',
     familyId: 'circle-poot',
     name: 'Doña María Poot (Mamá)',
+    birthDate: '1952-06-20',
     age: 74,
     type: 'temporary',
     primaryDiagnosis: 'Tratamiento Antibiótico & Cuidado General',
@@ -59,6 +61,7 @@ export const initialPatients: Patient[] = [
     id: 'patient-jose',
     familyId: 'circle-poot',
     name: 'José Manuel Poot (Mi Autocuidado)',
+    birthDate: '1988-08-10',
     age: 38,
     type: 'preventive',
     primaryDiagnosis: 'Prediabetes y Control Preventivo',
@@ -68,6 +71,7 @@ export const initialPatients: Patient[] = [
     id: 'patient-suegro',
     familyId: 'circle-gomez',
     name: 'Don Roberto Gómez',
+    birthDate: '1952-01-25',
     age: 74,
     type: 'chronic',
     primaryDiagnosis: 'Hipertensión y Artrosis',
@@ -77,12 +81,11 @@ export const initialPatients: Patient[] = [
     id: 'patient-laura-self',
     familyId: 'circle-personal-laura',
     name: 'Laura Poot',
+    birthDate: '1988-11-05',
     age: 38,
-    type: 'temporary',
-    primaryDiagnosis: 'Control de Colesterol y Lípidos',
-    treatmentStartDate: '2026-08-17',
-    durationDays: 60,
-    notes: 'Atorvastatina 20mg diarios por 60 días. Autocuidado.'
+    type: 'preventive',
+    primaryDiagnosis: 'Control Preventivo de Tiroides',
+    notes: 'Tomas matutinas en ayunas 30 min antes del desayuno.'
   }
 ];
 
