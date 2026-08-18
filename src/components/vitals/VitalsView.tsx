@@ -15,9 +15,17 @@ import {
   CheckCircle2,
   Trash2,
   X,
-  Target
+  Target,
+  TrendingUp,
+  LineChart
 } from 'lucide-react';
 import { formatDateIso } from '../../utils/frequencyEngine';
+import {
+  filterVitalsByDays,
+  calculateVitalsStatistics,
+  generateTrendPath,
+  isVitalInOptimalRange
+} from '../../utils/vitalsChartEngine';
 
 export const VitalsView: React.FC = () => {
   const { activePatient, vitals, addVital, deleteVital, campaigns, addCampaign, toggleCampaignStatus } = useApp();
@@ -25,6 +33,10 @@ export const VitalsView: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+
+  // Chart view state
+  const [chartType, setChartType] = useState<VitalType>('glucose');
+  const [chartDays, setChartDays] = useState<number>(30);
 
   // Vital entry form state
   const [type, setType] = useState<VitalType>('glucose');
@@ -51,7 +63,13 @@ export const VitalsView: React.FC = () => {
   const patientVitals = vitals.filter(v => v.patientId === activePatient.id);
   const patientCampaigns = campaigns.filter(c => c.patientId === activePatient.id);
 
-  // Compute metrics
+  // Filtered vitals for chart
+  const vitalsForChartType = patientVitals.filter(v => v.type === chartType);
+  const chartVitals = filterVitalsByDays(vitalsForChartType, chartDays);
+  const chartStats = calculateVitalsStatistics(chartVitals, chartType);
+  const chartPoints = generateTrendPath(chartVitals, 520, 160);
+
+  // Compute overall summary metrics
   const glucoseLogs = patientVitals.filter(v => v.type === 'glucose');
   const avgGlucose = glucoseLogs.length > 0
     ? Math.round(glucoseLogs.reduce((acc, curr) => acc + curr.value, 0) / glucoseLogs.length)
@@ -138,91 +156,266 @@ export const VitalsView: React.FC = () => {
         <div className="card" style={{ padding: '1rem', borderLeft: '4px solid #f59e0b' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#d97706', marginBottom: '0.25rem' }}>
             <Droplet size={18} />
-            <strong style={{ fontSize: '0.8125rem' }}>{t('avgGlucose')}</strong>
+            <strong style={{ fontSize: '0.875rem' }}>{t('glucose')} (Ayunas)</strong>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            {avgGlucose ? `${avgGlucose} mg/dL` : '—'}
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            {avgGlucose !== null ? `${avgGlucose} mg/dL` : '—'}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            {glucoseLogs.length} {language === 'es' ? 'mediciones registradas' : 'logs in record'}
-          </span>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            {glucoseLogs.length} {language === 'es' ? 'mediciones registradas' : 'logs recorded'}
+          </div>
         </div>
 
         <div className="card" style={{ padding: '1rem', borderLeft: '4px solid #ef4444' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#dc2626', marginBottom: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)', marginBottom: '0.25rem' }}>
             <HeartPulse size={18} />
-            <strong style={{ fontSize: '0.8125rem' }}>{t('avgBP')}</strong>
+            <strong style={{ fontSize: '0.875rem' }}>{t('bloodPressure')}</strong>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            {latestBP ? `${latestBP.value}/${latestBP.secondaryValue || 80} mmHg` : '—'}
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            {latestBP ? `${latestBP.value}/${latestBP.secondaryValue || 80}` : '—'}
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '0.375rem' }}>mmHg</span>
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            {latestBP ? (language === 'es' ? 'Última toma registrada' : 'Most recent reading') : (language === 'es' ? 'Sin registros' : 'No records')}
-          </span>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            {bpLogs.length} {language === 'es' ? 'tomas de presión' : 'BP checks recorded'}
+          </div>
         </div>
 
-        <div className="card" style={{ padding: '1rem', borderLeft: '4px solid #0284c7' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0284c7', marginBottom: '0.25rem' }}>
+        <div className="card" style={{ padding: '1rem', borderLeft: '4px solid #06b6d4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0891b2', marginBottom: '0.25rem' }}>
             <Wind size={18} />
-            <strong style={{ fontSize: '0.8125rem' }}>{t('latestSpo2')}</strong>
+            <strong style={{ fontSize: '0.875rem' }}>{t('spo2')}</strong>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            {latestSpo2 ? `${latestSpo2}%` : '—'}
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            {latestSpo2 !== null ? `${latestSpo2}%` : '—'}
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            {latestSpo2 ? (language === 'es' ? 'Oxigenación en sangre' : 'Blood oxygen saturation') : (language === 'es' ? 'Sin registros' : 'No records')}
-          </span>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+            {spo2Logs.length} {language === 'es' ? 'oximetrías' : 'oxygenation logs'}
+          </div>
         </div>
       </div>
 
-      {/* Active Campaigns List */}
+      {/* Interactive Trends & Charts Card */}
+      <div className="card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <TrendingUp size={20} color="var(--primary)" />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+              {language === 'es' ? 'Gráfica de Tendencia y Curva Clínica' : 'Clinical Trend Curve & Charts'}
+            </h3>
+          </div>
+
+          {/* Metric Selector & Time Window */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select
+              className="form-select"
+              style={{ fontSize: '0.78rem', padding: '0.25rem 0.5rem', width: 'auto' }}
+              value={chartType}
+              onChange={e => setChartType(e.target.value as VitalType)}
+            >
+              <option value="glucose">🩸 {t('glucose')} (mg/dL)</option>
+              <option value="blood_pressure">🫀 {t('bloodPressure')} (mmHg)</option>
+              <option value="spo2">💨 {t('spo2')} (%)</option>
+              <option value="heart_rate">💓 {t('heartRate')}</option>
+              <option value="weight">⚖️ {t('weight')}</option>
+            </select>
+
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <button
+                className={`btn btn-sm ${chartDays === 7 ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setChartDays(7)}
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
+              >
+                7d
+              </button>
+              <button
+                className={`btn btn-sm ${chartDays === 30 ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setChartDays(30)}
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
+              >
+                30d
+              </button>
+              <button
+                className={`btn btn-sm ${chartDays === 90 ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setChartDays(90)}
+                style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)' }}
+              >
+                {language === 'es' ? '3 Meses (HbA1c)' : '90d (Quarter)'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Pill Bar */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+            gap: '0.5rem',
+            backgroundColor: 'var(--bg-secondary)',
+            padding: '0.75rem',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1rem',
+            fontSize: '0.78rem'
+          }}
+        >
+          <div>
+            <span style={{ color: 'var(--text-secondary)' }}>{language === 'es' ? 'Promedio:' : 'Average:'}</span>
+            <strong style={{ display: 'block', fontSize: '0.9375rem', color: 'var(--primary)' }}>
+              {chartStats.avg || '—'} {chartType === 'glucose' ? 'mg/dL' : chartType === 'blood_pressure' ? 'mmHg' : ''}
+            </strong>
+          </div>
+          <div>
+            <span style={{ color: 'var(--text-secondary)' }}>{language === 'es' ? 'Mínimo:' : 'Minimum:'}</span>
+            <strong style={{ display: 'block', fontSize: '0.9375rem', color: '#059669' }}>
+              {chartStats.min || '—'}
+            </strong>
+          </div>
+          <div>
+            <span style={{ color: 'var(--text-secondary)' }}>{language === 'es' ? 'Máximo:' : 'Maximum:'}</span>
+            <strong style={{ display: 'block', fontSize: '0.9375rem', color: 'var(--danger)' }}>
+              {chartStats.max || '—'}
+            </strong>
+          </div>
+          <div>
+            <span style={{ color: 'var(--text-secondary)' }}>{language === 'es' ? 'En Rango Óptimo:' : 'In Target Range:'}</span>
+            <strong style={{ display: 'block', fontSize: '0.9375rem', color: '#059669' }}>
+              {chartStats.inOptimalRangeCount} / {chartStats.count} ({chartStats.count > 0 ? Math.round((chartStats.inOptimalRangeCount / chartStats.count) * 100) : 0}%)
+            </strong>
+          </div>
+        </div>
+
+        {/* SVG Curve Chart */}
+        {chartVitals.length < 2 ? (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+            <LineChart size={32} color="var(--text-muted)" style={{ margin: '0 auto 0.5rem' }} />
+            <p style={{ margin: 0 }}>
+              {language === 'es'
+                ? `Registra al menos 2 mediciones de ${chartType} en este período para trazar la curva de tendencia.`
+                : `Record at least 2 ${chartType} measurements in this window to plot the trend curve.`}
+            </p>
+          </div>
+        ) : (
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <svg viewBox="0 0 520 180" style={{ width: '100%', height: 'auto', maxHeight: '200px' }}>
+              {/* Background Target Zone Gradient */}
+              <defs>
+                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0284c7" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#0284c7" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+
+              {/* Grid Lines */}
+              <line x1="20" y1="30" x2="500" y2="30" stroke="#f1f5f9" strokeDasharray="3 3" />
+              <line x1="20" y1="80" x2="500" y2="80" stroke="#f1f5f9" strokeDasharray="3 3" />
+              <line x1="20" y1="130" x2="500" y2="130" stroke="#f1f5f9" strokeDasharray="3 3" />
+
+              {/* Area Fill */}
+              <polygon
+                fill="url(#chartGradient)"
+                points={`20,150 ${chartPoints.map(p => `${p.x},${p.y}`).join(' ')} 500,150`}
+              />
+
+              {/* Trend Polyline */}
+              <polyline
+                fill="none"
+                stroke="var(--primary)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={chartPoints.map(p => `${p.x},${p.y}`).join(' ')}
+              />
+
+              {/* Data Points and Value Tooltips */}
+              {chartPoints.map((p, idx) => {
+                const inRange = isVitalInOptimalRange(p.value, p.secondaryValue, chartType);
+                return (
+                  <g key={idx}>
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r="5"
+                      fill={inRange ? '#0284c7' : '#ef4444'}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                    <text
+                      x={p.x}
+                      y={p.y - 10}
+                      fontSize="10"
+                      fontWeight="bold"
+                      fill="var(--text-primary)"
+                      textAnchor="middle"
+                      fontFamily="var(--font-mono)"
+                    >
+                      {p.value}
+                    </text>
+                    <text
+                      x={p.x}
+                      y="170"
+                      fontSize="9"
+                      fill="var(--text-muted)"
+                      textAnchor="middle"
+                    >
+                      {p.dateStr}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Active Monitoring Campaigns (Challenges) */}
       {patientCampaigns.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            🎯 {t('activeCampaignsTitle')}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Target size={18} color="var(--primary)" /> {t('activeCampaignsTitle')}
           </h3>
 
-          <div className="grid-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {patientCampaigns.map(camp => (
               <div
                 key={camp.id}
-                className="card"
                 style={{
-                  padding: '1.25rem',
-                  border: camp.isActive ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                  backgroundColor: camp.isActive ? '#ffffff' : 'var(--bg-secondary)'
+                  padding: '0.875rem 1rem',
+                  backgroundColor: camp.isActive ? 'var(--primary-light)' : 'var(--bg-secondary)',
+                  border: `1px solid ${camp.isActive ? 'var(--primary)' : 'var(--border-color)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <strong style={{ fontSize: '1rem', color: 'var(--primary)' }}>
-                    {camp.name}
-                  </strong>
-                  <span className={`badge ${camp.isActive ? 'badge-green' : 'badge-amber'}`}>
-                    {camp.isActive ? (language === 'es' ? 'En Curso' : 'Active') : (language === 'es' ? 'Finalizado' : 'Completed')}
-                  </span>
+                <div>
+                  <strong style={{ fontSize: '0.9375rem' }}>{camp.name}</strong>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                    📅 {camp.startDate} • {camp.durationDays} {t('daysDuration')} ({camp.checksPerDay} {t('targetChecks')})
+                  </div>
+                  {camp.targetNotes && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontStyle: 'italic', marginTop: '0.2rem' }}>
+                      "{camp.targetNotes}"
+                    </div>
+                  )}
                 </div>
 
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                  {camp.targetNotes || (language === 'es' ? 'Seguimiento intensivo para consulta médica.' : 'Intensive monitoring challenge.')}
-                </p>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  <span>📅 {camp.durationDays} {t('daysDuration')} ({camp.checksPerDay} {t('targetChecks')})</span>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => toggleCampaignStatus(camp.id)}
-                    style={{ fontSize: '0.7rem' }}
-                  >
-                    {camp.isActive ? (language === 'es' ? 'Concluir Reto' : 'Complete Challenge') : (language === 'es' ? 'Reactivar' : 'Reactivate')}
-                  </button>
-                </div>
+                <button
+                  className={`btn btn-sm ${camp.isActive ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => toggleCampaignStatus(camp.id)}
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  {camp.isActive ? (language === 'es' ? '✓ Reto Activo' : '✓ Active') : (language === 'es' ? 'Completado' : 'Completed')}
+                </button>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Historical Vitals Table */}
+      {/* Historical Measurements Log */}
       <div className="card" style={{ padding: '1.25rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '1rem' }}>
           📋 {t('historyLogs')}
@@ -234,72 +427,56 @@ export const VitalsView: React.FC = () => {
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {patientVitals.map(v => {
-              const formattedDate = new Date(v.timestamp).toLocaleString(language === 'es' ? 'es-MX' : 'en-US', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit'
-              });
-
-              return (
-                <div
-                  key={v.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div
-                      style={{
-                        padding: '0.5rem',
-                        borderRadius: '50%',
-                        backgroundColor:
-                          v.type === 'glucose' ? '#fef3c7' : v.type === 'blood_pressure' ? '#fee2e2' : '#e0f2fe',
-                        color:
-                          v.type === 'glucose' ? '#d97706' : v.type === 'blood_pressure' ? '#dc2626' : '#0284c7'
-                      }}
-                    >
-                      {v.type === 'glucose' ? <Droplet size={18} /> : v.type === 'blood_pressure' ? <HeartPulse size={18} /> : <Wind size={18} />}
-                    </div>
-
-                    <div>
-                      <strong style={{ fontSize: '0.9375rem' }}>
-                        {v.type === 'glucose'
-                          ? `${v.value} mg/dL`
-                          : v.type === 'blood_pressure'
-                          ? `${v.value}/${v.secondaryValue || 80} mmHg`
-                          : `${v.value}% SpO2`}
-                      </strong>
-
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        ⏰ {formattedDate} {v.timing ? `• ${v.timing === 'fasting' ? t('fasting') : v.timing === 'postprandial' ? t('postprandial') : v.timing === 'before_sleep' ? t('beforeBed') : t('random')}` : ''} {v.notes ? `• ${v.notes}` : ''}
-                      </div>
-                    </div>
+            {patientVitals.map(v => (
+              <div
+                key={v.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '0.9375rem', display: 'block' }}>
+                    {v.type === 'glucose' && `🩸 Glucosa: ${v.value} mg/dL`}
+                    {v.type === 'blood_pressure' && `🫀 Presión: ${v.value}/${v.secondaryValue || 80} mmHg`}
+                    {v.type === 'spo2' && `💨 SpO2: ${v.value}%`}
+                    {v.type === 'heart_rate' && `💓 Frecuencia Cardíaca: ${v.value} lpm`}
+                    {v.type === 'weight' && `⚖️ Peso: ${v.value} kg`}
+                  </strong>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    📅 {new Date(v.timestamp).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
+                    {v.timing && ` • ${v.timing}`}
                   </div>
+                  {v.notes && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.15rem' }}>
+                      "{v.notes}"
+                    </div>
+                  )}
+                </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => deleteVital(v.id)}
-                    aria-label="Delete vital record"
+                    aria-label="Delete vital sign"
                   >
                     <Trash2 size={14} color="var(--danger)" />
                   </button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Record Vital Sign Modal */}
+      {/* Record Vital Modal */}
       {isModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
@@ -318,10 +495,10 @@ export const VitalsView: React.FC = () => {
                 <label className="form-label">{t('vitalType')}</label>
                 <select className="form-select" value={type} onChange={e => setType(e.target.value as VitalType)}>
                   <option value="glucose">🩸 {t('glucose')} (mg/dL)</option>
-                  <option value="blood_pressure">🫀 {t('bloodPressure')} (mmHg)</option>
+                  <option value="blood_pressure">🫀 {t('bloodPressure')} (Sistólica/Diastólica)</option>
                   <option value="spo2">💨 {t('spo2')} (%)</option>
-                  <option value="weight">⚖️ {t('weight')}</option>
-                  <option value="heart_rate">💓 {t('heartRate')}</option>
+                  <option value="heart_rate">💓 {t('heartRate')} (lpm)</option>
+                  <option value="weight">⚖️ {t('weight')} (kg)</option>
                 </select>
               </div>
 
@@ -332,7 +509,6 @@ export const VitalsView: React.FC = () => {
                     <input
                       type="number"
                       className="form-input"
-                      placeholder="e.g. 120"
                       value={value}
                       onChange={e => setValue(e.target.value ? Number(e.target.value) : '')}
                       required
@@ -343,7 +519,6 @@ export const VitalsView: React.FC = () => {
                     <input
                       type="number"
                       className="form-input"
-                      placeholder="e.g. 80"
                       value={secondaryValue}
                       onChange={e => setSecondaryValue(e.target.value ? Number(e.target.value) : '')}
                       required
@@ -352,11 +527,10 @@ export const VitalsView: React.FC = () => {
                 </div>
               ) : (
                 <div className="form-group">
-                  <label className="form-label">{t('value')} {type === 'glucose' ? '(mg/dL)' : type === 'spo2' ? '(%)' : ''}</label>
+                  <label className="form-label">{t('value')}</label>
                   <input
                     type="number"
                     className="form-input"
-                    placeholder={type === 'glucose' ? 'e.g. 115' : 'e.g. 98'}
                     value={value}
                     onChange={e => setValue(e.target.value ? Number(e.target.value) : '')}
                     required
@@ -381,7 +555,7 @@ export const VitalsView: React.FC = () => {
                 <input
                   type="text"
                   className="form-input"
-                  placeholder={language === 'es' ? 'e.g. Tras desayuno con avena' : 'e.g. After breakfast with oatmeal'}
+                  placeholder="e.g. Después de caminar 15 min"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                 />
@@ -400,7 +574,7 @@ export const VitalsView: React.FC = () => {
         </div>
       )}
 
-      {/* New Challenge Campaign Modal */}
+      {/* New Challenge Modal */}
       {isCampaignModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsCampaignModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
@@ -416,7 +590,7 @@ export const VitalsView: React.FC = () => {
 
             <form onSubmit={handleAddCampaign}>
               <div className="form-group">
-                <label className="form-label">{language === 'es' ? 'Nombre de la Campaña / Reto *' : 'Challenge Campaign Name *'}</label>
+                <label className="form-label">{language === 'es' ? 'Nombre del Reto' : 'Challenge Name'}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -428,36 +602,45 @@ export const VitalsView: React.FC = () => {
 
               <div className="grid-2">
                 <div className="form-group">
-                  <label className="form-label">{language === 'es' ? 'Duración en Días' : 'Duration in Days'}</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    min="1"
-                    max="14"
-                    value={campaignDuration}
-                    onChange={e => setCampaignDuration(Number(e.target.value))}
-                  />
+                  <label className="form-label">{t('vitalType')}</label>
+                  <select className="form-select" value={campaignType} onChange={e => setCampaignType(e.target.value as VitalType)}>
+                    <option value="glucose">🩸 {t('glucose')}</option>
+                    <option value="blood_pressure">🫀 {t('bloodPressure')}</option>
+                  </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">{language === 'es' ? 'Mediciones al Día' : 'Checks per Day'}</label>
+                  <label className="form-label">{language === 'es' ? 'Duración (Días)' : 'Duration (Days)'}</label>
                   <input
                     type="number"
                     className="form-input"
+                    value={campaignDuration}
+                    onChange={e => setCampaignDuration(Number(e.target.value))}
                     min="1"
-                    max="6"
-                    value={campaignChecksPerDay}
-                    onChange={e => setCampaignChecksPerDay(Number(e.target.value))}
+                    max="14"
+                    required
                   />
                 </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">{language === 'es' ? 'Instrucciones del Reto' : 'Challenge Instructions'}</label>
+                <label className="form-label">{language === 'es' ? 'Mediciones por Día' : 'Checks per Day'}</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={campaignChecksPerDay}
+                  onChange={e => setCampaignChecksPerDay(Number(e.target.value))}
+                  min="1"
+                  max="6"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">{language === 'es' ? 'Indicaciones del Médico para el Reto' : 'Doctor Challenge Notes'}</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder={language === 'es' ? 'e.g. Medir en ayunas y 2h después de la comida' : 'e.g. Measure fasting and 2h post-lunch'}
                   value={campaignNotes}
                   onChange={e => setCampaignNotes(e.target.value)}
                 />

@@ -14,7 +14,10 @@ import {
   Image as ImageIcon,
   Building2
 } from 'lucide-react';
+import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
+import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
 import { formatDateIso } from '../../utils/frequencyEngine';
+import { Sparkles } from 'lucide-react';
 
 interface MedicationModalProps {
   isOpen: boolean;
@@ -29,6 +32,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 }) => {
   const { activePatient, addMedication, updateMedication } = useApp();
   const { t, language } = useLanguage();
+
+  const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
 
   const [name, setName] = useState('');
   const [presentation, setPresentation] = useState('tablet');
@@ -47,6 +52,29 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [durationDays, setDurationDays] = useState<number>(7);
   const [intervalDays, setIntervalDays] = useState<number>(2);
   const [intervalHours, setIntervalHours] = useState<number>(8);
+
+  const handleAiExtractedMed = (med: ExtractedPrescriptionMed) => {
+    setName(med.name);
+    if (med.presentation) setPresentation(med.presentation);
+    if (med.laboratory) setLaboratory(med.laboratory);
+    if (med.instructions) setIndication(med.instructions);
+    if (med.durationDays) {
+      setDurationDays(med.durationDays);
+      setFrequencyType('temporary_hourly');
+      const end = new Date();
+      end.setDate(end.getDate() + med.durationDays);
+      setEndDate(formatDateIso(end));
+    }
+    if (med.scheduledTimes && med.scheduledTimes.length > 0) {
+      setDoseSlots(
+        med.scheduledTimes.map(time => ({
+          time,
+          dose: med.dose || 1,
+          instruction: med.instructions
+        }))
+      );
+    }
+  };
 
   // Dose Slots
   const [doseSlots, setDoseSlots] = useState<DoseSlot[]>([
@@ -183,6 +211,45 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
             <X size={18} />
           </button>
         </div>
+
+        {/* AI Prescription Auto-Fill Banner */}
+        {!medicationToEdit && (
+          <div
+            style={{
+              backgroundColor: '#ecfdf5',
+              border: '1px dashed #059669',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 1rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Sparkles size={18} color="#059669" />
+              <div>
+                <strong style={{ fontSize: '0.875rem', color: '#065f46' }}>
+                  {language === 'es' ? '¿Tienes la receta médica en foto?' : 'Have a photo of the prescription?'}
+                </strong>
+                <div style={{ fontSize: '0.75rem', color: '#047857' }}>
+                  {language === 'es' ? 'La IA (Gemini / ChatGPT) puede leerla y llenar este formulario automáticamente.' : 'AI (Gemini / ChatGPT) can transcribe and auto-fill this form.'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => setIsAiScannerOpen(true)}
+              style={{ backgroundColor: '#059669', borderColor: '#059669', fontSize: '0.75rem' }}
+            >
+              <Sparkles size={14} /> {language === 'es' ? 'Escanear Receta con IA' : 'Scan with AI'}
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {/* Basic Details */}
@@ -534,6 +601,12 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
           </div>
         </form>
       </div>
+
+      <AIPrescriptionScannerModal
+        isOpen={isAiScannerOpen}
+        onClose={() => setIsAiScannerOpen(false)}
+        onSelectMedication={handleAiExtractedMed}
+      />
     </div>
   );
 };

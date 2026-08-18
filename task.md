@@ -7,7 +7,7 @@
 
 ---
 
-## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 11 Advanced Enhancements Completed)
+## 🗺️ Implementation Tasks Progress (12/12 Core Tasks + 14 Advanced Enhancements Completed)
 
 ### - [x] Task 1: Scaffolding, TypeScript, Design Tokens & Vitest Harness
 - **Status:** `COMPLETED & VERIFIED` (Git Commit: `69ec57a`)
@@ -93,14 +93,14 @@
 
 ---
 
-### - [x] Advanced Enhancements: Extended Periods (Bimestral, Trimestral, Semestral)
+### - [x] Advanced Enhancements: Dual AI Prescription Scanner (Gemini & ChatGPT), Interactive Vitals Charts & Online PACS Viewers
 - **Status:** `COMPLETED & VERIFIED`
 - **Skills Applied:**
-  - 🧪 `test-driven-development`: 19 test files, 53 passing tests (`tests/expenseExtendedPeriods.test.ts`).
-  - 🗓️ **Extended Clinical & Financial Periods:** Added *Bimestral (Últimos 2 Meses / 60 días)*, *Trimestral (Últimos 3 Meses / 90 días - ciclo HbA1c)* y *Semestral (Cada 6 Meses / 180 días)* for clinical routine reviews and checkups.
-  - 🛡️ **Accidental Deletion Safety Modal:** 2-step confirmation modal with amount, payer, and warning before deleting expenses.
-  - 📜 **Prescription Attachment (Camera & File):** In `AppointmentsView`, added dual buttons for mobile camera photo capture (`accept="image/*" capture="environment"`) and file attachment (PDF/Gallery) with full-screen zoom modal (`tests/appointmentPrescription.test.ts`).
-  - 🙋‍♀️ **1-Click Personal Care Mode (*Solo para Mí*):** Single-user self-care spaces for individuals without caregivers or expense splitting.
-  - 🌐 **100% Bilingual i18n System:** `LanguageContext` with dynamic toggle (Español 🇲🇽 / English 🇺🇸) across all tabs, modals, clinical statuses, and WhatsApp messages (`tests/i18n.test.ts`).
-  - 👨‍👩‍👧‍👦 **Multi-Tenant Family Circles (`FamilyCircle`):** Total data partitioning by `familyId` with unique invite codes (`POOT-7821`, `GOME-3390`) (`tests/authFamilyTenant.test.ts`).
-- **Verification:** 53/53 tests passed across 19 suites & `npm run build` clean in 1.13s.
+  - 🧪 `test-driven-development`: 23 test files, 65 passing tests.
+  - 🤖 **Dual AI Prescription OCR Scanner:** Support for both **Google Gemini Vision** (`gemini-1.5-flash`, `gemini-2.0-flash`) and **OpenAI ChatGPT Vision** (`gpt-4o-mini`, `gpt-4o`) with camera capture, schema parsing, and 1-click form auto-fill (`tests/aiPrescriptionScanner.test.ts`).
+  - 📈 **Interactive Vitals Trend Curves & Charts:** SVG charts with target health zones, window filters (7d, 30d, 90d HbA1c cycle), and clinical stats (promedio, mín, máx, % en rango) (`tests/vitalsTrendChart.test.ts`).
+  - 🌐 **Online PACS 3D DICOM Viewers & Radiology Reports:** Direct web links for tomography and MRI imaging portals with 1-click WhatsApp and Email sharing to doctors (`tests/studySharing.test.ts`).
+  - 🔒 **Authentication Gate & Multi-Family Caregiver Access:** Privacy isolation per user account with dual-family caregiver support (`tests/userAuthIsolation.test.ts`).
+  - 💰 **Extended Period Expenses:** Quincenal, Mensual, Bimestral, Trimestral, Semestral, Anual e Histórico (`tests/expenseExtendedPeriods.test.ts`).
+  - 🛡️ **Accidental Deletion Protection Modal:** 2-step confirmation dialog with financial impact warnings.
+- **Verification:** 65/65 tests passed across 23 suites & `npm run build` clean in 1.11s.

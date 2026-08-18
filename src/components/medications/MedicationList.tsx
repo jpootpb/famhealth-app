@@ -19,10 +19,15 @@ import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/for
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
 import { MedicationModal } from './MedicationModal';
 
+import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
+import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
+import { Sparkles } from 'lucide-react';
+
 export const MedicationList: React.FC = () => {
-  const { activePatient, medications, updateMedication, deleteMedication } = useApp();
+  const { activePatient, medications, updateMedication, deleteMedication, addMedication } = useApp();
   const { t, language } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState<Medication | null>(null);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
@@ -45,6 +50,26 @@ export const MedicationList: React.FC = () => {
 
   const handleOpenAdd = () => {
     setMedicationToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleAiExtractedMed = (med: ExtractedPrescriptionMed) => {
+    // Open medication modal with prefilled data
+    setMedicationToEdit({
+      id: '',
+      patientId: activePatient.id,
+      name: med.name,
+      presentation: med.presentation || 'tablet',
+      indication: med.instructions,
+      laboratory: med.laboratory,
+      currentStock: 30,
+      minimumStockAlert: 5,
+      frequency: {
+        type: med.durationDays ? 'temporary_hourly' : 'daily_fixed',
+        doseSlots: med.scheduledTimes ? med.scheduledTimes.map(time => ({ time, dose: med.dose || 1, instruction: med.instructions })) : [{ time: '08:00', dose: 1 }],
+        startDate: new Date().toISOString().split('T')[0]
+      }
+    });
     setIsModalOpen(true);
   };
 
@@ -89,9 +114,18 @@ export const MedicationList: React.FC = () => {
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={handleOpenAdd}>
-          <Plus size={18} /> {t('addNewMedication')}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsAiScannerOpen(true)}
+            style={{ color: '#059669', borderColor: '#059669' }}
+          >
+            <Sparkles size={18} /> {language === 'es' ? 'Escanear Receta con IA' : 'Scan with AI'}
+          </button>
+          <button className="btn btn-primary" onClick={handleOpenAdd}>
+            <Plus size={18} /> {t('addNewMedication')}
+          </button>
+        </div>
       </div>
 
       {/* Stock Traffic Light Summary Badges */}
@@ -373,6 +407,13 @@ export const MedicationList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* AI Prescription Scanner Modal */}
+      <AIPrescriptionScannerModal
+        isOpen={isAiScannerOpen}
+        onClose={() => setIsAiScannerOpen(false)}
+        onSelectMedication={handleAiExtractedMed}
+      />
     </div>
   );
 };
