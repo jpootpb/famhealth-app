@@ -13,6 +13,114 @@ export interface SplitResult {
   transfers: SettlementTransfer[];
 }
 
+export type ExpensePeriodType =
+  | 'current_week'
+  | 'current_fortnight'
+  | 'current_month'
+  | 'previous_month'
+  | 'year'
+  | 'all';
+
+export function filterExpensesByPeriod(
+  expenses: HealthExpense[],
+  period: ExpensePeriodType,
+  refDate: Date = new Date(),
+  customYear?: number
+): HealthExpense[] {
+  const currentYear = refDate.getFullYear();
+  const currentMonth = refDate.getMonth(); // 0-indexed
+  const currentDay = refDate.getDate();
+
+  return expenses.filter(exp => {
+    const expDate = new Date(exp.date + 'T12:00:00');
+    if (isNaN(expDate.getTime())) return true;
+
+    const eYear = expDate.getFullYear();
+    const eMonth = expDate.getMonth();
+    const eDay = expDate.getDate();
+
+    switch (period) {
+      case 'current_week': {
+        const dayOfWeek = refDate.getDay();
+        const startOfWeek = new Date(refDate);
+        startOfWeek.setDate(refDate.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        return expDate >= startOfWeek && expDate <= endOfWeek;
+      }
+
+      case 'current_fortnight': {
+        if (eYear !== currentYear || eMonth !== currentMonth) return false;
+        if (currentDay <= 15) {
+          return eDay <= 15;
+        } else {
+          return eDay >= 16;
+        }
+      }
+
+      case 'current_month': {
+        return eYear === currentYear && eMonth === currentMonth;
+      }
+
+      case 'previous_month': {
+        const prevMonthDate = new Date(refDate);
+        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+        return eYear === prevMonthDate.getFullYear() && eMonth === prevMonthDate.getMonth();
+      }
+
+      case 'year': {
+        const targetYear = customYear || currentYear;
+        return eYear === targetYear;
+      }
+
+      case 'all':
+      default:
+        return true;
+    }
+  });
+}
+
+export interface YearlyBreakdown {
+  year: number;
+  total: number;
+  categories: Record<string, number>;
+  count: number;
+}
+
+export function getYearlyExpenseBreakdown(
+  expenses: HealthExpense[],
+  year: number = new Date().getFullYear()
+): YearlyBreakdown {
+  const yearlyExpenses = expenses.filter(e => {
+    const d = new Date(e.date + 'T12:00:00');
+    return d.getFullYear() === year;
+  });
+
+  const total = yearlyExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const categories: Record<string, number> = {
+    medication: 0,
+    lab_study: 0,
+    doctor_appointment: 0,
+    supplies: 0,
+    other: 0
+  };
+
+  yearlyExpenses.forEach(e => {
+    categories[e.category] = (categories[e.category] || 0) + e.amount;
+  });
+
+  return {
+    year,
+    total,
+    categories,
+    count: yearlyExpenses.length
+  };
+}
+
 export function calculateFamilyExpenseSplit(
   expenses: HealthExpense[],
   families: FamilyMember[]
@@ -59,24 +167,29 @@ export function calculateFamilyExpenseSplit(
   while (dIdx < debtors.length && cIdx < creditors.length) {
     const debtor = debtors[dIdx];
     const creditor = creditors[cIdx];
-    const settleAmount = Math.min(debtor.owes, creditor.receives);
 
-    if (settleAmount > 0.01) {
+    const amount = Math.min(debtor.owes, creditor.receives);
+
+    if (amount > 0.01) {
       transfers.push({
         from: debtor.name,
         to: creditor.name,
-        amount: Math.round(settleAmount * 100) / 100
+        amount: Math.round(amount * 100) / 100
       });
     }
 
-    debtor.owes -= settleAmount;
-    creditor.receives -= settleAmount;
+    debtor.owes -= amount;
+    creditor.receives -= amount;
 
     if (debtor.owes <= 0.01) dIdx++;
     if (creditor.receives <= 0.01) cIdx++;
   }
 
-  return { totalSpent, memberBalances, transfers };
+  return {
+    totalSpent,
+    memberBalances,
+    transfers
+  };
 }
 
 export function buildExpenseWhatsAppSummary(
@@ -84,32 +197,32 @@ export function buildExpenseWhatsAppSummary(
   expenses: HealthExpense[],
   families: FamilyMember[]
 ): string {
-  const { totalSpent, memberBalances, transfers } = calculateFamilyExpenseSplit(expenses, families);
-
+  const settlement = calculateFamilyExpenseSplit(expenses, families);
   const lines: string[] = [];
-  lines.push('*HEALTH EXPENSES & FAMILY SPLIT - ' + patient.name.toUpperCase() + '*');
-  lines.push('*Total Spent:* ' + formatCurrency(totalSpent));
-  lines.push('');
-  lines.push('*Family Contributions:*');
 
-  memberBalances.forEach(m => {
-    const statusText = m.netBalance >= 0
-      ? `(Paid: ${formatCurrency(m.paid)} • Covered target)`
-      : `(Paid: ${formatCurrency(m.paid)} • Owes: ${formatCurrency(Math.abs(m.netBalance))})`;
-    lines.push(`• *${m.name}*: ${statusText}`);
+  lines.push('💰 *HEALTH EXPENSES & FAMILY SPLIT - ' + patient.name.toUpperCase() + '*');
+  lines.push('📊 *Total Spent:* ' + formatCurrency(settlement.totalSpent));
+  lines.push('');
+  lines.push('*Family Balances:*');
+
+  settlement.memberBalances.forEach(b => {
+    const status = b.netBalance >= 0 ? 'Owed +' + formatCurrency(b.netBalance) : 'Due ' + formatCurrency(b.netBalance);
+    lines.push('• *' + b.name + '*: Paid ' + formatCurrency(b.paid) + ' (' + status + ')');
   });
 
-  lines.push('');
-  lines.push('*Recommended Settlement Transfers:*');
-  if (transfers.length === 0) {
-    lines.push('✓ All family contributions are settled evenly.');
-  } else {
-    transfers.forEach(t => {
-      lines.push(`💸 *${t.from}* transfers *${formatCurrency(t.amount)}* to *${t.to}*`);
+  if (settlement.transfers.length > 0) {
+    lines.push('');
+    lines.push('🤝 *Recommended Transfers:*');
+    settlement.transfers.forEach(t => {
+      lines.push('👉 *' + t.from + '* transfers *' + formatCurrency(t.amount) + '* to *' + t.to + '*');
     });
+  } else {
+    lines.push('');
+    lines.push('✓ All expenses are settled evenly.');
   }
 
   lines.push('');
   lines.push('_FamHealth Expense Splitter_');
+
   return lines.join('\n');
 }

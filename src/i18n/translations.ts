@@ -183,22 +183,22 @@ export const translations = {
     removePrescription: 'Quitar Receta',
     saveAppointment: 'Guardar Consulta',
 
-    // Expenses
+    // Expenses & Periods
     expensesTitle: 'Gastos Médicos y División Familiar de',
     expensesSubtitle: 'Control transparente de gastos y calculadora de liquidación entre hermanos.',
     shareSettlement: 'Compartir en WhatsApp',
     recordExpense: 'Registrar Gasto',
     familySplit: 'Reparto de Gastos y Balances',
-    totalSpent: 'Gasto Total',
+    totalSpent: 'Gasto del Período',
     paidOutOfPocket: 'Pagado de bolsillo',
     targetShare: 'Cuota objetivo',
     creditor: 'Acreedor (Le deben)',
     due: 'Debe pagar',
     transfersTitle: '🤝 Transferencias Recomendadas para Liquidar:',
-    settledEvenly: '✓ Todos los gastos están saldados equitativamente.',
+    settledEvenly: '✓ Todos los gastos de este período están saldados equitativamente.',
     transfersTo: 'transfiere a',
-    noExpensesLogged: 'No hay gastos registrados aún',
-    noExpensesLoggedDesc: 'Registra compras de medicamentos, consultas o estudios y la app calculará los reembolsos entre familiares.',
+    noExpensesLogged: 'No hay gastos registrados en este período',
+    noExpensesLoggedDesc: 'Registra compras de medicamentos o consultas para calcular la liquidación del período.',
     expenseConcept: 'Concepto del Gasto *',
     expenseCategory: 'Categoría',
     expenseAmount: 'Monto ($ MXN) *',
@@ -210,6 +210,21 @@ export const translations = {
     catDoctorApp: 'Consulta Médica',
     catSupplies: 'Materiales y Curaciones',
     catOther: 'Otro',
+
+    // Periods
+    periodFortnight: 'Esta Quincena',
+    periodMonth: 'Este Mes',
+    periodWeek: 'Esta Semana',
+    periodPrevMonth: 'Mes Anterior',
+    periodYear: 'Anual (2026)',
+    periodAll: 'Histórico Total',
+    annualBreakdownTitle: '📊 Resumen y Presupuesto Anual de Salud',
+    annualTotalSpent: 'Gasto Total Anual',
+
+    // Deletion Safety Modal
+    deleteExpenseSafetyTitle: '⚠️ ¿Confirmas eliminar este gasto?',
+    deleteExpenseSafetyDesc: 'Eliminar este registro modificará las cuentas, cuotas y transferencias entre familiares.',
+    confirmDeleteExpenseBtn: 'Sí, Eliminar Gasto',
 
     // Doctor Summary Report
     doctorReportTitle: 'FamHealth • Resumen Clínico para Consulta',
@@ -432,22 +447,22 @@ export const translations = {
     removePrescription: 'Remove Prescription',
     saveAppointment: 'Save Appointment',
 
-    // Expenses
+    // Expenses & Periods
     expensesTitle: "'s Health Expenses & Family Split",
     expensesSubtitle: 'Transparent caregiver expenditure tracking and fair settlement calculator.',
     shareSettlement: 'Share on WhatsApp',
     recordExpense: 'Record Health Expense',
     familySplit: 'Family Cost Sharing & Net Balances',
-    totalSpent: 'Total Spent',
+    totalSpent: 'Period Total Spent',
     paidOutOfPocket: 'Paid Out-of-Pocket',
     targetShare: 'Target Share',
     creditor: 'Creditor (Owed money)',
     due: 'Due to pay',
     transfersTitle: '🤝 Recommended Debt Settlement Transfers:',
-    settledEvenly: '✓ All health expenses are currently settled evenly.',
+    settledEvenly: '✓ All health expenses for this period are settled evenly.',
     transfersTo: 'transfers to',
-    noExpensesLogged: 'No health expenses recorded yet',
-    noExpensesLoggedDesc: 'Track medication purchases and doctor fees to calculate fair family reimbursements.',
+    noExpensesLogged: 'No health expenses recorded in this period',
+    noExpensesLoggedDesc: 'Record medication purchases and doctor fees to calculate period settlements.',
     expenseConcept: 'Expense Concept *',
     expenseCategory: 'Category',
     expenseAmount: 'Amount ($ USD/MXN) *',
@@ -459,6 +474,21 @@ export const translations = {
     catDoctorApp: 'Doctor Consultation',
     catSupplies: 'Supplies & Dressings',
     catOther: 'Other',
+
+    // Periods
+    periodFortnight: 'This Fortnight',
+    periodMonth: 'This Month',
+    periodWeek: 'This Week',
+    periodPrevMonth: 'Previous Month',
+    periodYear: 'Yearly (2026)',
+    periodAll: 'All-Time Total',
+    annualBreakdownTitle: '📊 Annual Health Budget & Category Breakdown',
+    annualTotalSpent: 'Total Annual Health Expenditure',
+
+    // Deletion Safety Modal
+    deleteExpenseSafetyTitle: '⚠️ Confirm Expense Deletion?',
+    deleteExpenseSafetyDesc: 'Deleting this record will alter debt balances and settlement calculations for all family members.',
+    confirmDeleteExpenseBtn: 'Yes, Delete Expense',
 
     // Doctor Summary Report
     doctorReportTitle: 'FamHealth • Clinical Consultation Summary',
