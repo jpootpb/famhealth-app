@@ -106,7 +106,13 @@ export const LocalStore = {
   saveCurrentUser: (user: UserAccount) => safeSet(STORAGE_KEYS.CURRENT_USER, user),
 
   // Family Circles
-  getFamilyCircles: (): FamilyCircle[] => safeGet<FamilyCircle[]>(STORAGE_KEYS.FAMILY_CIRCLES, initialFamilyCircles),
+  getFamilyCircles: (): FamilyCircle[] => {
+    const raw = safeGet<FamilyCircle[]>(STORAGE_KEYS.FAMILY_CIRCLES, initialFamilyCircles);
+    return raw.map(c => ({
+      ...c,
+      name: c.name.replace(/\s*\(Elderly Care\)/gi, ' (Cuidado Familiar)').replace(/\s*\(In-Laws \/ Suegros\)/gi, ' (Suegros)')
+    }));
+  },
   saveFamilyCircles: (circles: FamilyCircle[]) => safeSet(STORAGE_KEYS.FAMILY_CIRCLES, circles),
 
   getActiveFamilyId: (): string => {
@@ -115,7 +121,18 @@ export const LocalStore = {
   setActiveFamilyId: (id: string) => safeSet(STORAGE_KEYS.ACTIVE_FAMILY_ID, id),
 
   // Patients
-  getPatients: (): Patient[] => safeGet<Patient[]>(STORAGE_KEYS.PATIENTS, initialPatients),
+  getPatients: (): Patient[] => {
+    const raw = safeGet<Patient[]>(STORAGE_KEYS.PATIENTS, initialPatients);
+    return raw.map(p => ({
+      ...p,
+      name: p.name
+        .replace(/\s*\(Grandfather\)/gi, '')
+        .replace(/\s*\(Mother\)/gi, '')
+        .replace(/\s*\(Father-in-law\)/gi, '')
+        .replace(/\s*\(Self-Care\)/gi, '')
+        .trim()
+    }));
+  },
   savePatients: (patients: Patient[]) => safeSet(STORAGE_KEYS.PATIENTS, patients),
 
   getActivePatientId: (): string => {

@@ -21,23 +21,21 @@ describe('App Offline Persistence (LocalStore)', () => {
     localStorage.clear();
   });
 
-
-  it('1. Should initialize with default patients', () => {
+  it('1. Should initialize with default patients in clean Spanish', () => {
     const patients = LocalStore.getPatients();
     expect(patients.length).toBeGreaterThanOrEqual(2);
-    expect(patients[0].name).toContain('Don Manuel');
-    expect(patients[1].name).toContain('Maria');
+    expect(patients[0].name).toBe('Don Manuel Poot');
+    expect(patients[1].name).toContain('María');
   });
 
-  it('2. Should save and retrieve medications', () => {
+  it('2. Should save and retrieve medications in Spanish', () => {
     const meds = LocalStore.getMedications();
     expect(meds.some(m => m.name.toLowerCase().includes('metformin'))).toBe(true);
-    expect(meds.some(m => m.name.toLowerCase().includes('rivaroxaban'))).toBe(true);
+    expect(meds.some(m => m.name.toLowerCase().includes('rivaroxab'))).toBe(true);
   });
 
   it('3. Should save and retrieve dose logs', () => {
-    LocalStore.saveDoseLogs([]);
-    LocalStore.saveDoseLogs([].trim ? [] : [
+    LocalStore.saveDoseLogs([
       {
         id: 'toma-101',
         medicationId: 'med-metformin',

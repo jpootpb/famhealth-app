@@ -14,19 +14,19 @@ import {
 export const initialFamilyCircles: FamilyCircle[] = [
   {
     id: 'circle-poot',
-    name: 'Familia Poot (Elderly Care)',
+    name: 'Familia Poot (Cuidado Familiar)',
     inviteCode: 'POOT-7821',
     createdAt: '2026-08-01'
   },
   {
     id: 'circle-gomez',
-    name: 'Familia Gómez (In-Laws / Suegros)',
+    name: 'Familia Gómez (Suegros)',
     inviteCode: 'GOME-3390',
     createdAt: '2026-08-10'
   },
   {
     id: 'circle-personal-laura',
-    name: 'Mi Cuidado Personal (Laura Poot)',
+    name: 'Mi Cuidado Personal (Laura)',
     inviteCode: 'LAUR-9912',
     createdAt: '2026-08-15',
     isPersonalSpace: true
@@ -37,42 +37,42 @@ export const initialPatients: Patient[] = [
   {
     id: 'patient-grandfather',
     familyId: 'circle-poot',
-    name: 'Don Manuel Poot (Grandfather)',
+    name: 'Don Manuel Poot',
     age: 78,
     type: 'chronic',
-    primaryDiagnosis: 'Type 2 Diabetes & Hypertension',
-    notes: 'Elderly care. Low sodium diet. Monitor fasting glucose closely.'
+    primaryDiagnosis: 'Diabetes Tipo 2 e Hipertensión',
+    notes: 'Dieta baja en sodio y control estricto de glucosa en ayunas.'
   },
   {
     id: 'patient-maria',
     familyId: 'circle-poot',
-    name: 'Maria (Mother)',
+    name: 'Doña María Poot',
     age: 52,
     type: 'temporary',
-    primaryDiagnosis: 'Acute Bronchitis',
+    primaryDiagnosis: 'Bronquitis Aguda',
     treatmentStartDate: '2026-08-15',
     durationDays: 7,
-    notes: 'Take antibiotic with food. Rest for 5 days.'
+    notes: 'Tomar antibiótico con alimentos. Reposo por 5 días.'
   },
   {
     id: 'patient-suegro',
     familyId: 'circle-gomez',
-    name: 'Don Roberto Gómez (Father-in-law)',
+    name: 'Don Roberto Gómez',
     age: 74,
     type: 'chronic',
-    primaryDiagnosis: 'Hypertension & Osteoarthritis',
-    notes: 'Check blood pressure every morning'
+    primaryDiagnosis: 'Hipertensión y Artrosis',
+    notes: 'Toma de presión arterial matutina.'
   },
   {
     id: 'patient-laura-self',
     familyId: 'circle-personal-laura',
-    name: 'Laura Poot (Self-Care)',
+    name: 'Laura Poot',
     age: 38,
     type: 'temporary',
-    primaryDiagnosis: 'Hypercholesterolemia / Lipid Profile Control',
+    primaryDiagnosis: 'Control de Colesterol y Lípidos',
     treatmentStartDate: '2026-08-17',
     durationDays: 60,
-    notes: 'Atorvastatin 20mg daily for 60 days. Self monitoring.'
+    notes: 'Atorvastatina 20mg diarios por 60 días. Autocuidado.'
   }
 ];
 
@@ -81,16 +81,16 @@ export const initialMedications: Medication[] = [
     id: 'med-metformin',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    name: 'Metformin / Sitagliptin (500mg)',
+    name: 'Metformina / Sitagliptina (500mg)',
     presentation: 'tablet',
-    indication: 'Type 2 Diabetes glycemic control',
+    indication: 'Control glucémico en Diabetes Tipo 2',
     laboratory: 'MSD / Janumet',
     expirationDate: '2027-04-30',
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
-        { time: '08:00', dose: 1, instruction: 'With breakfast' },
-        { time: '20:00', dose: 0.5, instruction: 'With dinner (half pill)' }
+        { time: '08:00', dose: 1, instruction: 'Con el desayuno' },
+        { time: '20:00', dose: 0.5, instruction: 'Con la cena (media pastilla)' }
       ],
       startDate: '2026-01-01'
     },
@@ -102,15 +102,15 @@ export const initialMedications: Medication[] = [
     id: 'med-rivaroxaban',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    name: 'Rivaroxaban (20mg)',
+    name: 'Rivaroxabán (20mg)',
     presentation: 'tablet',
-    indication: 'Anticoagulant / Blood Thinner',
+    indication: 'Anticoagulante preventivo',
     laboratory: 'Bayer / Xarelto',
     expirationDate: '2026-09-10',
     frequency: {
       type: 'alternate_days',
       doseSlots: [
-        { time: '13:00', dose: 1, instruction: 'Every other day with lunch' }
+        { time: '13:00', dose: 1, instruction: 'Un día sí y un día no con la comida' }
       ],
       startDate: '2026-08-16'
     },
@@ -122,16 +122,16 @@ export const initialMedications: Medication[] = [
     id: 'med-aspirin',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    name: 'Aspirin Protect (100mg)',
+    name: 'Aspirina Protect (100mg)',
     presentation: 'tablet',
-    indication: 'Cardiovascular protection',
+    indication: 'Protección cardiovascular',
     laboratory: 'Bayer',
     expirationDate: '2027-11-20',
     frequency: {
       type: 'every_n_days',
       intervalDays: 4,
       doseSlots: [
-        { time: '14:00', dose: 1, instruction: 'Every 4 days' }
+        { time: '14:00', dose: 1, instruction: 'Cada 4 días' }
       ],
       startDate: '2026-08-14'
     },
@@ -145,14 +145,14 @@ export const initialMedications: Medication[] = [
     patientId: 'patient-grandfather',
     name: 'Cilostazol (100mg)',
     presentation: 'tablet',
-    indication: 'Peripheral circulation',
+    indication: 'Circulación periférica',
     laboratory: 'Silanes',
     expirationDate: '2026-08-01',
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
-        { time: '08:00', dose: 1, instruction: 'Morning' },
-        { time: '20:00', dose: 1, instruction: 'Night' }
+        { time: '08:00', dose: 1, instruction: 'Mañana' },
+        { time: '20:00', dose: 1, instruction: 'Noche' }
       ],
       startDate: '2026-01-01'
     },
@@ -164,17 +164,17 @@ export const initialMedications: Medication[] = [
     id: 'med-ciprofloxacin',
     familyId: 'circle-poot',
     patientId: 'patient-maria',
-    name: 'Ciprofloxacin (500mg)',
+    name: 'Ciprofloxacino (500mg)',
     presentation: 'tablet',
-    indication: 'Acute infection treatment',
+    indication: 'Tratamiento de infección aguda',
     laboratory: 'Genérico GI',
     expirationDate: '2027-02-15',
     frequency: {
       type: 'temporary_hourly',
       intervalHours: 12,
       doseSlots: [
-        { time: '08:00', dose: 1, instruction: 'Every 12 hours with full glass of water' },
-        { time: '20:00', dose: 1, instruction: 'Night dose' }
+        { time: '08:00', dose: 1, instruction: 'Cada 12 horas con vaso lleno de agua' },
+        { time: '20:00', dose: 1, instruction: 'Toma de la noche' }
       ],
       startDate: '2026-08-15',
       endDate: '2026-08-22'
@@ -187,15 +187,15 @@ export const initialMedications: Medication[] = [
     id: 'med-losartan-gomez',
     familyId: 'circle-gomez',
     patientId: 'patient-suegro',
-    name: 'Losartan Potásico (50mg)',
+    name: 'Losartán Potásico (50mg)',
     presentation: 'tablet',
-    indication: 'Blood pressure control',
+    indication: 'Control de presión arterial',
     laboratory: 'Silanes',
     expirationDate: '2027-09-01',
     frequency: {
       type: 'daily_fixed',
       doseSlots: [
-        { time: '08:00', dose: 1, instruction: 'Morning with water' }
+        { time: '08:00', dose: 1, instruction: 'Por la mañana con agua' }
       ],
       startDate: '2026-01-01'
     },
@@ -209,14 +209,14 @@ export const initialMedications: Medication[] = [
     patientId: 'patient-laura-self',
     name: 'Atorvastatina (20mg)',
     presentation: 'tablet',
-    indication: 'Cholesterol & Lipid control',
+    indication: 'Control de colesterol y triglicéridos',
     laboratory: 'Pfizer / Lipitor',
     expirationDate: '2027-10-15',
     frequency: {
       type: 'temporary_hourly',
       intervalHours: 24,
       doseSlots: [
-        { time: '21:00', dose: 1, instruction: 'Night with dinner' }
+        { time: '21:00', dose: 1, instruction: 'Por la noche con la cena' }
       ],
       startDate: '2026-08-17',
       endDate: '2026-10-16'
@@ -238,8 +238,8 @@ export const initialDoseLogs: DoseLog[] = [
     actualTakenTime: '08:15',
     dose: 1,
     taken: true,
-    notes: 'Taken with oatmeal',
-    administeredBy: 'Carlos Poot (Morning Shift)'
+    notes: 'Tomada con avena',
+    administeredBy: 'Carlos Poot'
   }
 ];
 
@@ -252,7 +252,7 @@ export const initialVitals: VitalSign[] = [
     value: 118,
     timing: 'fasting',
     timestamp: '2026-08-17T07:30:00',
-    notes: 'Optimal fasting range'
+    notes: 'Glucosa en ayunas estable'
   },
   {
     id: 'vit-2',
@@ -263,7 +263,7 @@ export const initialVitals: VitalSign[] = [
     secondaryValue: 82,
     timing: 'fasting',
     timestamp: '2026-08-17T07:35:00',
-    notes: 'Stable resting BP'
+    notes: 'Presión en reposo adecuada'
   },
   {
     id: 'vit-3',
@@ -272,7 +272,7 @@ export const initialVitals: VitalSign[] = [
     type: 'spo2',
     value: 97,
     timestamp: '2026-08-17T07:40:00',
-    notes: 'Normal oxygenation'
+    notes: 'Oxigenación normal'
   }
 ];
 
@@ -281,12 +281,12 @@ export const initialCampaigns: MonitoringCampaign[] = [
     id: 'camp-glucose-3d',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    name: '3-Day Pre-Consultation Glucose Challenge',
+    name: 'Reto de 3 Días de Glucosa Pre-Consulta',
     vitalTypes: ['glucose'],
     startDate: '2026-08-16',
     durationDays: 3,
     checksPerDay: 2,
-    targetNotes: 'Measure fasting (7am) and 2 hours after lunch (3pm)',
+    targetNotes: 'Medir en ayunas (7:00 am) y 2 horas después de comer (3:00 pm)',
     isActive: true
   }
 ];
@@ -296,7 +296,7 @@ export const initialFamilies: FamilyMember[] = [
     id: 'fam-carlos',
     familyId: 'circle-poot',
     name: 'Carlos Poot',
-    relationship: 'Son / Main Caregiver',
+    relationship: 'Hijo / Cuidador Principal',
     shift: 'morning',
     isDefaultCaregiver: true,
     phone: '5219991234567',
@@ -307,7 +307,7 @@ export const initialFamilies: FamilyMember[] = [
     id: 'fam-lucia',
     familyId: 'circle-poot',
     name: 'Lucía Poot',
-    relationship: 'Daughter / Night Shift',
+    relationship: 'Hija / Turno Noche',
     shift: 'night',
     isDefaultCaregiver: false,
     phone: '5219997654321',
@@ -318,7 +318,7 @@ export const initialFamilies: FamilyMember[] = [
     id: 'fam-jorge',
     familyId: 'circle-poot',
     name: 'Jorge Poot',
-    relationship: 'Son / Night Shift (Co-Cuidador)',
+    relationship: 'Hijo / Turno Noche (Co-Cuidador)',
     shift: 'night',
     isDefaultCaregiver: false,
     phone: '5219995554433',
@@ -329,7 +329,7 @@ export const initialFamilies: FamilyMember[] = [
     id: 'fam-esposa',
     familyId: 'circle-gomez',
     name: 'Claudia Gómez',
-    relationship: 'Daughter / Main Caregiver',
+    relationship: 'Hija / Cuidadora Principal',
     shift: 'full_day',
     isDefaultCaregiver: true,
     phone: '5219998887766',
@@ -343,7 +343,7 @@ export const initialExpenses: HealthExpense[] = [
     id: 'exp-1',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    concept: 'Metformin 500mg & Cilostazol restock (Farmacias Guadalajara)',
+    concept: 'Surtido de Metformina 500mg y Cilostazol (Farmacias Guadalajara)',
     category: 'medication',
     amount: 770,
     date: '2026-08-14',
@@ -353,11 +353,11 @@ export const initialExpenses: HealthExpense[] = [
     id: 'exp-2',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    concept: 'Monthly Blood Chem & HbA1c Lab Panel (Chopo)',
+    concept: 'Química Sanguínea y Perfil HbA1c (Laboratorios Chopo)',
     category: 'lab_study',
     amount: 1250,
     date: '2026-08-10',
-    paidBy: 'Lucia Poot'
+    paidBy: 'Lucía Poot'
   }
 ];
 
@@ -366,11 +366,11 @@ export const initialAppointments: MedicalAppointment[] = [
     id: 'app-1',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    doctorName: 'Dr. Alejandro Hernandez',
-    specialty: 'Internal Medicine & Geriatrics',
+    doctorName: 'Dr. Alejandro Hernández',
+    specialty: 'Medicina Interna y Geriatría',
     dateTime: '2026-08-25T11:00',
-    location: 'Clinica Merida - Suite 402',
-    notes: 'Bring 3-day glucose log and latest blood test results',
+    location: 'Clínica Mérida - Consultorio 402',
+    notes: 'Llevar bitácora de glucosa de 3 días y estudios de sangre recientes',
     isCompleted: false
   }
 ];
