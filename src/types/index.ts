@@ -1,7 +1,25 @@
 export type PatientType = 'chronic' | 'temporary';
 
+export interface FamilyCircle {
+  id: string;
+  name: string;
+  inviteCode: string; // e.g. "POOT-7821"
+  createdAt: string;
+  ownerEmail?: string;
+  patientCount?: number;
+}
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  activeFamilyId: string;
+  joinedFamilyIds: string[];
+}
+
 export interface Patient {
   id: string;
+  familyId?: string;
   name: string;
   age?: number;
   type: PatientType;
@@ -34,6 +52,7 @@ export interface FrequencyRule {
 
 export interface Medication {
   id: string;
+  familyId?: string;
   patientId: string;
   name: string;
   presentation: string; // tablet, capsule, ml, etc.
@@ -50,6 +69,7 @@ export interface Medication {
 
 export interface DoseLog {
   id: string;
+  familyId?: string;
   medicationId: string;
   patientId: string;
   date: string; // YYYY-MM-DD
@@ -65,6 +85,7 @@ export type VitalType = 'glucose' | 'blood_pressure' | 'spo2' | 'weight' | 'hear
 
 export interface VitalSign {
   id: string;
+  familyId?: string;
   patientId: string;
   type: VitalType;
   value: number; // For BP this can be systolic
@@ -76,6 +97,7 @@ export interface VitalSign {
 
 export interface MonitoringCampaign {
   id: string;
+  familyId?: string;
   patientId: string;
   name: string;
   vitalTypes: VitalType[];
@@ -90,6 +112,7 @@ export type CaregiverShift = 'morning' | 'evening' | 'night' | 'full_day' | 'wee
 
 export interface FamilyMember {
   id: string;
+  familyId?: string;
   name: string;
   relationship?: string;
   phone?: string;
@@ -101,6 +124,7 @@ export interface FamilyMember {
 
 export interface HealthExpense {
   id: string;
+  familyId?: string;
   patientId: string;
   concept: string;
   category: 'medication' | 'lab_study' | 'doctor_appointment' | 'supplies' | 'other';
@@ -112,6 +136,7 @@ export interface HealthExpense {
 
 export interface MedicalAppointment {
   id: string;
+  familyId?: string;
   patientId: string;
   doctorName: string;
   specialty: string;
@@ -123,6 +148,7 @@ export interface MedicalAppointment {
 
 export interface MedicalStudy {
   id: string;
+  familyId?: string;
   patientId: string;
   title: string;
   category: 'blood_test' | 'imaging' | 'cardiology' | 'pathology' | 'other';

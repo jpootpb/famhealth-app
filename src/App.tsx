@@ -7,6 +7,7 @@ import { StudiesView } from './components/studies/StudiesView';
 import { AppointmentsView } from './components/appointments/AppointmentsView';
 import { ExpensesView } from './components/expenses/ExpensesView';
 import { useApp } from './context/AppContext';
+import { useLanguage } from './i18n/LanguageContext';
 import {
   Calendar,
   Pill,
@@ -18,6 +19,7 @@ import {
 
 export default function App() {
   const { activePatient } = useApp();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'timeline' | 'medications' | 'vitals' | 'studies' | 'expenses' | 'appointments'>('timeline');
 
   return (
@@ -25,7 +27,7 @@ export default function App() {
       <Header onPrintReport={() => window.print()} />
 
       <main className="main-content">
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs with Dynamic i18n Translations */}
         <nav
           style={{
             display: 'flex',
@@ -41,7 +43,7 @@ export default function App() {
             className={`btn btn-sm ${activeTab === 'timeline' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
           >
-            <Calendar size={16} /> Daily Timeline
+            <Calendar size={16} /> {t('tabTimeline')}
           </button>
 
           <button
@@ -49,7 +51,7 @@ export default function App() {
             className={`btn btn-sm ${activeTab === 'medications' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
           >
-            <Pill size={16} /> Medications & Stock
+            <Pill size={16} /> {t('tabMedications')}
           </button>
 
           <button
@@ -57,7 +59,7 @@ export default function App() {
             className={`btn btn-sm ${activeTab === 'vitals' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
           >
-            <Activity size={16} /> Vitals & Campaigns
+            <Activity size={16} /> {t('tabVitals')}
           </button>
 
           <button
@@ -65,7 +67,7 @@ export default function App() {
             className={`btn btn-sm ${activeTab === 'studies' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
           >
-            <FileText size={16} /> Lab Studies & Archive
+            <FileText size={16} /> {t('tabStudies')}
           </button>
 
           <button
@@ -73,7 +75,7 @@ export default function App() {
             className={`btn btn-sm ${activeTab === 'appointments' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
           >
-            <CalendarDays size={16} /> Appointments
+            <CalendarDays size={16} /> {t('tabAppointments')}
           </button>
 
           <button
@@ -81,7 +83,7 @@ export default function App() {
             className={`btn btn-sm ${activeTab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`}
             style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
           >
-            <DollarSign size={16} /> Expenses & Split
+            <DollarSign size={16} /> {t('tabExpenses')}
           </button>
         </nav>
 

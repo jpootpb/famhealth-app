@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import {
   Heart,
   Bell,
@@ -8,19 +9,25 @@ import {
   Printer,
   ChevronDown,
   Clock,
-  HeartPulse
+  HeartPulse,
+  Users,
+  Globe
 } from 'lucide-react';
 import { PatientSelector } from './PatientSelector';
 import { WhatsAppModal } from '../sharing/WhatsAppModal';
 import { DoctorSummaryModal } from '../doctor/DoctorSummaryModal';
+import { FamilyManagerModal } from '../auth/FamilyManagerModal';
 import { requestNotificationPermission, sendLocalNotification } from '../../lib/notifications';
 import { getDailyDoseSlots, formatDateIso } from '../../utils/frequencyEngine';
 
 export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
-  const { activePatient, medications, doseLogs } = useApp();
+  const { activePatient, activeFamilyCircle, medications, doseLogs } = useApp();
+  const { t, language, setLanguage } = useLanguage();
+
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isDoctorSummaryOpen, setIsDoctorSummaryOpen] = useState(false);
+  const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
   const [notificationsGranted, setNotificationsGranted] = useState(false);
 
   useEffect(() => {
@@ -68,9 +75,13 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
     if (granted) {
       sendLocalNotification(
         '🔔 FamHealth Alerts Active',
-        'You will now receive desktop notifications for your scheduled medications.'
+        'You will now receive notifications for your scheduled medications.'
       );
     }
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'es' ? 'en' : 'es');
   };
 
   return (
@@ -79,7 +90,7 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
         style={{
           backgroundColor: '#ffffff',
           borderBottom: '1px solid var(--border-color)',
-          padding: '0.875rem 1.25rem',
+          padding: '0.75rem 1.25rem',
           position: 'sticky',
           top: 0,
           zIndex: 40,
@@ -93,38 +104,59 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1rem',
+            gap: '0.75rem',
             flexWrap: 'wrap'
           }}
         >
-          {/* Brand Logo & Title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)'
-              }}
-            >
-              <Heart size={20} fill="#ffffff" />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
+          {/* Left: Brand Logo & Family Circle Space Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)'
+                }}
+              >
+                <Heart size={18} fill="#ffffff" />
+              </div>
+              <span style={{ fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}>
                 FamHealth
-              </h1>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                Caregiver & Patient Hub
               </span>
             </div>
+
+            {/* Family Circle Badge Selector */}
+            {activeFamilyCircle && (
+              <button
+                onClick={() => setIsFamilyModalOpen(true)}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.3rem 0.65rem'
+                }}
+                title={t('switchFamily')}
+              >
+                <Users size={14} color="var(--primary)" />
+                <strong style={{ fontSize: '0.75rem', color: 'var(--primary-hover)' }}>
+                  {activeFamilyCircle.name}
+                </strong>
+                <ChevronDown size={12} color="var(--text-muted)" />
+              </button>
+            )}
           </div>
 
-          {/* Active Patient Pill Selector */}
+          {/* Center: Active Patient Pill Selector */}
           {activePatient && (
             <button
               onClick={() => setIsPatientModalOpen(true)}
@@ -133,18 +165,18 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.625rem',
-                padding: '0.5rem 0.875rem',
+                padding: '0.4rem 0.75rem',
                 borderRadius: 'var(--radius-full)',
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
                 cursor: 'pointer'
               }}
-              title="Change active patient profile"
+              title={t('changePatient')}
             >
               <div
                 style={{
-                  width: '26px',
-                  height: '26px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   backgroundColor: activePatient.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
                   color: '#ffffff',
@@ -158,59 +190,72 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
                 {activePatient.name.charAt(0)}
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                  <strong style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <strong style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
                     {activePatient.name}
                   </strong>
-                  <ChevronDown size={14} color="var(--text-muted)" />
+                  <ChevronDown size={12} color="var(--text-muted)" />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }}>
-                  {activePatient.type === 'chronic' ? (
-                    <span style={{ color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <HeartPulse size={10} /> Chronic Care
-                    </span>
-                  ) : (
-                    <span style={{ color: '#d97706', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <Clock size={10} /> Temp ({activePatient.durationDays || 7}d)
-                    </span>
-                  )}
+                <div style={{ fontSize: '0.68rem', color: activePatient.type === 'chronic' ? 'var(--secondary)' : '#d97706' }}>
+                  {activePatient.type === 'chronic' ? t('chronicCare') : t('tempCare')}
                 </div>
               </div>
             </button>
           )}
 
-          {/* Global Quick Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Right: Language Switcher & Quick Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+            {/* Bilingual Language Switcher Toggle */}
+            <button
+              onClick={toggleLanguage}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                padding: '0.3rem 0.6rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+              title={language === 'es' ? 'Cambiar a English' : 'Switch to Spanish'}
+            >
+              <Globe size={13} color="var(--primary)" />
+              {language === 'es' ? '🇲🇽 ES' : '🇺🇸 EN'}
+            </button>
+
+            {/* Desktop / Mobile Alerts */}
             <button
               className={`btn btn-sm ${notificationsGranted ? 'btn-secondary' : 'btn-primary'}`}
               onClick={handleToggleNotifications}
-              title={notificationsGranted ? 'Desktop Alerts Active' : 'Enable Medication Reminders'}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
+              title={notificationsGranted ? t('alertsOn') : t('enableAlerts')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.6rem' }}
             >
-              {notificationsGranted ? <BellRing size={16} color="var(--success)" /> : <Bell size={16} />}
-              <span className="hide-mobile" style={{ fontSize: '0.8125rem' }}>
-                {notificationsGranted ? 'Alerts ON' : 'Enable Alerts'}
+              {notificationsGranted ? <BellRing size={15} color="var(--success)" /> : <Bell size={15} />}
+              <span className="hide-mobile" style={{ fontSize: '0.75rem' }}>
+                {notificationsGranted ? t('alertsOn') : t('enableAlerts')}
               </span>
             </button>
 
+            {/* WhatsApp Agenda Exporter */}
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setIsWhatsAppModalOpen(true)}
-              title="Share Today's Agenda on WhatsApp"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#16a34a' }}
+              title={t('shareWhatsApp')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#16a34a', padding: '0.3rem 0.6rem' }}
             >
-              <Share2 size={16} />
-              <span className="hide-mobile" style={{ fontSize: '0.8125rem' }}>WhatsApp</span>
+              <Share2 size={15} />
+              <span className="hide-mobile" style={{ fontSize: '0.75rem' }}>WhatsApp</span>
             </button>
 
+            {/* Doctor Printable Sheet */}
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => setIsDoctorSummaryOpen(true)}
-              title="Open Doctor Consultation Summary & Print Sheet"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--primary)' }}
+              title={t('doctorSheet')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', padding: '0.3rem 0.6rem' }}
             >
-              <Printer size={16} />
-              <span className="hide-mobile" style={{ fontSize: '0.8125rem' }}>Doctor Sheet</span>
+              <Printer size={15} />
+              <span className="hide-mobile" style={{ fontSize: '0.75rem' }}>{t('doctorSheet')}</span>
             </button>
           </div>
         </div>
@@ -229,6 +274,11 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
       <DoctorSummaryModal
         isOpen={isDoctorSummaryOpen}
         onClose={() => setIsDoctorSummaryOpen(false)}
+      />
+
+      <FamilyManagerModal
+        isOpen={isFamilyModalOpen}
+        onClose={() => setIsFamilyModalOpen(false)}
       />
     </>
   );

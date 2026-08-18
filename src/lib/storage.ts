@@ -1,4 +1,5 @@
 import {
+  initialFamilyCircles,
   initialPatients,
   initialMedications,
   initialDoseLogs,
@@ -10,6 +11,7 @@ import {
   initialStudies
 } from './demoData';
 import {
+  FamilyCircle,
   Patient,
   Medication,
   DoseLog,
@@ -22,6 +24,8 @@ import {
 } from '../types';
 
 const STORAGE_KEYS = {
+  FAMILY_CIRCLES: 'famhealth_family_circles',
+  ACTIVE_FAMILY_ID: 'famhealth_active_family_id',
   PATIENTS: 'famhealth_patients',
   ACTIVE_PATIENT_ID: 'famhealth_active_patient_id',
   MEDICATIONS: 'famhealth_medications',
@@ -56,6 +60,15 @@ function safeSet<T>(key: string, value: T): void {
 }
 
 export const LocalStore = {
+  // Family Circles
+  getFamilyCircles: (): FamilyCircle[] => safeGet<FamilyCircle[]>(STORAGE_KEYS.FAMILY_CIRCLES, initialFamilyCircles),
+  saveFamilyCircles: (circles: FamilyCircle[]) => safeSet(STORAGE_KEYS.FAMILY_CIRCLES, circles),
+
+  getActiveFamilyId: (): string => {
+    return safeGet<string>(STORAGE_KEYS.ACTIVE_FAMILY_ID, 'circle-poot');
+  },
+  setActiveFamilyId: (id: string) => safeSet(STORAGE_KEYS.ACTIVE_FAMILY_ID, id),
+
   // Patients
   getPatients: (): Patient[] => safeGet<Patient[]>(STORAGE_KEYS.PATIENTS, initialPatients),
   savePatients: (patients: Patient[]) => safeSet(STORAGE_KEYS.PATIENTS, patients),
@@ -81,7 +94,7 @@ export const LocalStore = {
   getCampaigns: (): MonitoringCampaign[] => safeGet<MonitoringCampaign[]>(STORAGE_KEYS.CAMPAIGNS, initialCampaigns),
   saveCampaigns: (campaigns: MonitoringCampaign[]) => safeSet(STORAGE_KEYS.CAMPAIGNS, campaigns),
 
-  // Families
+  // Families (Caregivers in family)
   getFamilies: (): FamilyMember[] => safeGet<FamilyMember[]>(STORAGE_KEYS.FAMILIES, initialFamilies),
   saveFamilies: (families: FamilyMember[]) => safeSet(STORAGE_KEYS.FAMILIES, families),
 
