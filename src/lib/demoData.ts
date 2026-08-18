@@ -513,11 +513,36 @@ export const initialAppointments: MedicalAppointment[] = [
     id: 'app-1',
     familyId: 'circle-poot',
     patientId: 'patient-grandfather',
-    doctorName: 'Dr. Alejandro Hernández',
+    doctorName: 'Dr. Alejandro Hernández / Dr. Roberto Méndez',
     specialty: 'Medicina Interna y Geriatría',
     dateTime: '2026-08-25T11:00',
-    location: 'Clínica Mérida - Consultorio 402',
-    notes: 'Llevar bitácora de glucosa de 3 días y estudios de sangre recientes',
+    location: 'Clínica CAMED - Av. Cupules x Calle 60, Mérida, Yucatán',
+    doctorPhone: '9999254433',
+    notes: 'Llevar bitácora de glucosa de 3 días y estudios de sangre recientes.',
+    verbalRecommendations: [
+      'Disminuir el consumo de sal a menos de media cucharadita al día.',
+      'Caminar 20 minutos diarios por la tarde a paso suave sin agitarse.',
+      'No suspender el anticoagulante (Rivaroxabán) antes de cualquier procedimiento sin avisar.',
+      'Tomar 2 litros de agua al día para cuidar la función renal.',
+      'Usar calzado cómodo sin costuras internas para proteger el pie diabético.'
+    ],
+    isCompleted: false
+  },
+  {
+    id: 'app-2',
+    familyId: 'circle-poot',
+    patientId: 'patient-maria',
+    doctorName: 'Dra. Patricia Canché',
+    specialty: 'Medicina Familiar',
+    dateTime: '2026-08-28T09:30',
+    location: 'IMSS UMF 59 - Av. del Parque, Mérida',
+    doctorPhone: '9999401200',
+    notes: 'Cita de seguimiento para surtido de receta mensual y revisión de presión.',
+    verbalRecommendations: [
+      'Tomar el antibiótico siempre con alimentos para evitar irritación gástrica.',
+      'Mantener reposo relativo durante los primeros 5 días.',
+      'Evitar cambios bruscos de temperatura.'
+    ],
     isCompleted: false
   }
 ];

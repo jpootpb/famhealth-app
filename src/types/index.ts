@@ -174,8 +174,11 @@ export interface MedicalAppointment {
   doctorName: string;
   specialty: string;
   dateTime: string;
-  location?: string;
+  location?: string; // e.g. "Clínica CAMED - Av. Cupules x Calle 60, Mérida"
+  googleMapsUrl?: string; // Direct Google Maps pin / location link
+  doctorPhone?: string;
   notes?: string;
+  verbalRecommendations?: string[]; // Recomendaciones verbales dadas por el doctor que no vienen en la receta
   prescriptionUrl?: string; // Base64 data URL for doctor's prescription sheet photo / PDF
   prescriptionFileType?: 'image' | 'pdf';
   isCompleted: boolean;
