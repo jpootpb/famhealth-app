@@ -183,6 +183,19 @@ export const LocalStore = {
   getStudies: (): MedicalStudy[] => safeGet<MedicalStudy[]>(STORAGE_KEYS.STUDIES, initialStudies),
   saveStudies: (studies: MedicalStudy[]) => safeSet(STORAGE_KEYS.STUDIES, studies),
 
+  // Custom Pharmacies & Medical Stores
+  getCustomPharmacies: (): string[] => safeGet<string[]>('famhealth_custom_pharmacies', [
+    'Farmacia Regina (Muestras Médicas)',
+    'Mercado Libre',
+    'Farmacias Guadalajara',
+    'Muestras Médicas',
+    'Farmacia del Ahorro',
+    'Farmacias Similares',
+    'Farmacias Benavides',
+    'Farmacias Yza'
+  ]),
+  saveCustomPharmacies: (pharmacies: string[]) => safeSet('famhealth_custom_pharmacies', pharmacies),
+
   // Full Reset
   resetToDefaults: () => {
     if (typeof localStorage === 'undefined') return;

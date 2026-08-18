@@ -30,7 +30,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   onClose,
   medicationToEdit
 }) => {
-  const { activePatient, patients, addMedication, updateMedication } = useApp();
+  const { activePatient, patients, addMedication, updateMedication, customPharmacies, addCustomPharmacy } = useApp();
   const { t, language } = useLanguage();
 
   const [assignedPatientId, setAssignedPatientId] = useState<string>('');
@@ -778,18 +778,40 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   />
 
                   {/* Quick Store Pill Presets */}
-                  <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap' }}>
-                    {['Farmacia Regina (Muestras Médicas)', 'Mercado Libre', 'Farmacias Guadalajara', 'Muestras Médicas', 'Farmacia del Ahorro', 'Farmacias Similares'].map(store => (
+                  <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {customPharmacies.map(store => (
                       <button
                         key={store}
                         type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => setPreferredStore(store)}
-                        style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)' }}
+                        style={{
+                          fontSize: '0.68rem',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: 'var(--radius-full)',
+                          backgroundColor: preferredStore === store ? '#dbeafe' : undefined,
+                          borderColor: preferredStore === store ? '#3b82f6' : undefined,
+                          fontWeight: preferredStore === store ? 700 : 500
+                        }}
                       >
                         {store}
                       </button>
                     ))}
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        const name = window.prompt(language === 'es' ? 'Nombre de la nueva farmacia o tienda:' : 'Enter new pharmacy name:');
+                        if (name && name.trim()) {
+                          addCustomPharmacy(name.trim());
+                          setPreferredStore(name.trim());
+                        }
+                      }}
+                      style={{ fontSize: '0.68rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-full)', color: '#0284c7', borderColor: '#bae6fd', backgroundColor: '#f0f9ff', fontWeight: 700 }}
+                    >
+                      + {language === 'es' ? 'Nueva Farmacia' : 'New Pharmacy'}
+                    </button>
                   </div>
                 </div>
 

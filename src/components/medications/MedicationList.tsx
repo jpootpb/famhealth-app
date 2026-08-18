@@ -48,7 +48,9 @@ export const MedicationList: React.FC = () => {
     completeMedication,
     consumeBottle,
     restockMedication,
-    reactivateMedication
+    reactivateMedication,
+    customPharmacies,
+    addCustomPharmacy
   } = useApp();
   const { t, language } = useLanguage();
 
@@ -995,18 +997,40 @@ export const MedicationList: React.FC = () => {
               </div>
 
               {/* Quick Store Preset Buttons */}
-              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                {['Farmacia Regina (Muestras Médicas)', 'Mercado Libre', 'Farmacias Guadalajara', 'Muestras Médicas', 'Farmacia del Ahorro'].map(st => (
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {customPharmacies.map(st => (
                   <button
                     key={st}
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => setRestockStore(st)}
-                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)' }}
+                    style={{
+                      fontSize: '0.68rem',
+                      padding: '0.15rem 0.45rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: restockStore === st ? '#dbeafe' : undefined,
+                      borderColor: restockStore === st ? '#3b82f6' : undefined,
+                      fontWeight: restockStore === st ? 700 : 500
+                    }}
                   >
                     {st}
                   </button>
                 ))}
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const name = window.prompt(language === 'es' ? 'Nombre de la nueva farmacia o tienda:' : 'Enter new pharmacy name:');
+                    if (name && name.trim()) {
+                      addCustomPharmacy(name.trim());
+                      setRestockStore(name.trim());
+                    }
+                  }}
+                  style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', borderRadius: 'var(--radius-full)', color: '#0284c7', borderColor: '#bae6fd', backgroundColor: '#f0f9ff', fontWeight: 700 }}
+                >
+                  + {language === 'es' ? 'Nueva Farmacia' : 'New Pharmacy'}
+                </button>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>

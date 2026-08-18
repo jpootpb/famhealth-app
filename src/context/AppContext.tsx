@@ -65,6 +65,8 @@ interface AppContextType {
     sampleNotes?: string;
   }) => void;
   reactivateMedication: (id: string, newStock?: number) => void;
+  customPharmacies: string[];
+  addCustomPharmacy: (pharmacyName: string) => void;
 
   // Doses
   doseLogs: DoseLog[];
@@ -137,6 +139,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [allBookingReminders, setAllBookingReminders] = useState<FutureBookingReminder[]>(() => LocalStore.getBookingReminders());
   const [allRoutineLogs, setAllRoutineLogs] = useState<RoutineLog[]>(() => LocalStore.getRoutineLogs());
   const [allStudies, setAllStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
+  const [customPharmacies, setCustomPharmacies] = useState<string[]>(() => LocalStore.getCustomPharmacies());
 
   const isAuthenticated = isUserAuthenticated(currentUser);
 
@@ -157,6 +160,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.saveAppointments(allAppointments); }, [allAppointments]);
   useEffect(() => { LocalStore.saveBookingReminders(allBookingReminders); }, [allBookingReminders]);
   useEffect(() => { LocalStore.saveStudies(allStudies); }, [allStudies]);
+  useEffect(() => { LocalStore.saveCustomPharmacies(customPharmacies); }, [customPharmacies]);
 
   // Family circles visible to current logged-in user
   const familyCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);
@@ -292,7 +296,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAllPatients(prev => prev.map(item => item.id === p.id ? p : item));
   };
 
+  const addCustomPharmacy = (pharmacyName: string) => {
+    const trimmed = pharmacyName.trim();
+    if (!trimmed) return;
+    setCustomPharmacies(prev => {
+      if (prev.some(p => p.toLowerCase() === trimmed.toLowerCase())) return prev;
+      return [trimmed, ...prev];
+    });
+  };
+
   const addMedication = (m: Omit<Medication, 'id'>) => {
+    if (m.preferredStore) {
+      addCustomPharmacy(m.preferredStore);
+    }
     const newMed: Medication = {
       ...m,
       id: 'med-' + Date.now(),
@@ -302,6 +318,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateMedication = (m: Medication) => {
+    if (m.preferredStore) {
+      addCustomPharmacy(m.preferredStore);
+    }
     setAllMedications(prev => prev.map(item => item.id === m.id ? m : item));
   };
 
@@ -371,6 +390,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       sampleNotes?: string;
     }
   ) => {
+    if (params.preferredStore) {
+      addCustomPharmacy(params.preferredStore);
+    }
     setAllMedications(prev => prev.map(item => {
       if (item.id === id) {
         const addedPieces = params.quantityToAdd !== undefined
@@ -686,6 +708,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         consumeBottle,
         restockMedication,
         reactivateMedication,
+        customPharmacies,
+        addCustomPharmacy,
 
         doseLogs,
         toggleDoseTaken,

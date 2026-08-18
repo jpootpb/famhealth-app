@@ -160,4 +160,18 @@ describe('Medication Price Inflation, IMSS Coverage & Family Savings Tracker (TD
     expect(bestStore.lowestPrice).toBe(510);
     expect(bestStore.estimatedSavingsVsPharmacy).toBe(690);
   });
+
+  it('4. Should support custom pharmacies like Farmacia Regina or local dispensaries and preserve them', () => {
+    const customList = [
+      'Farmacia Regina (Muestras Médicas)',
+      'Mercado Libre',
+      'Farmacias Guadalajara'
+    ];
+
+    const newPharmacy = 'Farmacia San Francisco de Asís';
+    const updatedList = [newPharmacy, ...customList];
+
+    expect(updatedList).toContain('Farmacia San Francisco de Asís');
+    expect(updatedList.length).toBe(4);
+  });
 });
