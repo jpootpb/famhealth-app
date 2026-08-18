@@ -23,18 +23,28 @@ export default function App() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'timeline' | 'medications' | 'vitals' | 'studies' | 'expenses' | 'appointments'>('timeline');
 
-  // If user is not logged in, enforce Auth Gate (No data or spaces leaked)
+  // If user is not logged in, enforce Auth Gate
   if (!isAuthenticated) {
     return <AuthScreen />;
   }
+
+  const navTabs = [
+    { id: 'timeline', label: t('tabTimeline'), icon: Calendar },
+    { id: 'medications', label: t('tabMedications'), icon: Pill },
+    { id: 'vitals', label: t('tabVitals'), icon: Activity },
+    { id: 'studies', label: t('tabStudies'), icon: FileText },
+    { id: 'appointments', label: t('tabAppointments'), icon: CalendarDays },
+    { id: 'expenses', label: t('tabExpenses'), icon: DollarSign }
+  ] as const;
 
   return (
     <div className="app-container">
       <Header onPrintReport={() => window.print()} />
 
       <main className="main-content">
-        {/* Navigation Tabs with Dynamic i18n Translations */}
+        {/* Desktop Navigation Tabs */}
         <nav
+          className="desktop-tabs-nav"
           style={{
             display: 'flex',
             gap: '0.5rem',
@@ -44,53 +54,26 @@ export default function App() {
             borderBottom: '1px solid var(--border-color)'
           }}
         >
-          <button
-            onClick={() => setActiveTab('timeline')}
-            className={`btn btn-sm ${activeTab === 'timeline' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
-          >
-            <Calendar size={16} /> {t('tabTimeline')}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('medications')}
-            className={`btn btn-sm ${activeTab === 'medications' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
-          >
-            <Pill size={16} /> {t('tabMedications')}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('vitals')}
-            className={`btn btn-sm ${activeTab === 'vitals' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
-          >
-            <Activity size={16} /> {t('tabVitals')}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('studies')}
-            className={`btn btn-sm ${activeTab === 'studies' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
-          >
-            <FileText size={16} /> {t('tabStudies')}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('appointments')}
-            className={`btn btn-sm ${activeTab === 'appointments' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
-          >
-            <CalendarDays size={16} /> {t('tabAppointments')}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('expenses')}
-            className={`btn btn-sm ${activeTab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: 'var(--radius-full)' }}
-          >
-            <DollarSign size={16} /> {t('tabExpenses')}
-          </button>
+          {navTabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  borderRadius: 'var(--radius-full)',
+                  fontWeight: isActive ? 800 : 600
+                }}
+              >
+                <Icon size={16} /> {tab.label}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Tab Views */}
@@ -118,6 +101,25 @@ export default function App() {
           <ExpensesView />
         )}
       </main>
+
+      {/* Mobile Bottom Navigation Bar for Ergonomic One-Handed Use */}
+      <nav className="bottom-nav-mobile" aria-label="Navegación móvil">
+        {navTabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`nav-tab-item ${isActive ? 'active' : ''}`}
+              aria-label={tab.label}
+            >
+              <Icon size={20} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
