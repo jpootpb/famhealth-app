@@ -55,7 +55,7 @@ export function generateUnifiedCaregiverTimeline({
   const slots: CaregiverTimelineSlot[] = [];
 
   targetPatients.forEach(patient => {
-    const patientMeds = medications.filter(m => m.patientId === patient.id);
+    const patientMeds = medications.filter(m => m.patientId === patient.id && m.status !== 'completed' && m.status !== 'suspended');
 
     patientMeds.forEach(med => {
       const dailySlots = getDailyDoseSlots(med, date);

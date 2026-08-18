@@ -127,6 +127,10 @@ export interface Medication {
   };
   badgeColor?: string;
   expirationDate?: string; // YYYY-MM-DD
+  status?: 'active' | 'completed' | 'suspended';
+  completedAt?: string; // ISO date string when medicine was finished / stopped
+  completionReason?: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other';
+  completionNotes?: string;
 }
 
 export interface DoseLog {

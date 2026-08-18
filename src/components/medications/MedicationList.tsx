@@ -16,7 +16,12 @@ import {
   Gift,
   Award,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Flag,
+  RotateCcw,
+  Check,
+  Archive,
+  Info
 } from 'lucide-react';
 import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/formatters';
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
@@ -30,12 +35,32 @@ import {
 } from '../../utils/medicationSolidarityEngine';
 
 export const MedicationList: React.FC = () => {
-  const { activePatient, patients, medications, updateMedication, deleteMedication, addMedication } = useApp();
+  const {
+    activePatient,
+    patients,
+    medications,
+    updateMedication,
+    deleteMedication,
+    addMedication,
+    completeMedication,
+    reactivateMedication
+  } = useApp();
   const { t, language } = useLanguage();
+
+  const [statusTab, setStatusTab] = useState<'active' | 'completed'>('active');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState<Medication | null>(null);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
+
+  // Manual Completion Modal State
+  const [completeModalMed, setCompleteModalMed] = useState<Medication | null>(null);
+  const [completionReason, setCompletionReason] = useState<'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other'>('bottle_finished');
+  const [completionNotes, setCompletionNotes] = useState('');
+
+  // Reactivate / Restock Modal State
+  const [reactivateModalMed, setReactivateModalMed] = useState<Medication | null>(null);
+  const [reactivateStock, setReactivateStock] = useState<number>(30);
 
   if (!activePatient) {
     return (
@@ -46,13 +71,15 @@ export const MedicationList: React.FC = () => {
   }
 
   const patientMeds = medications.filter(m => m.patientId === activePatient.id);
+  const activeMeds = patientMeds.filter(m => m.status !== 'completed' && m.status !== 'suspended');
+  const completedMeds = patientMeds.filter(m => m.status === 'completed' || m.status === 'suspended');
 
-  const lowStockCount = patientMeds.filter(
+  const lowStockCount = activeMeds.filter(
     m => m.currentStock > 0 && m.currentStock <= m.minimumStockAlert
   ).length;
 
-  const depletedCount = patientMeds.filter(m => m.currentStock <= 0).length;
-  const safeCount = patientMeds.filter(m => m.currentStock > m.minimumStockAlert).length;
+  const depletedCount = activeMeds.filter(m => m.currentStock <= 0).length;
+  const safeCount = activeMeds.filter(m => m.currentStock > m.minimumStockAlert).length;
 
   const handleOpenAdd = () => {
     setMedicationToEdit(null);
@@ -60,7 +87,6 @@ export const MedicationList: React.FC = () => {
   };
 
   const handleAiExtractedMed = (med: ExtractedPrescriptionMed) => {
-    // Open medication modal with prefilled data
     setMedicationToEdit({
       id: '',
       patientId: activePatient.id,
@@ -98,30 +124,25 @@ export const MedicationList: React.FC = () => {
     updateMedication(updatedMed);
     setTransferToast(
       language === 'es'
-        ? `🎉 ¡Frasco/Caja Gratis reclamada! Se agregó +1 a ${med.name} sin costo.`
-        : `🎉 Free reward claimed! Added +1 to ${med.name} at $0 cost.`
+        ? `🎁 ¡Recompensa Canjeada! Has obtenido ${med.loyaltyPromo?.rewardDescription} gratis en ${med.loyaltyPromo?.storeName}.`
+        : `🎁 Free Reward Claimed! Earned ${med.loyaltyPromo?.rewardDescription} at ${med.loyaltyPromo?.storeName}.`
     );
     setTimeout(() => setTransferToast(null), 5000);
   };
 
   const handleOpenTransferModal = (med: Medication) => {
-    const otherPatients = patients.filter(p => p.id !== activePatient.id);
     setTransferModalMed(med);
-    setDonationType(otherPatients.length > 0 ? 'family_member' : 'known_contact');
-    setTargetPatientId(otherPatients[0]?.id || '');
+    setTransferQty(Math.min(med.currentStock, 10));
+    setTransferSavings(med.unitCost ? Math.round(med.unitCost * Math.min(med.currentStock, 10)) : 0);
+    setTransferNote('');
     setCustomRecipientName('');
-    setTransferQty(med.currentStock);
-    setTransferSavings(med.unitCost || 450);
-    setTransferNote(
-      language === 'es'
-        ? `Medicamento que ${activePatient.name} ya no utiliza y se dona solidariamente.`
-        : `Unused medication donated.`
-    );
+    const otherPatients = patients.filter(p => p.id !== activePatient.id);
+    setTargetPatientId(otherPatients.length > 0 ? otherPatients[0].id : '');
   };
 
   const handleConfirmTransfer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!transferModalMed || transferQty <= 0) return;
+    if (!transferModalMed) return;
 
     const targetPatient = patients.find(p => p.id === targetPatientId);
 
@@ -168,6 +189,50 @@ export const MedicationList: React.FC = () => {
       deleteMedication(med.id);
     }
   };
+
+  const handleConfirmCompletion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!completeModalMed) return;
+
+    completeMedication(completeModalMed.id, completionReason, completionNotes);
+    setTransferToast(
+      language === 'es'
+        ? `🏁 "${completeModalMed.name}" marcado como terminado. Se archivó en el historial médico y dejó de generar alertas en la agenda diaria.`
+        : `🏁 "${completeModalMed.name}" marked as completed. Archived in medical history.`
+    );
+    setTimeout(() => setTransferToast(null), 5000);
+    setCompleteModalMed(null);
+    setCompletionNotes('');
+  };
+
+  const handleConfirmReactivate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reactivateModalMed) return;
+
+    reactivateMedication(reactivateModalMed.id, Number(reactivateStock));
+    setTransferToast(
+      language === 'es'
+        ? `🔄 "${reactivateModalMed.name}" reactivado en el tratamiento activo con ${reactivateStock} ${reactivateModalMed.presentation}s.`
+        : `🔄 "${reactivateModalMed.name}" reactivated with ${reactivateStock} units.`
+    );
+    setTimeout(() => setTransferToast(null), 5000);
+    setReactivateModalMed(null);
+  };
+
+  const getReasonLabel = (reason?: string) => {
+    switch (reason) {
+      case 'bottle_finished':
+        return language === 'es' ? '🧴 Se terminó el frasco / medicamento físico' : '🧴 Finished bottle';
+      case 'doctor_stopped':
+        return language === 'es' ? '👨‍⚕️ Indicación médica de suspenderlo' : '👨‍⚕️ Doctor discontinued';
+      case 'treatment_completed':
+        return language === 'es' ? '✅ Tratamiento concluido con éxito' : '✅ Treatment completed';
+      default:
+        return language === 'es' ? '🏁 Concluido manualmente' : '🏁 Manually completed';
+    }
+  };
+
+  const currentDisplayList = statusTab === 'active' ? activeMeds : completedMeds;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -232,86 +297,116 @@ export const MedicationList: React.FC = () => {
         </div>
       </div>
 
-      {/* Stock Traffic Light Summary Badges */}
-      <div className="grid-3">
-        <div
-          className="card"
-          style={{
-            padding: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            borderLeft: '4px solid var(--success)'
-          }}
+      {/* Status Filter Tabs (Activos vs Terminados / Historial) */}
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        <button
+          onClick={() => setStatusTab('active')}
+          className={`btn btn-sm ${statusTab === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ borderRadius: 'var(--radius-full)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
         >
-          <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--success-light)' }}>
-            <CheckCircle2 size={24} color="var(--success)" />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{safeCount}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('adequateStock')}</div>
-          </div>
-        </div>
+          <Pill size={15} />
+          <span>{language === 'es' ? `💊 En Tratamiento Activo (${activeMeds.length})` : `💊 Active Medications (${activeMeds.length})`}</span>
+        </button>
 
-        <div
-          className="card"
-          style={{
-            padding: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            borderLeft: '4px solid var(--warning)'
-          }}
+        <button
+          onClick={() => setStatusTab('completed')}
+          className={`btn btn-sm ${statusTab === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ borderRadius: 'var(--radius-full)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
         >
-          <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--warning-light)' }}>
-            <AlertTriangle size={24} color="var(--warning)" />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{lowStockCount}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('lowStockAlert')}</div>
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            padding: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            borderLeft: '4px solid var(--danger)'
-          }}
-        >
-          <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--danger-light)' }}>
-            <Pill size={24} color="var(--danger)" />
-          </div>
-          <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{depletedCount}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('depletedStock')}</div>
-          </div>
-        </div>
+          <Archive size={15} />
+          <span>{language === 'es' ? `🏁 Terminados / Concluidos (${completedMeds.length})` : `🏁 Completed / Finished (${completedMeds.length})`}</span>
+        </button>
       </div>
 
+      {/* Stock Traffic Light Summary Badges (Only shown in Active tab) */}
+      {statusTab === 'active' && (
+        <div className="grid-3">
+          <div
+            className="card"
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderLeft: '4px solid var(--success)'
+            }}
+          >
+            <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--success-light)' }}>
+              <CheckCircle2 size={24} color="var(--success)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{safeCount}</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('adequateStock')}</div>
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderLeft: '4px solid var(--warning)'
+            }}
+          >
+            <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--warning-light)' }}>
+              <AlertTriangle size={24} color="var(--warning)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{lowStockCount}</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('lowStockAlert')}</div>
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              padding: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              borderLeft: '4px solid var(--danger)'
+            }}
+          >
+            <div style={{ padding: '0.5rem', borderRadius: '50%', backgroundColor: 'var(--danger-light)' }}>
+              <Pill size={24} color="var(--danger)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{depletedCount}</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('depletedStock')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Medication Cards Grid */}
-      {patientMeds.length === 0 ? (
+      {currentDisplayList.length === 0 ? (
         <div className="card text-center" style={{ padding: '3.5rem 1.5rem' }}>
           <Pill size={48} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 1rem' }} />
           <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            {t('noMedsRegistered')}
+            {statusTab === 'active'
+              ? (language === 'es' ? 'No hay medicamentos activos en este momento' : 'No active medications registered')
+              : (language === 'es' ? 'No hay medicamentos en el historial de terminados' : 'No completed medications in history')}
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            {t('noMedsRegisteredDesc')}
+            {statusTab === 'active'
+              ? (language === 'es' ? 'Agrega medicamentos para coordinar sus tomas y horarios.' : 'Add medications to manage daily schedules.')
+              : (language === 'es' ? 'Cuando un frasco se termine o el doctor suspenda un tratamiento, puedes marcarlo como terminado para que se archive aquí sin perder su historial.' : 'When a medicine is finished or discontinued, mark it complete to archive it here.')}
           </p>
-          <button className="btn btn-primary" onClick={handleOpenAdd} style={{ margin: '0 auto' }}>
-            <Plus size={18} /> {t('addFirstMed')}
-          </button>
+          {statusTab === 'active' && (
+            <button className="btn btn-primary" onClick={handleOpenAdd} style={{ margin: '0 auto' }}>
+              <Plus size={18} /> {t('addFirstMed')}
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid-2">
-          {patientMeds.map(med => {
+          {currentDisplayList.map(med => {
             const stockStatus = getStockStatus(med.currentStock, med.minimumStockAlert);
             const expStatus = getExpirationStatus(med.expirationDate);
             const freqLabel = getFrequencyLabel(med.frequency);
+            const isCompleted = med.status === 'completed' || med.status === 'suspended';
 
             return (
               <div
@@ -322,8 +417,11 @@ export const MedicationList: React.FC = () => {
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   padding: '1.25rem',
+                  backgroundColor: isCompleted ? '#f8fafc' : '#ffffff',
                   borderTop: `4px solid ${
-                    stockStatus.status === 'ok'
+                    isCompleted
+                      ? '#94a3b8'
+                      : stockStatus.status === 'ok'
                       ? 'var(--success)'
                       : stockStatus.status === 'low'
                       ? 'var(--warning)'
@@ -346,7 +444,8 @@ export const MedicationList: React.FC = () => {
                             objectFit: 'cover',
                             cursor: 'pointer',
                             border: '1px solid var(--border-color)',
-                            boxShadow: 'var(--shadow-sm)'
+                            boxShadow: 'var(--shadow-sm)',
+                            opacity: isCompleted ? 0.75 : 1
                           }}
                           title={t('clickToZoomBox')}
                         />
@@ -368,7 +467,7 @@ export const MedicationList: React.FC = () => {
                       )}
 
                       <div>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, textDecoration: isCompleted ? 'line-through' : 'none' }}>
                           {med.name}
                         </h3>
                         {med.laboratory && (
@@ -385,16 +484,49 @@ export const MedicationList: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                      <span className={`badge ${stockStatus.badgeClass}`}>
-                        {stockStatus.label}: {med.currentStock} {med.presentation}s
-                      </span>
-                      {med.expirationDate && (
-                        <span className={`badge ${expStatus.badgeClass}`} style={{ fontSize: '0.7rem' }}>
-                          📅 {expStatus.label}
+                      {isCompleted ? (
+                        <span className="badge badge-purple" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                          🏁 {language === 'es' ? 'Tratamiento Concluido' : 'Completed'}
                         </span>
+                      ) : (
+                        <>
+                          <span className={`badge ${stockStatus.badgeClass}`}>
+                            {stockStatus.label}: {med.currentStock} {med.presentation}s
+                          </span>
+                          {med.expirationDate && (
+                            <span className={`badge ${expStatus.badgeClass}`} style={{ fontSize: '0.7rem' }}>
+                              📅 {expStatus.label}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
+
+                  {/* Completion Info Banner (If completed) */}
+                  {isCompleted && (
+                    <div
+                      style={{
+                        backgroundColor: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.625rem 0.875rem',
+                        marginBottom: '0.75rem',
+                        fontSize: '0.75rem',
+                        color: '#334155'
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span>{getReasonLabel(med.completionReason)}</span>
+                        {med.completedAt && <span>• {med.completedAt}</span>}
+                      </div>
+                      {med.completionNotes && (
+                        <div style={{ marginTop: '0.2rem', color: '#64748b', fontStyle: 'italic' }}>
+                          "{med.completionNotes}"
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Frequency & Hours */}
                   <div
@@ -425,145 +557,57 @@ export const MedicationList: React.FC = () => {
                   </div>
 
                   {/* IMSS or Recommended Store & Savings Badge */}
-                  {med.isImssCovered ? (
-                    <div
-                      style={{
-                        backgroundColor: '#ecfdf5',
-                        border: '1px solid #10b981',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '0.5rem 0.75rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '0.75rem',
-                        color: '#065f46'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span>🏥 <strong>Surtido Gratis por IMSS / Sector Salud</strong></span>
-                      </div>
-                      <span className="badge badge-success" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
-                        $0 MXN
-                      </span>
-                    </div>
-                  ) : (
-                    (med.preferredStore || med.purchaseNotes || med.unitCost) && (
+                  {!isCompleted && (
+                    med.isImssCovered ? (
                       <div
                         style={{
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid var(--border-color)',
+                          backgroundColor: '#ecfdf5',
+                          border: '1px solid #10b981',
                           borderRadius: 'var(--radius-md)',
                           padding: '0.5rem 0.75rem',
-                          fontSize: '0.75rem'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          fontSize: '0.75rem',
+                          color: '#065f46'
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
-                          {med.preferredStore && (
-                            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
-                              🏬 {med.preferredStore}
-                            </span>
-                          )}
-                          {med.unitCost !== undefined && (
-                            <span style={{ color: 'var(--primary)', fontWeight: 800 }}>
-                              ${med.unitCost} MXN / caja
-                            </span>
-                          )}
-                        </div>
-                        {med.purchaseNotes && (
-                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', color: '#047857' }}>
-                            💡 {med.purchaseNotes}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  )}
-
-                  {/* Pharmacy Loyalty Program Stamp Card (ej: Farmacia Value 3+1) */}
-                  {med.loyaltyPromo && med.loyaltyPromo.enabled && (
-                    <div
-                      style={{
-                        backgroundColor: med.loyaltyPromo.isRewardReady ? '#ecfdf5' : '#eff6ff',
-                        border: med.loyaltyPromo.isRewardReady ? '1.5px solid #10b981' : '1px solid #bfdbfe',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '0.625rem 0.75rem',
-                        marginTop: '0.5rem'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <Award size={16} color={med.loyaltyPromo.isRewardReady ? '#059669' : '#2563eb'} />
-                          <strong style={{ fontSize: '0.78rem', color: med.loyaltyPromo.isRewardReady ? '#065f46' : '#1e40af' }}>
-                            🎁 {med.loyaltyPromo.storeName}: {med.loyaltyPromo.rewardDescription}
-                          </strong>
+                          <span>🏥 <strong>Surtido Gratis por IMSS / Sector Salud</strong></span>
                         </div>
-
-                        {med.loyaltyPromo.isRewardReady ? (
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            style={{ backgroundColor: '#059669', borderColor: '#059669', fontSize: '0.72rem', padding: '0.25rem 0.5rem' }}
-                            onClick={() => handleClaimFreeReward(med)}
-                          >
-                            🎉 {language === 'es' ? '¡Reclamar Caja Gratis!' : 'Claim Free Box!'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.45rem' }}
-                            onClick={() => handleAddLoyaltyStamp(med)}
-                          >
-                            +1 {language === 'es' ? 'Sellar Compra' : 'Add Stamp'}
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Visual Stamp Progress Bubbles */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem' }}>
-                        {Array.from({ length: med.loyaltyPromo.requiredPurchases }).map((_, idx) => {
-                          const isFilled = idx < (med.loyaltyPromo?.currentPurchased || 0);
-                          return (
-                            <div
-                              key={idx}
-                              style={{
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '50%',
-                                backgroundColor: isFilled ? '#2563eb' : '#e2e8f0',
-                                color: isFilled ? '#ffffff' : '#94a3b8',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.68rem',
-                                fontWeight: 800
-                              }}
-                            >
-                              {isFilled ? '✓' : idx + 1}
-                            </div>
-                          );
-                        })}
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '0.25rem' }}>
-                          ({med.loyaltyPromo.currentPurchased} {language === 'es' ? 'de' : 'of'} {med.loyaltyPromo.requiredPurchases} {language === 'es' ? 'sellos acumulados' : 'stamps'})
+                        <span className="badge badge-success" style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+                          $0 MXN
                         </span>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Inter-Family Solidarity Donation Badge */}
-                  {med.donationSource && (
-                    <div
-                      style={{
-                        backgroundColor: '#fdf4ff',
-                        border: '1px solid #f0abfc',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '0.5rem 0.75rem',
-                        marginTop: '0.5rem',
-                        fontSize: '0.75rem',
-                        color: '#86198f'
-                      }}
-                    >
-                      🤝 <strong>{language === 'es' ? 'Donación Solidaria Familiar:' : 'Family Donation:'}</strong> {language === 'es' ? 'Recibido de' : 'Received from'} <strong>{med.donationSource.fromPatientName}</strong> ({med.donationSource.date})
-                    </div>
+                    ) : (
+                      (med.preferredStore || med.purchaseNotes || med.unitCost) && (
+                        <div
+                          style={{
+                            backgroundColor: '#eff6ff',
+                            border: '1px solid #93c5fd',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.75rem',
+                            color: '#1e3a8a',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.2rem'
+                          }}
+                        >
+                          {med.preferredStore && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>🏪 {language === 'es' ? 'Farmacia recomendada:' : 'Preferred Store:'} <strong>{med.preferredStore}</strong></span>
+                              {med.unitCost && <span>~${med.unitCost} MXN</span>}
+                            </div>
+                          )}
+                          {med.purchaseNotes && (
+                            <div style={{ color: '#1d4ed8', fontSize: '0.72rem' }}>
+                              💡 {med.purchaseNotes}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )
                   )}
                 </div>
 
@@ -571,8 +615,8 @@ export const MedicationList: React.FC = () => {
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
                     justifyContent: 'space-between',
+                    alignItems: 'center',
                     marginTop: '1rem',
                     paddingTop: '0.75rem',
                     borderTop: '1px solid var(--border-color)',
@@ -580,52 +624,69 @@ export const MedicationList: React.FC = () => {
                     gap: '0.5rem'
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleQuickRestock(med, 30)}
-                      title={t('quickAdd30')}
-                      style={{ fontSize: '0.75rem' }}
-                    >
-                      <PackagePlus size={14} /> {t('quickAdd30')}
-                    </button>
-
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleQuickRestock(med, 15)}
-                      title={t('quickAdd15')}
-                      style={{ fontSize: '0.75rem' }}
-                    >
-                      <PackagePlus size={14} /> {t('quickAdd15')}
-                    </button>
-
-                    {med.currentStock > 0 && patients.length > 1 && (
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    {isCompleted ? (
                       <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleOpenTransferModal(med)}
-                        title={language === 'es' ? 'Traspasar o donar stock a otro familiar' : 'Donate to family member'}
-                        style={{ fontSize: '0.75rem', color: '#7c3aed' }}
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                          setReactivateModalMed(med);
+                          setReactivateStock(30);
+                        }}
+                        style={{ fontSize: '0.75rem', backgroundColor: '#16a34a', borderColor: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                       >
-                        <Gift size={14} /> {language === 'es' ? 'Donar a Familiar' : 'Donate'}
+                        <RotateCcw size={14} />
+                        <span>{language === 'es' ? '🔄 Reactivar / Resurtir' : '🔄 Reactivate / Restock'}</span>
                       </button>
+                    ) : (
+                      <>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleQuickRestock(med, 30)}
+                          style={{ fontSize: '0.75rem' }}
+                          title={language === 'es' ? 'Resurtir +30 pastillas o dosis' : 'Restock +30 units'}
+                        >
+                          <PackagePlus size={14} /> +30
+                        </button>
+
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setCompleteModalMed(med)}
+                          style={{ fontSize: '0.75rem', color: '#ea580c', borderColor: '#fed7aa', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          title={language === 'es' ? 'Marcar cuando se termine el frasco o concluya el tratamiento' : 'Mark completed / bottle finished'}
+                        >
+                          <Flag size={14} />
+                          <span>{language === 'es' ? '🏁 Terminado / Agotado' : '🏁 Finished'}</span>
+                        </button>
+
+                        {med.currentStock > 0 && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleOpenTransferModal(med)}
+                            style={{ fontSize: '0.75rem', color: '#7c3aed', borderColor: '#ddd6fe', backgroundColor: '#f5f3ff' }}
+                            title={language === 'es' ? 'Traspasar o donar sobrante a familiar' : 'Donate or transfer leftover stock'}
+                          >
+                            <Gift size={14} /> {language === 'es' ? 'Traspasar' : 'Transfer'}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.375rem' }}>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleOpenEdit(med)}
-                      aria-label="Edit medication"
+                      aria-label={language === 'es' ? 'Editar medicamento' : 'Edit medication'}
                     >
                       <Edit2 size={14} />
                     </button>
-
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleDelete(med)}
-                      aria-label="Delete medication"
+                      style={{ color: 'var(--danger)' }}
+                      aria-label={language === 'es' ? 'Eliminar medicamento' : 'Delete medication'}
                     >
-                      <Trash2 size={14} color="var(--danger)" />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -635,11 +696,18 @@ export const MedicationList: React.FC = () => {
         </div>
       )}
 
-      {/* Medication Edit/Create Modal */}
+      {/* Medication Add/Edit Modal */}
       <MedicationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         medicationToEdit={medicationToEdit}
+      />
+
+      {/* AI Scanner Modal */}
+      <AIPrescriptionScannerModal
+        isOpen={isAiScannerOpen}
+        onClose={() => setIsAiScannerOpen(false)}
+        onSelectMedication={handleAiExtractedMed}
       />
 
       {/* Box Photo Zoom Modal */}
@@ -665,22 +733,191 @@ export const MedicationList: React.FC = () => {
         </div>
       )}
 
-      {/* AI Prescription Scanner Modal */}
-      <AIPrescriptionScannerModal
-        isOpen={isAiScannerOpen}
-        onClose={() => setIsAiScannerOpen(false)}
-        onSelectMedication={handleAiExtractedMed}
-      />
+      {/* Manual Completion Modal */}
+      {completeModalMed && (
+        <div className="modal-backdrop" onClick={() => setCompleteModalMed(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '520px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Flag size={22} color="#ea580c" />
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                  {language === 'es' ? 'Marcar Medicamento como Concluido' : 'Mark Medication as Completed'}
+                </h2>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setCompleteModalMed(null)}>
+                <X size={18} />
+              </button>
+            </div>
 
-      {/* Inter-Family Solidarity Transfer Modal */}
+            <form onSubmit={handleConfirmCompletion} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div
+                style={{
+                  backgroundColor: '#fff7ed',
+                  border: '1px solid #fed7aa',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.875rem',
+                  fontSize: '0.85rem',
+                  color: '#9a3412'
+                }}
+              >
+                <strong>💊 {completeModalMed.name}</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.78rem' }}>
+                  {language === 'es'
+                    ? 'Al marcarlo como terminado, se archivará en el historial médico sin borrar sus tomas pasadas y dejará de generar avisos en la agenda diaria.'
+                    : 'It will be archived in medical history and stopped on daily timeline.'}
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {language === 'es' ? 'Selecciona el motivo de conclusión:' : 'Select completion reason:'}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {[
+                    { value: 'bottle_finished', label: language === 'es' ? '🧴 Se terminó el frasco / medicamento físico' : '🧴 Finished physical bottle/box' },
+                    { value: 'doctor_stopped', label: language === 'es' ? '👨‍⚕️ Indicación médica de suspenderlo' : '👨‍⚕️ Discontinued by doctor' },
+                    { value: 'treatment_completed', label: language === 'es' ? '✅ Tratamiento concluido con éxito' : '✅ Completed treatment course' },
+                    { value: 'other', label: language === 'es' ? '📋 Otro motivo' : '📋 Other reason' }
+                  ].map(opt => (
+                    <label
+                      key={opt.value}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.625rem 0.875rem',
+                        backgroundColor: completionReason === opt.value ? '#ffedd5' : 'var(--bg-secondary)',
+                        border: `1px solid ${completionReason === opt.value ? '#ea580c' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: completionReason === opt.value ? 700 : 500
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="completionReason"
+                        value={opt.value}
+                        checked={completionReason === opt.value}
+                        onChange={() => setCompletionReason(opt.value as any)}
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  {language === 'es' ? 'Notas adicionales (Opcional):' : 'Additional notes (Optional):'}
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={language === 'es' ? 'e.g. Se terminó el frasco de jarabe a la mitad de la semana' : 'e.g. Finished bottle'}
+                  value={completionNotes}
+                  onChange={e => setCompletionNotes(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setCompleteModalMed(null)}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1, fontWeight: 800, backgroundColor: '#ea580c', borderColor: '#ea580c' }}
+                >
+                  🏁 {language === 'es' ? 'Archivar y Concluir' : 'Archive & Finish'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reactivate / Restock Modal */}
+      {reactivateModalMed && (
+        <div className="modal-backdrop" onClick={() => setReactivateModalMed(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '480px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <RotateCcw size={22} color="#16a34a" />
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                  {language === 'es' ? 'Reactivar Tratamiento / Nuevo Frasco' : 'Reactivate Medication'}
+                </h2>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setReactivateModalMed(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmReactivate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                {language === 'es'
+                  ? `¿Deseas reactivar "${reactivateModalMed.name}" en la agenda diaria del paciente? Ingresa la cantidad del nuevo frasco o caja comprada:`
+                  : `Reactivate "${reactivateModalMed.name}"? Enter newly purchased stock:`}
+              </p>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  📦 {language === 'es' ? `Nuevo Stock (${reactivateModalMed.presentation}s):` : 'New Stock:'}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  className="form-input"
+                  value={reactivateStock}
+                  onChange={e => setReactivateStock(Number(e.target.value))}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setReactivateModalMed(null)}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1, fontWeight: 800, backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+                >
+                  🔄 {language === 'es' ? 'Reactivar en Agenda' : 'Reactivate'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Solidarity Stock Donation / Transfer Modal */}
       {transferModalMed && (
         <div className="modal-backdrop" onClick={() => setTransferModalMed(null)}>
-          <div className="modal-content" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content" style={{ maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Gift size={22} color="#7c3aed" />
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                  {language === 'es' ? 'Donación / Traspaso Solidario a Familiar' : 'Family Medication Donation'}
+                  {language === 'es' ? 'Traspaso Solidario / Donación de Sobrante' : 'Solidarity Stock Transfer'}
                 </h2>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setTransferModalMed(null)}>
@@ -688,76 +925,64 @@ export const MedicationList: React.FC = () => {
               </button>
             </div>
 
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              {language === 'es'
-                ? `Dona medicamento que ${activePatient.name} ya no utiliza (sobrante del IMSS o tratamiento concluido) a un familiar, amigo, vecino o dispensario a costo $0 MXN.`
-                : `Donate unused medication to a family member, friend, neighbor or community dispensary at $0 cost.`}
-            </p>
-
             <form onSubmit={handleConfirmTransfer}>
               <div
                 style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  padding: '0.75rem 1rem',
+                  backgroundColor: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
                   borderRadius: 'var(--radius-md)',
-                  marginBottom: '1rem',
-                  fontSize: '0.8125rem'
+                  padding: '0.875rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.875rem'
                 }}
               >
-                <div><strong>💊 Medicamento:</strong> {transferModalMed.name}</div>
-                <div><strong>📦 Stock Disponible en Botiquín:</strong> {transferModalMed.currentStock} {transferModalMed.presentation}s</div>
-                {transferModalMed.isImssCovered && (
-                  <div style={{ color: '#065f46', marginTop: '0.25rem' }}>
-                    🏥 <em>Suministro original del IMSS ($0 MXN)</em>
-                  </div>
-                )}
+                <strong style={{ color: '#5b21b6' }}>
+                  💊 {transferModalMed.name} ({transferModalMed.currentStock} {transferModalMed.presentation}s disponibles)
+                </strong>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#6d28d9', fontSize: '0.78rem' }}>
+                  {language === 'es'
+                    ? 'Transfiere medicamentos que el paciente ya no utiliza a otro familiar o dónalos a personas que los necesiten.'
+                    : 'Transfer unused medication stock to family members or donate to those in need.'}
+                </p>
               </div>
 
-              {/* Destination Selector: Family / Known / Dispensary */}
+              {/* Recipient Type Selector */}
               <div className="form-group">
-                <label className="form-label">
-                  🎁 {language === 'es' ? '¿A quién deseas donar este medicamento?' : 'Who are you donating to?'}
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {language === 'es' ? '¿A quién deseas donar o transferir?' : 'Who is the recipient?'}
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
                   <button
                     type="button"
                     className={`btn btn-sm ${donationType === 'family_member' ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => setDonationType('family_member')}
-                    style={{ fontSize: '0.75rem', justifyContent: 'center' }}
+                    style={{ fontSize: '0.78rem' }}
                   >
-                    👨‍👩‍👧 {language === 'es' ? 'Familiar en App' : 'Family Member'}
+                    👥 {language === 'es' ? 'Familiar del Hogar' : 'Household Member'}
                   </button>
-
                   <button
                     type="button"
                     className={`btn btn-sm ${donationType === 'known_contact' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => {
-                      setDonationType('known_contact');
-                      if (!customRecipientName) setCustomRecipientName('Don Paco (Vecino)');
-                    }}
-                    style={{ fontSize: '0.75rem', justifyContent: 'center' }}
+                    onClick={() => setDonationType('known_contact')}
+                    style={{ fontSize: '0.78rem' }}
                   >
-                    👤 {language === 'es' ? 'Amigo / Vecino' : 'Friend / Neighbor'}
+                    🤝 {language === 'es' ? 'Familiar Externo / Amigo' : 'Relative / Friend'}
                   </button>
-
                   <button
                     type="button"
                     className={`btn btn-sm ${donationType === 'dispensary_or_stranger' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => {
-                      setDonationType('dispensary_or_stranger');
-                      if (!customRecipientName) setCustomRecipientName('Dispensario Comunitario / Persona en Necesidad');
-                    }}
-                    style={{ fontSize: '0.75rem', justifyContent: 'center' }}
+                    onClick={() => setDonationType('dispensary_or_stranger')}
+                    style={{ fontSize: '0.78rem' }}
                   >
-                    🏥 {language === 'es' ? 'Dispensario / Ayuda' : 'Dispensary / Charity'}
+                    🏥 {language === 'es' ? 'Dispensario / Causa Social' : 'Dispensary / Charity'}
                   </button>
                 </div>
 
-                {/* Family Member dropdown */}
+                {/* Target Family Patient Dropdown */}
                 {donationType === 'family_member' && (
                   <div>
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                      {language === 'es' ? 'Selecciona al Familiar Receptor:' : 'Select Family Member:'}
+                      {language === 'es' ? 'Selecciona el familiar receptor:' : 'Select family recipient:'}
                     </label>
                     <select
                       className="form-select"
@@ -765,33 +990,29 @@ export const MedicationList: React.FC = () => {
                       onChange={e => setTargetPatientId(e.target.value)}
                       required
                     >
-                      {patients
-                        .filter(p => p.id !== activePatient.id)
-                        .map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.primaryDiagnosis || 'Familiar'})
-                          </option>
-                        ))}
+                      {patients.filter(p => p.id !== activePatient.id).map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
                     </select>
                   </div>
                 )}
 
-                {/* Known contact text input */}
+                {/* Known Contact Custom Name */}
                 {donationType === 'known_contact' && (
                   <div>
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                      {language === 'es' ? 'Nombre del Amigo, Vecino o Conocido:' : 'Name of Friend / Neighbor:'}
+                      {language === 'es' ? 'Nombre del receptor:' : 'Recipient Name:'}
                     </label>
                     <input
                       type="text"
                       className="form-input"
                       value={customRecipientName}
                       onChange={e => setCustomRecipientName(e.target.value)}
-                      placeholder="e.g. Don Paco (Vecino), Amiga de mamá, Compañero de trabajo"
+                      placeholder="e.g. Doña Lupita (Tía), Roberto Gómez (Suegro)"
                       required
                     />
                     <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
-                      {['Don Paco (Vecino)', 'Amiga de Doña María', 'Compañero de Trabajo', 'Tía / Pariente Fuera de App'].map(preset => (
+                      {['Suegra / Suegro', 'Tía / Tío', 'Vecino(a) Conocido', 'Compañero de Trabajo'].map(preset => (
                         <button
                           key={preset}
                           type="button"

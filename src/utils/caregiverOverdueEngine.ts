@@ -40,7 +40,7 @@ export function findOverdueUncheckedDoses({
   const overdueList: OverdueDoseItem[] = [];
 
   patients.forEach(patient => {
-    const patientMeds = medications.filter(m => m.patientId === patient.id);
+    const patientMeds = medications.filter(m => m.patientId === patient.id && m.status !== 'completed' && m.status !== 'suspended');
 
     patientMeds.forEach(med => {
       const slots = getDailyDoseSlots(med, currentDateTime);

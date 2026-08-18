@@ -52,6 +52,8 @@ interface AppContextType {
   addMedication: (m: Omit<Medication, 'id'>) => void;
   updateMedication: (m: Medication) => void;
   deleteMedication: (id: string) => void;
+  completeMedication: (id: string, reason?: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other', notes?: string) => void;
+  reactivateMedication: (id: string, newStock?: number) => void;
 
   // Doses
   doseLogs: DoseLog[];
@@ -295,6 +297,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteMedication = (id: string) => {
     setAllMedications(prev => prev.filter(item => item.id !== id));
     setAllDoseLogs(prev => prev.filter(item => item.medicationId !== id));
+  };
+
+  const completeMedication = (
+    id: string,
+    reason: 'bottle_finished' | 'doctor_stopped' | 'treatment_completed' | 'other' = 'bottle_finished',
+    notes?: string
+  ) => {
+    setAllMedications(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          status: 'completed',
+          completedAt: new Date().toISOString().split('T')[0],
+          completionReason: reason,
+          completionNotes: notes || undefined
+        };
+      }
+      return item;
+    }));
+  };
+
+  const reactivateMedication = (id: string, newStock?: number) => {
+    setAllMedications(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          status: 'active',
+          currentStock: newStock !== undefined && newStock > 0 ? newStock : (item.currentStock > 0 ? item.currentStock : 30),
+          completedAt: undefined,
+          completionReason: undefined,
+          completionNotes: undefined
+        };
+      }
+      return item;
+    }));
   };
 
   const toggleDoseTaken = (
@@ -558,6 +595,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addMedication,
         updateMedication,
         deleteMedication,
+        completeMedication,
+        reactivateMedication,
 
         doseLogs,
         toggleDoseTaken,
