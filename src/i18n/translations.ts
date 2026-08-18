@@ -161,6 +161,11 @@ export const translations = {
     resultsSummary: 'Resumen de Resultados Relevantes',
     attachPdfOrPhoto: 'Adjuntar Archivo PDF o Foto',
     viewAttachedPdfImage: 'Ver PDF / Imagen Adjunta',
+    shareStudy: 'Compartir con el Médico',
+    shareWhatsAppDoctor: 'Enviar por WhatsApp al Médico',
+    shareEmailDoctor: 'Enviar por Correo al Médico',
+    doctorPhoneOptional: 'Teléfono de WhatsApp del Médico (Opcional)',
+    doctorEmailOptional: 'Correo Electrónico del Médico (Opcional)',
 
     // Appointments
     appointmentsTitle: 'Agenda de Consultas Médicas de',
@@ -428,6 +433,11 @@ export const translations = {
     resultsSummary: 'Summary of Key Results',
     attachPdfOrPhoto: 'Attach PDF File or Photo',
     viewAttachedPdfImage: 'View Attached PDF / Image',
+    shareStudy: 'Share with Doctor',
+    shareWhatsAppDoctor: 'Send via WhatsApp to Doctor',
+    shareEmailDoctor: 'Send via Email to Doctor',
+    doctorPhoneOptional: "Doctor's WhatsApp Phone (Optional)",
+    doctorEmailOptional: "Doctor's Email (Optional)",
 
     // Appointments
     appointmentsTitle: "'s Medical Appointments Agenda",
