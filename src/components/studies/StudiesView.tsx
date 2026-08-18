@@ -184,6 +184,13 @@ export const StudiesView: React.FC = () => {
         >
           {t('cardioTests')}
         </button>
+        <button
+          className={`btn btn-sm ${activeCategory === 'nutrition_plan' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveCategory('nutrition_plan')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          {t('nutritionPlans')}
+        </button>
       </div>
 
       {/* Studies List */}
@@ -521,6 +528,7 @@ export const StudiesView: React.FC = () => {
                 <div className="form-group">
                   <label className="form-label">{t('studyCategory')}</label>
                   <select className="form-select" value={category} onChange={e => setCategory(e.target.value as any)}>
+                    <option value="nutrition_plan">{t('nutritionPlans')} (Menús, Dietas, Porciones)</option>
                     <option value="imaging">{t('imagingTests')} (Tomografía, TAC, Rayos X, Resonancia)</option>
                     <option value="blood_test">{t('bloodTests')}</option>
                     <option value="cardiology">{t('cardioTests')}</option>

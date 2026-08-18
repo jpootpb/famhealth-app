@@ -154,7 +154,7 @@ export interface MedicalStudy {
   familyId?: string;
   patientId: string;
   title: string;
-  category: 'blood_test' | 'imaging' | 'cardiology' | 'pathology' | 'other';
+  category: 'blood_test' | 'imaging' | 'cardiology' | 'pathology' | 'nutrition_plan' | 'other';
   date: string;
   laboratory?: string;
   resultsSummary?: string;
