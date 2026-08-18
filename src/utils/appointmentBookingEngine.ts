@@ -35,11 +35,9 @@ export function calculateBookingReminderDates({
   callMonthsAheadOfTarget = 1,
   callDaysAheadOfTarget = 0
 }: CalculateBookingDatesParams): { targetConsultationDate: string; callClinicDate: string } {
-  // Target consultation date
   const targetDate = new Date(baseDate);
   targetDate.setMonth(targetDate.getMonth() + targetMonthsAhead);
 
-  // Date to call the clinic to book
   const callDate = new Date(targetDate);
   if (callMonthsAheadOfTarget > 0) {
     callDate.setMonth(callDate.getMonth() - callMonthsAheadOfTarget);
@@ -67,23 +65,45 @@ export function isBookingWindowOpen(
 }
 
 /**
- * Formats a polite, clear WhatsApp message to send to clinic reception to request booking
+ * Formats a clean, structured Amazon-style WhatsApp message to send to clinic reception to request booking
  */
 export function formatBookingWhatsAppMessage(
   reminder: FutureBookingReminder,
-  familyContactName: string = 'Familiar'
+  familyContactName: string = 'Familiar',
+  lang: 'es' | 'en' = 'es'
 ): string {
-  let msg = `🏥 *Solicitud de Cita Médica - Consultorio del ${reminder.doctorName}*\n\n`;
-  msg += `Hola, buenas tardes. Me comunico de parte de la paciente *${reminder.patientName}*.\n\n`;
+  const isEn = lang === 'en';
+
+  if (isEn) {
+    let msg = `🏥 *Medical Appointment Request - Office of ${reminder.doctorName}* ✨\n\n`;
+    msg += `Hello! I am reaching out on behalf of patient *${reminder.patientName}* 🩺\n\n`;
+    msg += `During our last consultation of ${reminder.specialty}, we were instructed to contact your office this month to schedule the *annual / follow-up review* for *${reminder.targetConsultationDate.substring(0, 7)}*.\n\n`;
+
+    if (reminder.notes) {
+      msg += `📝 *Reason for appointment:* ${reminder.notes}\n\n`;
+    }
+
+    msg += `Could you please let us know the available dates and times for the doctor? ✨\n\n`;
+    msg += `Thank you very much.\n`;
+    msg += `👤 *Contact:* ${familyContactName}\n`;
+    msg += `💬 _FamHealth Patient Care_`;
+
+    return msg;
+  }
+
+  // Spanish (Clean, structured Amazon WhatsApp style)
+  let msg = `🏥 *Solicitud de Cita Médica - Consultorio del ${reminder.doctorName}* ✨\n\n`;
+  msg += `¡Hola! Me comunico de parte de la paciente *${reminder.patientName}* 🩺\n\n`;
   msg += `En nuestra última consulta de ${reminder.specialty}, nos indicaron comunicarnos este mes para agendar la *revisión anual / de seguimiento* correspondiente a *${reminder.targetConsultationDate.substring(0, 7)}*.\n\n`;
 
   if (reminder.notes) {
     msg += `📝 *Motivo de la cita:* ${reminder.notes}\n\n`;
   }
 
-  msg += `¿Podrían indicarme qué días y horarios tienen disponibles con el doctor para agendar la consulta?\n\n`;
+  msg += `¿Podrían indicarme qué días y horarios tienen disponibles con el doctor para agendar la consulta? ✨\n\n`;
   msg += `Quedo atento(a). Muchas gracias.\n`;
-  msg += `👤 *Contacto:* ${familyContactName}`;
+  msg += `👤 *Contacto:* ${familyContactName}\n`;
+  msg += `💬 _FamHealth Control Médico Familiar_`;
 
   return msg;
 }

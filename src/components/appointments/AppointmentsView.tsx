@@ -327,7 +327,8 @@ export const AppointmentsView: React.FC = () => {
   const handleShareAppointment = (app: MedicalAppointment) => {
     const msg = formatAppointmentShareMessage({
       appointment: app,
-      patientName: activePatient.name
+      patientName: activePatient.name,
+      lang: language
     });
     shareViaWhatsApp(msg);
   };
@@ -480,7 +481,7 @@ export const AppointmentsView: React.FC = () => {
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => {
-                        const msg = formatBookingWhatsAppMessage(rem, activePatient.name);
+                        const msg = formatBookingWhatsAppMessage(rem, activePatient.name, language);
                         shareViaWhatsApp(msg, rem.clinicPhone);
                       }}
                       style={{ fontSize: '0.75rem', backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}
@@ -861,7 +862,7 @@ export const AppointmentsView: React.FC = () => {
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => {
-                            const msg = formatBookingWhatsAppMessage(rem, activePatient.name);
+                            const msg = formatBookingWhatsAppMessage(rem, activePatient.name, language);
                             shareViaWhatsApp(msg, rem.clinicPhone);
                           }}
                           style={{ fontSize: '0.75rem', backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0', whiteSpace: 'nowrap' }}

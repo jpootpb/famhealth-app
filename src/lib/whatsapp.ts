@@ -21,15 +21,11 @@ export function getCurrentShiftCaregiver(
 
   const hour = currentTime.getHours();
 
-  // Shift matching:
-  // Morning: 06:00 - 13:59 (6 to 13)
-  // Evening: 14:00 - 21:59 (14 to 21)
-  // Night: 22:00 - 05:59 (22 to 23 or 0 to 5)
   let targetShift: 'morning' | 'evening' | 'night' = 'morning';
   if (hour >= 6 && hour < 14) {
     targetShift = 'morning';
   } else if (hour >= 14 && hour < 22) {
-    targetShift = 'night'; // Map evening/night
+    targetShift = 'night';
   } else {
     targetShift = 'night';
   }
@@ -40,57 +36,80 @@ export function getCurrentShiftCaregiver(
     return defaultMatch || shiftMatches[0];
   }
 
-  // Fallback to default caregiver or first active caregiver
   const defaultCaregiver = activeCaregivers.find(c => c.isDefaultCaregiver);
   return defaultCaregiver || activeCaregivers[0];
 }
 
+/**
+ * Builds a clean, Amazon-style WhatsApp notification for an administered dose
+ */
 export function buildDoseTakenWhatsAppMessage(
   patient: Patient,
   medication: Medication,
   slot: DoseSlot,
   administeredBy: string,
-  dailyProgressText: string = ''
+  dailyProgressText: string = '',
+  lang: 'es' | 'en' = 'es'
 ): string {
   const now = new Date();
-  const timeStr = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  const timeStr = now.toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' });
   const doseText = formatDose(slot.dose, medication.presentation);
 
+  if (lang === 'en') {
+    const lines: string[] = [];
+    lines.push(`✅ *Dose Confirmed - ${patient.name.toUpperCase()}* 💊`);
+    lines.push('');
+    lines.push(`The medication *${medication.name}* (${doseText}) was successfully administered. ✨`);
+    lines.push('');
+    lines.push(`⏰ *Administered Time:* ${timeStr} (Scheduled: ${slot.time})`);
+    lines.push(`👤 *Recorded by:* ${administeredBy}`);
+    if (slot.instruction || medication.indication) {
+      lines.push(`📝 *Note:* ${slot.instruction || medication.indication}`);
+    }
+    if (dailyProgressText) {
+      lines.push(`📊 *Daily Progress:* ${dailyProgressText}`);
+    }
+    lines.push('');
+    lines.push(`💬 _FamHealth Medication Tracker_`);
+    return lines.join('\n');
+  }
+
+  // Spanish (Clean, structured Amazon WhatsApp style)
   const lines: string[] = [];
-  lines.push('✅ *DOSE ADMINISTERED - ' + patient.name.toUpperCase() + '*');
-  lines.push('💊 *Medication:* ' + medication.name + ' (' + doseText + ')');
-  lines.push('⏰ *Administered Time:* ' + timeStr + ' (Scheduled: ' + slot.time + ')');
-  lines.push('👤 *Administered by:* ' + administeredBy);
+  lines.push(`✅ *Toma Administrada - ${patient.name.toUpperCase()}* 💊`);
+  lines.push('');
+  lines.push(`El medicamento *${medication.name}* (${doseText}) fue administrado con éxito. ✨`);
+  lines.push('');
+  lines.push(`⏰ *Hora de toma:* ${timeStr} (Horario programado: ${slot.time})`);
+  lines.push(`👤 *Registrado por:* ${administeredBy}`);
   if (slot.instruction || medication.indication) {
-    lines.push('📝 *Note:* ' + (slot.instruction || medication.indication));
+    lines.push(`📝 *Indicación:* ${slot.instruction || medication.indication}`);
   }
   if (dailyProgressText) {
-    lines.push('📊 *Daily Progress:* ' + dailyProgressText);
+    lines.push(`📊 *Progreso del día:* ${dailyProgressText}`);
   }
   lines.push('');
-  lines.push('_FamHealth Dose Tracker_');
-
+  lines.push(`💬 _FamHealth Control Médico Familiar_`);
   return lines.join('\n');
 }
 
+/**
+ * Builds a comprehensive daily medication agenda in clean Amazon WhatsApp style
+ */
 export function buildWhatsAppSummary(
   patient: Patient,
   medications: Medication[],
   doseLogs: DoseLog[],
-  date: Date = new Date()
+  date: Date = new Date(),
+  lang: 'es' | 'en' = 'es'
 ): string {
-  const dateStr = date.toLocaleDateString('es-MX', {
+  const isEn = lang === 'en';
+  const dateStr = date.toLocaleDateString(isEn ? 'en-US' : 'es-MX', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
-
-  const lines: string[] = [];
-  lines.push('*MEDICATION AGENDA - ' + patient.name.toUpperCase() + '*');
-  lines.push('*Date:* ' + dateStr);
-  lines.push('');
-  lines.push('*Scheduled Doses:*');
 
   const dailyDoses: Array<{ time: string; medName: string; doseText: string; taken: boolean; administeredBy?: string }> = [];
 
@@ -111,25 +130,63 @@ export function buildWhatsAppSummary(
 
   dailyDoses.sort((a, b) => a.time.localeCompare(b.time));
 
-  if (dailyDoses.length === 0) {
-    lines.push('_No medications scheduled for today._');
-  } else {
-    dailyDoses.forEach(item => {
-      const check = item.taken ? '[DONE]' : '[PENDING]';
-      const adminNote = item.administeredBy ? ` (by ${item.administeredBy})` : '';
-      lines.push(check + ' *' + item.time + '* -> ' + item.medName + ' (' + item.doseText + ')' + adminNote);
-    });
-  }
+  const lines: string[] = [];
 
-  lines.push('');
-  if (patient.notes) {
-    lines.push('*Notes:* ' + patient.notes);
+  if (isEn) {
+    lines.push(`📋 *MEDICATION AGENDA - ${patient.name.toUpperCase()}* 💊`);
+    lines.push(`📅 *Date:* ${dateStr}`);
     lines.push('');
-  }
+    lines.push(`Here is the scheduled medication agenda for today ✨`);
+    lines.push('');
+    lines.push(`*Scheduled Doses:*`);
 
-  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://famhealth.app';
-  lines.push('_Caregiver Pass:_ ' + origin + '?mode=pass&patientId=' + patient.id);
-  lines.push('_FamHealth PWA_');
+    if (dailyDoses.length === 0) {
+      lines.push(`_No medications scheduled for today._`);
+    } else {
+      dailyDoses.forEach(item => {
+        const icon = item.taken ? '✅ [DONE]' : '⏳ [PENDING]';
+        const adminNote = item.administeredBy ? ` (by ${item.administeredBy})` : '';
+        lines.push(`${icon} *${item.time}* -> ${item.medName} (${item.doseText})${adminNote}`);
+      });
+    }
+
+    lines.push('');
+    if (patient.notes) {
+      lines.push(`📝 *Notes:* ${patient.notes}`);
+      lines.push('');
+    }
+
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://famhealth.app';
+    lines.push(`📱 *Caregiver Pass:* ${origin}?mode=pass&patientId=${patient.id}`);
+    lines.push(`💬 _FamHealth PWA_`);
+  } else {
+    lines.push(`📋 *AGENDA DE MEDICAMENTOS - ${patient.name.toUpperCase()}* 💊`);
+    lines.push(`📅 *Fecha:* ${dateStr}`);
+    lines.push('');
+    lines.push(`Aquí tienes el cronograma de tomas médicas para el día de hoy ✨`);
+    lines.push('');
+    lines.push(`*Tomas Programadas:*`);
+
+    if (dailyDoses.length === 0) {
+      lines.push(`_No hay medicamentos programados para hoy._`);
+    } else {
+      dailyDoses.forEach(item => {
+        const icon = item.taken ? '✅ [REALIZADO]' : '⏳ [PENDIENTE]';
+        const adminNote = item.administeredBy ? ` (por ${item.administeredBy})` : '';
+        lines.push(`${icon} *${item.time}* -> ${item.medName} (${item.doseText})${adminNote}`);
+      });
+    }
+
+    lines.push('');
+    if (patient.notes) {
+      lines.push(`📝 *Notas del paciente:* ${patient.notes}`);
+      lines.push('');
+    }
+
+    const origin = typeof window !== 'undefined' && window.location ? window.location.origin : 'https://famhealth.app';
+    lines.push(`📱 *Pase para Cuidador:* ${origin}?mode=pass&patientId=${patient.id}`);
+    lines.push(`💬 _FamHealth Control Médico Familiar_`);
+  }
 
   return lines.join('\n');
 }

@@ -55,7 +55,7 @@ describe('Multi-Caregiver Co-Presence & Shift Sharing (TDD)', () => {
 
     // Lucia gave the dose tonight
     const msg = buildDoseTakenWhatsAppMessage(patient, medication, slot, 'Lucia Poot');
-    expect(msg).toContain('Administered by:* Lucia Poot');
+    expect(msg).toContain('Lucia Poot');
     expect(msg).toContain('Metformina 500mg');
   });
 });

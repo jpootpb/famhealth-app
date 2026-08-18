@@ -82,7 +82,7 @@ export function findOverdueUncheckedDoses({
 }
 
 /**
- * Builds an empathetic, clear WhatsApp alert to verify with caregivers whether a dose was given or is pending
+ * Builds a clean, Amazon-style WhatsApp alert to verify with caregivers whether a dose was given or is pending
  */
 export function buildOverdueDoseVerificationMessage(params: {
   overdueItem: {
@@ -96,12 +96,39 @@ export function buildOverdueDoseVerificationMessage(params: {
   };
   caregiverName?: string;
   currentDate?: string;
+  lang?: 'es' | 'en';
 }): string {
-  const { overdueItem, caregiverName, currentDate } = params;
+  const { overdueItem, caregiverName, currentDate, lang = 'es' } = params;
+  const isEn = lang === 'en';
 
-  let msg = `⚠️ *FamHealth - Alerta de Toma Pendiente de Verificación*\n\n`;
+  if (isEn) {
+    let msg = `⚠️ *FamHealth - Pending Dose Verification Alert* 💊\n\n`;
+    msg += `Hello family / ${caregiverName ? `Caregiver on shift (*${caregiverName}*)` : 'Caregivers'}:\n\n`;
+    msg += `The scheduled dose for *${overdueItem.patientName}* has not been recorded in the app yet. ✨\n\n`;
+    msg += `💊 *Medication:* ${overdueItem.medicationName} (${overdueItem.dose} ${overdueItem.presentation})\n`;
+    msg += `⏰ *Scheduled Time:* ${overdueItem.scheduledTime} (${overdueItem.minutesOverdue} mins elapsed)\n`;
+
+    if (overdueItem.instruction) {
+      msg += `📝 *Instruction:* ${overdueItem.instruction}\n`;
+    }
+
+    if (currentDate) {
+      msg += `📅 *Date:* ${currentDate}\n`;
+    }
+
+    msg += `\n❓ *Please confirm with the caregiver:*\n`;
+    msg += `1️⃣ Was the medication already administered and just needs to be checked off?\n`;
+    msg += `2️⃣ Or is it still pending to be given?\n\n`;
+    msg += `👉 _(Please check it off in the app or reply to this message)_ 🙏\n`;
+    msg += `💬 _FamHealth Caregiver Team_`;
+
+    return msg;
+  }
+
+  // Spanish (Clean, structured Amazon WhatsApp style)
+  let msg = `⚠️ *FamHealth - Alerta de Toma Pendiente de Verificación* 💊\n\n`;
   msg += `Hola familia / ${caregiverName ? `Cuidador en turno (*${caregiverName}*)` : 'Cuidadores'}:\n\n`;
-  msg += `Vemos que la toma programada para *${overdueItem.patientName}* aún no ha sido marcada como suministrada en la aplicación:\n\n`;
+  msg += `Vemos que la toma programada para *${overdueItem.patientName}* aún no ha sido marcada en la aplicación. ✨\n\n`;
   msg += `💊 *Medicamento:* ${overdueItem.medicationName} (${overdueItem.dose} ${overdueItem.presentation})\n`;
   msg += `⏰ *Hora programada:* ${overdueItem.scheduledTime} (${overdueItem.minutesOverdue} minutos transcurridos)\n`;
 
@@ -116,7 +143,8 @@ export function buildOverdueDoseVerificationMessage(params: {
   msg += `\n❓ *Por favor confirmar con el cuidador:*\n`;
   msg += `1️⃣ ¿Ya se le administró el medicamento y solo faltó marcarlo en la app?\n`;
   msg += `2️⃣ ¿O sigue pendiente de darse?\n\n`;
-  msg += `👉 *(Favor de marcar la casilla en la app o responder por este chat para tranquilidad de la familia)* 🙏`;
+  msg += `👉 _(Favor de marcar la casilla en la app o responder por este chat para tranquilidad de la familia)_ 🙏\n`;
+  msg += `💬 _FamHealth Control Médico Familiar_`;
 
   return msg;
 }

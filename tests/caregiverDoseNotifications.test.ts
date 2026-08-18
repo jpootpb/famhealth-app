@@ -69,10 +69,11 @@ describe('Caregiver Shifts, Expiration & Family Dose Notifications (3 Enhancemen
         medication,
         slot,
         'Carlos Poot (Morning Caregiver)',
-        '3 of 4 doses completed today'
+        '3 of 4 doses completed today',
+        'en'
       );
 
-      expect(message).toContain('DOSE ADMINISTERED - DON MANUEL POOT');
+      expect(message).toContain('Dose Confirmed - DON MANUEL POOT');
       expect(message).toContain('Metformin');
       expect(message).toContain('1 tablet');
       expect(message).toContain('Carlos Poot');

@@ -47,7 +47,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({ isOpen, onClose })
   if (!isOpen || !activePatient) return null;
 
   const patientMeds = medications.filter(m => m.patientId === activePatient.id);
-  const messagePreview = buildWhatsAppSummary(activePatient, patientMeds, doseLogs, new Date());
+  const messagePreview = buildWhatsAppSummary(activePatient, patientMeds, doseLogs, new Date(), language);
 
   const handleSend = () => {
     shareViaWhatsApp(messagePreview, selectedPhone || undefined);

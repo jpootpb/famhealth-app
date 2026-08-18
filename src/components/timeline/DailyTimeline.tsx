@@ -103,7 +103,8 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       med,
       { time: slot.time, dose: slot.dose, instruction: slot.instruction },
       selectedCaregiver,
-      progressText
+      progressText,
+      language
     );
     shareViaWhatsApp(message);
   };
@@ -112,24 +113,51 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     const msg = buildOverdueDoseVerificationMessage({
       overdueItem,
       caregiverName: selectedCaregiver,
-      currentDate: currentDateIso
+      currentDate: currentDateIso,
+      lang: language
     });
     shareViaWhatsApp(msg);
   };
 
   const handleShareHouseholdDailySummary = () => {
-    let msg = `📋 *FamHealth - Resumen del Día (${currentDateIso})*\n`;
-    msg += `👨‍⚕️ *Cuidador en Turno:* ${selectedCaregiver}\n`;
-    msg += `📊 *Progreso del Hogar:* ${takenDoses} de ${totalDoses} tomas cumplidas (${progressPercent}%)\n\n`;
+    const isEn = language === 'en';
+    let msg = '';
 
-    timelineSlots.forEach(s => {
-      const statusIcon = s.isTaken ? '✅' : '⏳';
-      msg += `${statusIcon} *${s.time}* • *${s.patientName}*\n`;
-      msg += `   💊 ${s.medicationName} (${s.dose} ${s.presentation})\n`;
-      if (s.instruction) msg += `   📝 ${s.instruction}\n`;
-      if (s.isTaken && s.administeredBy) msg += `   👤 Administrado por: ${s.administeredBy}\n`;
-      msg += `\n`;
-    });
+    if (isEn) {
+      msg += `📋 *FamHealth - Household Daily Medication Summary* ✨\n\n`;
+      msg += `📅 *Date:* ${currentDateIso}\n`;
+      msg += `👨‍⚕️ *Caregiver on Shift:* ${selectedCaregiver}\n`;
+      msg += `📊 *Household Progress:* ${takenDoses} of ${totalDoses} doses completed (${progressPercent}%)\n\n`;
+      msg += `*Scheduled Household Doses:*\n\n`;
+
+      timelineSlots.forEach(s => {
+        const statusIcon = s.isTaken ? '✅ [DONE]' : '⏳ [PENDING]';
+        msg += `${statusIcon} *${s.time}* • *${s.patientName}*\n`;
+        msg += `   💊 ${s.medicationName} (${s.dose} ${s.presentation})\n`;
+        if (s.instruction) msg += `   📝 ${s.instruction}\n`;
+        if (s.isTaken && s.administeredBy) msg += `   👤 Administered by: ${s.administeredBy}\n`;
+        msg += `\n`;
+      });
+
+      msg += `💬 _FamHealth Household Care_`;
+    } else {
+      msg += `📋 *FamHealth - Resumen Diario del Hogar* ✨\n\n`;
+      msg += `📅 *Fecha:* ${currentDateIso}\n`;
+      msg += `👨‍⚕️ *Cuidador en Turno:* ${selectedCaregiver}\n`;
+      msg += `📊 *Progreso del Hogar:* ${takenDoses} de ${totalDoses} tomas cumplidas (${progressPercent}%)\n\n`;
+      msg += `*Tomas del Hogar Programadas:*\n\n`;
+
+      timelineSlots.forEach(s => {
+        const statusIcon = s.isTaken ? '✅ [REALIZADO]' : '⏳ [PENDIENTE]';
+        msg += `${statusIcon} *${s.time}* • *${s.patientName}*\n`;
+        msg += `   💊 ${s.medicationName} (${s.dose} ${s.presentation})\n`;
+        if (s.instruction) msg += `   📝 ${s.instruction}\n`;
+        if (s.isTaken && s.administeredBy) msg += `   👤 Administrado por: ${s.administeredBy}\n`;
+        msg += `\n`;
+      });
+
+      msg += `💬 _FamHealth Control Médico Familiar_`;
+    }
 
     shareViaWhatsApp(msg);
   };
