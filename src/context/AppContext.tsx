@@ -10,6 +10,7 @@ import {
   HealthExpense,
   MedicalAppointment,
   MedicalStudy,
+  FutureBookingReminder,
   UserAccount
 } from '../types';
 import { LocalStore, guestUser } from '../lib/storage';
@@ -81,6 +82,13 @@ interface AppContextType {
   deleteAppointment: (id: string) => void;
   toggleAppointmentCompleted: (id: string) => void;
 
+  // Future Booking Reminders (Apertura de Agenda)
+  bookingReminders: FutureBookingReminder[];
+  addBookingReminder: (r: Omit<FutureBookingReminder, 'id'>) => void;
+  updateBookingReminder: (r: FutureBookingReminder) => void;
+  deleteBookingReminder: (id: string) => void;
+  confirmBookingReminderToAppointment: (reminderId: string, appointmentDateTime: string, location?: string, notes?: string) => void;
+
   // Studies
   studies: MedicalStudy[];
   addStudy: (s: Omit<MedicalStudy, 'id'>) => void;
@@ -105,6 +113,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [allFamilies, setAllFamilies] = useState<FamilyMember[]>(() => LocalStore.getFamilies());
   const [allExpenses, setAllExpenses] = useState<HealthExpense[]>(() => LocalStore.getExpenses());
   const [allAppointments, setAllAppointments] = useState<MedicalAppointment[]>(() => LocalStore.getAppointments());
+  const [allBookingReminders, setAllBookingReminders] = useState<FutureBookingReminder[]>(() => LocalStore.getBookingReminders());
   const [allStudies, setAllStudies] = useState<MedicalStudy[]>(() => LocalStore.getStudies());
 
   const isAuthenticated = isUserAuthenticated(currentUser);
@@ -123,6 +132,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.saveFamilies(allFamilies); }, [allFamilies]);
   useEffect(() => { LocalStore.saveExpenses(allExpenses); }, [allExpenses]);
   useEffect(() => { LocalStore.saveAppointments(allAppointments); }, [allAppointments]);
+  useEffect(() => { LocalStore.saveBookingReminders(allBookingReminders); }, [allBookingReminders]);
   useEffect(() => { LocalStore.saveStudies(allStudies); }, [allStudies]);
 
   // Family circles visible to current logged-in user
@@ -140,6 +150,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const families = allFamilies.filter(f => !f.familyId || f.familyId === currentFamilyId);
   const expenses = allExpenses.filter(e => !e.familyId || e.familyId === currentFamilyId);
   const appointments = allAppointments.filter(a => !a.familyId || a.familyId === currentFamilyId);
+  const bookingReminders = allBookingReminders.filter(r => !r.familyId || r.familyId === currentFamilyId);
   const studies = allStudies.filter(s => !s.familyId || s.familyId === currentFamilyId);
 
   // Active Patient inside current family with automatic auto-selection fallback
@@ -408,6 +419,55 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAllAppointments(prev => prev.map(a => a.id === id ? { ...a, isCompleted: !a.isCompleted } : a));
   };
 
+  const addBookingReminder = (r: Omit<FutureBookingReminder, 'id'>) => {
+    const newReminder: FutureBookingReminder = {
+      ...r,
+      id: 'rem-' + Date.now(),
+      familyId: currentFamilyId
+    };
+    setAllBookingReminders(prev => [newReminder, ...prev]);
+  };
+
+  const updateBookingReminder = (r: FutureBookingReminder) => {
+    setAllBookingReminders(prev => prev.map(item => item.id === r.id ? r : item));
+  };
+
+  const deleteBookingReminder = (id: string) => {
+    setAllBookingReminders(prev => prev.filter(item => item.id !== id));
+  };
+
+  const confirmBookingReminderToAppointment = (
+    reminderId: string,
+    appointmentDateTime: string,
+    location?: string,
+    notes?: string
+  ) => {
+    const reminder = allBookingReminders.find(r => r.id === reminderId);
+    if (!reminder) return;
+
+    const newApp: MedicalAppointment = {
+      id: 'app-' + Date.now(),
+      familyId: currentFamilyId,
+      patientId: reminder.patientId,
+      doctorName: reminder.doctorName,
+      specialty: reminder.specialty,
+      dateTime: appointmentDateTime,
+      location: location || reminder.clinicAddress,
+      doctorPhone: reminder.clinicPhone,
+      notes: notes || reminder.notes,
+      isCompleted: false
+    };
+
+    setAllAppointments(prev => [...prev, newApp]);
+    setAllBookingReminders(prev =>
+      prev.map(item =>
+        item.id === reminderId
+          ? { ...item, status: 'booked_confirmed', confirmedAppointmentId: newApp.id }
+          : item
+      )
+    );
+  };
+
   const addStudy = (s: Omit<MedicalStudy, 'id'>) => {
     const newStudy: MedicalStudy = {
       ...s,
@@ -475,6 +535,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateAppointment,
         deleteAppointment,
         toggleAppointmentCompleted,
+
+        bookingReminders,
+        addBookingReminder,
+        updateBookingReminder,
+        deleteBookingReminder,
+        confirmBookingReminderToAppointment,
 
         studies,
         addStudy,

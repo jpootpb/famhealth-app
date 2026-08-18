@@ -8,6 +8,7 @@ import {
   HealthExpense,
   MedicalAppointment,
   MedicalStudy,
+  FutureBookingReminder,
   FamilyCircle
 } from '../types';
 
@@ -571,3 +572,21 @@ export const initialStudies: MedicalStudy[] = [
     reportUrl: 'https://apps.evacenter.com/pacs/report-detail/30b08ba1-be06-4459-ad48-ec455a42f147/?ac=dXNlcj11bmlyYWQtbWVyaWRhQHZpc2l0YW50LmNvbSZwYXNzd29yZD0xYzE5NmI4Ni1hNjc3LTQ5ZmQtOGMzMS0xOWM5ODc5YzkwMTkmZXh0cmFfdmFsaWRhdGlvbj04NDJlNGQ5NC01YjQ0LTQ1MDgtODAxNC00NWJiYTgzYmY2NDk===&mv=1&md=1'
   }
 ];
+
+export const initialBookingReminders: FutureBookingReminder[] = [
+  {
+    id: 'rem-angio-maria',
+    familyId: 'circle-poot',
+    patientId: 'patient-maria',
+    patientName: 'Doña María Poot (Mamá)',
+    doctorName: 'Dr. Alejandro Cantón',
+    specialty: 'Angiología y Cirugía Vascular',
+    targetConsultationDate: '2027-08-18',
+    callClinicDate: '2027-07-18',
+    clinicPhone: '9999254433',
+    clinicAddress: 'Clínica CAMED - Av. Cupules, Mérida',
+    notes: 'Revisión anual de circulación periférica. La asistente indicó llamar 1 mes antes para abrir la agenda anual.',
+    status: 'waiting_agenda_open'
+  }
+];
+

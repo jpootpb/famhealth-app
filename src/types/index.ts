@@ -199,3 +199,21 @@ export interface MedicalStudy {
   reportUrl?: string; // Online Laboratory / Radiology Interpretation Portal URL
   accessCredentials?: string; // User/Pass/PIN instructions if requested by the radiology center
 }
+
+export interface FutureBookingReminder {
+  id: string;
+  familyId?: string;
+  patientId: string;
+  patientName: string;
+  doctorName: string;
+  specialty: string;
+  targetConsultationDate: string; // YYYY-MM-DD (e.g. 2027-08-18)
+  callClinicDate: string; // YYYY-MM-DD (e.g. 2027-07-18, 1 month before)
+  clinicPhone?: string;
+  clinicAddress?: string;
+  notes?: string;
+  status: 'waiting_agenda_open' | 'call_now_ready' | 'booked_confirmed';
+  confirmedAppointmentId?: string;
+  createdAt?: string;
+}
+

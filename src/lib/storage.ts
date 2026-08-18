@@ -8,7 +8,8 @@ import {
   initialFamilies,
   initialExpenses,
   initialAppointments,
-  initialStudies
+  initialStudies,
+  initialBookingReminders
 } from './demoData';
 import {
   FamilyCircle,
@@ -21,6 +22,7 @@ import {
   HealthExpense,
   MedicalAppointment,
   MedicalStudy,
+  FutureBookingReminder,
   UserAccount
 } from '../types';
 
@@ -168,6 +170,10 @@ export const LocalStore = {
   getAppointments: (): MedicalAppointment[] => safeGet<MedicalAppointment[]>(STORAGE_KEYS.APPOINTMENTS, initialAppointments),
   saveAppointments: (appointments: MedicalAppointment[]) => safeSet(STORAGE_KEYS.APPOINTMENTS, appointments),
 
+  // Future Booking Reminders (Apertura de Agenda)
+  getBookingReminders: (): FutureBookingReminder[] => safeGet<FutureBookingReminder[]>('famhealth_booking_reminders', initialBookingReminders),
+  saveBookingReminders: (reminders: FutureBookingReminder[]) => safeSet('famhealth_booking_reminders', reminders),
+
   // Studies
   getStudies: (): MedicalStudy[] => safeGet<MedicalStudy[]>(STORAGE_KEYS.STUDIES, initialStudies),
   saveStudies: (studies: MedicalStudy[]) => safeSet(STORAGE_KEYS.STUDIES, studies),
@@ -178,3 +184,4 @@ export const LocalStore = {
     localStorage.clear();
   }
 };
+
