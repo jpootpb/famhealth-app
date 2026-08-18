@@ -664,13 +664,20 @@ export const StudiesView: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">{t('attachPdfOrPhoto')}</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  📄 {language === 'es' ? 'Escaneo o Foto del Dictamen / Interpretación en Físico:' : 'Scanned Sheet or Photo of Physical Radiologist Report:'}
+                </label>
                 <input
                   type="file"
                   accept="application/pdf,image/*"
                   className="form-input"
                   onChange={handleFileUpload}
                 />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                  {language === 'es'
+                    ? '💡 Puedes tomarle foto directa con la cámara de tu celular a la hoja física que te entregaron o subir el archivo PDF.'
+                    : '💡 Take a direct photo of the physical paper report using your phone camera or upload a scanned PDF.'}
+                </span>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
