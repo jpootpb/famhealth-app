@@ -201,6 +201,62 @@ export const initialMedications: Medication[] = [
     minimumStockAlert: 6
   },
   {
+    id: 'med-eyestil',
+    familyId: 'circle-poot',
+    patientId: 'patient-grandfather',
+    name: 'Eyestil Plus Gotas Oftálmicas',
+    presentation: 'drops',
+    indication: 'Lubricación y protección ocular',
+    laboratory: 'Sifi',
+    expirationDate: '2027-12-01',
+    isImssCovered: false,
+    source: 'private_pharmacy',
+    unitCost: 380,
+    preferredStore: 'Farmacias Value',
+    purchaseNotes: 'Comprar en Farmacias Value: Por cada 3era compra regalan 1 frasco (Promoción 3+1).',
+    loyaltyPromo: {
+      enabled: true,
+      storeName: 'Farmacias Value',
+      requiredPurchases: 3,
+      currentPurchased: 2,
+      rewardDescription: '1 Frasco Gratis por promoción 3+1'
+    },
+    frequency: {
+      type: 'daily_fixed',
+      doseSlots: [
+        { time: '09:00', dose: 1, instruction: '1 gota en cada ojo' },
+        { time: '21:00', dose: 1, instruction: '1 gota en cada ojo antes de dormir' }
+      ],
+      startDate: '2026-08-01'
+    },
+    currentStock: 1,
+    minimumStockAlert: 1
+  },
+  {
+    id: 'med-pregabalina-maria',
+    familyId: 'circle-poot',
+    patientId: 'patient-maria',
+    name: 'Pregabalina (75mg)',
+    presentation: 'capsule',
+    indication: 'Dolor neuropático (Tratamiento completado)',
+    laboratory: 'IMSS Genérico',
+    expirationDate: '2027-08-30',
+    isImssCovered: true,
+    source: 'imss',
+    unitCost: 0,
+    preferredStore: 'IMSS',
+    purchaseNotes: 'Suministrado por el IMSS. Doña María ya no lo usa activamente y está disponible para donación/traspaso solidario a familiares o suegros.',
+    frequency: {
+      type: 'daily_fixed',
+      doseSlots: [
+        { time: '21:00', dose: 1, instruction: '1 cápsula por la noche' }
+      ],
+      startDate: '2026-01-01'
+    },
+    currentStock: 28,
+    minimumStockAlert: 5
+  },
+  {
     id: 'med-ciprofloxacin',
     familyId: 'circle-poot',
     patientId: 'patient-maria',

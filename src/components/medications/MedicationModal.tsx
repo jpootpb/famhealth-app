@@ -48,6 +48,13 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [preferredStore, setPreferredStore] = useState('');
   const [purchaseNotes, setPurchaseNotes] = useState('');
 
+  // Loyalty Program State (e.g. Farmacia Value 3+1)
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false);
+  const [loyaltyStore, setLoyaltyStore] = useState('Farmacias Value');
+  const [loyaltyRequired, setLoyaltyRequired] = useState(3);
+  const [loyaltyPurchased, setLoyaltyPurchased] = useState(0);
+  const [loyaltyReward, setLoyaltyReward] = useState('1 Frasco / Caja Gratis');
+
   // Frequency Configuration
   const [frequencyType, setFrequencyType] = useState<FrequencyType>('daily_fixed');
   const [startDate, setStartDate] = useState<string>(formatDateIso(new Date()));
@@ -98,6 +105,19 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIsImssCovered(Boolean(medicationToEdit.isImssCovered || medicationToEdit.source === 'imss'));
       setPreferredStore(medicationToEdit.preferredStore || '');
       setPurchaseNotes(medicationToEdit.purchaseNotes || '');
+      if (medicationToEdit.loyaltyPromo) {
+        setLoyaltyEnabled(medicationToEdit.loyaltyPromo.enabled);
+        setLoyaltyStore(medicationToEdit.loyaltyPromo.storeName);
+        setLoyaltyRequired(medicationToEdit.loyaltyPromo.requiredPurchases);
+        setLoyaltyPurchased(medicationToEdit.loyaltyPromo.currentPurchased);
+        setLoyaltyReward(medicationToEdit.loyaltyPromo.rewardDescription);
+      } else {
+        setLoyaltyEnabled(false);
+        setLoyaltyStore('Farmacias Value');
+        setLoyaltyRequired(3);
+        setLoyaltyPurchased(0);
+        setLoyaltyReward('1 Frasco / Caja Gratis');
+      }
       setFrequencyType(medicationToEdit.frequency.type);
       setStartDate(medicationToEdit.frequency.startDate);
       setEndDate(medicationToEdit.frequency.endDate || '');
@@ -117,6 +137,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIsImssCovered(false);
       setPreferredStore('');
       setPurchaseNotes('');
+      setLoyaltyEnabled(false);
+      setLoyaltyStore('Farmacias Value');
+      setLoyaltyRequired(3);
+      setLoyaltyPurchased(0);
+      setLoyaltyReward('1 Frasco / Caja Gratis');
       setFrequencyType('daily_fixed');
       setStartDate(formatDateIso(new Date()));
       setEndDate('');
@@ -182,6 +207,16 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       source: (isImssCovered ? 'imss' : (preferredStore ? 'private_pharmacy' : undefined)) as any,
       preferredStore: preferredStore.trim() || undefined,
       purchaseNotes: purchaseNotes.trim() || undefined,
+      loyaltyPromo: loyaltyEnabled
+        ? {
+            enabled: true,
+            storeName: loyaltyStore.trim() || 'Farmacia',
+            requiredPurchases: Number(loyaltyRequired) || 3,
+            currentPurchased: Number(loyaltyPurchased) || 0,
+            rewardDescription: loyaltyReward.trim() || '1 Frasco / Caja Gratis',
+            isRewardReady: (Number(loyaltyPurchased) || 0) >= (Number(loyaltyRequired) || 3)
+          }
+        : undefined,
       expirationDate: expirationDate || undefined,
       frequency: {
         type: frequencyType,
@@ -541,7 +576,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   </div>
                 </div>
 
-                <div className="form-group" style={{ margin: 0 }}>
+                <div className="form-group" style={{ margin: 0, marginBottom: '0.625rem' }}>
                   <label className="form-label">
                     💡 {language === 'es' ? 'Tips de Compra y Ahorro para la Familia' : 'Purchase Tips & Savings for Family'}
                   </label>
@@ -552,6 +587,100 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                     value={purchaseNotes}
                     onChange={e => setPurchaseNotes(e.target.value)}
                   />
+                </div>
+
+                {/* Loyalty Program / Recompensas de Farmacia (ej: 3+1 Farmacias Value) */}
+                <div
+                  style={{
+                    backgroundColor: loyaltyEnabled ? '#eff6ff' : '#ffffff',
+                    border: loyaltyEnabled ? '1.5px solid #3b82f6' : '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.75rem'
+                  }}
+                >
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                    onClick={() => setLoyaltyEnabled(!loyaltyEnabled)}
+                  >
+                    <div>
+                      <strong style={{ fontSize: '0.8125rem', color: loyaltyEnabled ? '#1e40af' : 'var(--text-primary)' }}>
+                        🎁 {language === 'es' ? 'Promoción de Farmacia / Programa de Lealtad (ej: 3+1 Gratis)' : 'Pharmacy Loyalty Promo (e.g. 3+1 Free)'}
+                      </strong>
+                      <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        {language === 'es'
+                          ? 'Acumula sellos por compras en Farmacia Value, Ahorro, etc. para ganar frascos gratis.'
+                          : 'Track loyalty stamps to get free reward boxes.'}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={loyaltyEnabled}
+                      onChange={() => {}}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  {loyaltyEnabled && (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div className="grid-2">
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                            {language === 'es' ? 'Farmacia de la Promoción' : 'Pharmacy'}
+                          </label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={loyaltyStore}
+                            onChange={e => setLoyaltyStore(e.target.value)}
+                            placeholder="e.g. Farmacias Value"
+                          />
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                            {language === 'es' ? 'Compras Requeridas' : 'Required Purchases'}
+                          </label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            min="1"
+                            max="10"
+                            value={loyaltyRequired}
+                            onChange={e => setLoyaltyRequired(Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid-2">
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                            {language === 'es' ? 'Sellos Acumulados' : 'Stamps Count'}
+                          </label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            min="0"
+                            max={loyaltyRequired}
+                            value={loyaltyPurchased}
+                            onChange={e => setLoyaltyPurchased(Number(e.target.value))}
+                          />
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                            {language === 'es' ? 'Premio / Bonificación' : 'Reward'}
+                          </label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={loyaltyReward}
+                            onChange={e => setLoyaltyReward(e.target.value)}
+                            placeholder="e.g. 1 Frasco Gratis"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

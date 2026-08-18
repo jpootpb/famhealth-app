@@ -70,6 +70,20 @@ export interface Medication {
   source?: MedicationSource;
   preferredStore?: string; // Farmacia o tienda recomendada (ej: Mercado Libre, Farmacias Guadalajara, Muestras Médicas)
   purchaseNotes?: string; // Notas de compra y tips de ahorro para la familia
+  loyaltyPromo?: {
+    enabled: boolean;
+    storeName: string; // e.g. Farmacias Value (Promoción 3+1)
+    requiredPurchases: number; // e.g. 3
+    currentPurchased: number; // e.g. 2
+    rewardDescription: string; // e.g. 1 Frasco / Caja Gratis
+    isRewardReady?: boolean;
+  };
+  donationSource?: {
+    fromPatientName: string;
+    fromFamilyName?: string;
+    date: string;
+    notes?: string;
+  };
   badgeColor?: string;
   expirationDate?: string; // YYYY-MM-DD
 }

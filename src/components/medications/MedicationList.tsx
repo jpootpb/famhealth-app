@@ -13,18 +13,25 @@ import {
   Clock,
   Building2,
   Image as ImageIcon,
-  X
+  X,
+  Gift,
+  Award,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/formatters';
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
 import { MedicationModal } from './MedicationModal';
-
 import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
-import { Sparkles } from 'lucide-react';
+import {
+  recordLoyaltyPurchase,
+  claimLoyaltyReward,
+  transferMedicationStock
+} from '../../utils/medicationSolidarityEngine';
 
 export const MedicationList: React.FC = () => {
-  const { activePatient, medications, updateMedication, deleteMedication, addMedication } = useApp();
+  const { activePatient, patients, medications, updateMedication, deleteMedication, addMedication } = useApp();
   const { t, language } = useLanguage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
@@ -73,6 +80,71 @@ export const MedicationList: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const [transferModalMed, setTransferModalMed] = useState<Medication | null>(null);
+  const [targetPatientId, setTargetPatientId] = useState<string>('');
+  const [transferQty, setTransferQty] = useState<number>(1);
+  const [transferNote, setTransferNote] = useState<string>('');
+  const [transferSavings, setTransferSavings] = useState<number>(0);
+  const [transferToast, setTransferToast] = useState<string | null>(null);
+
+  const handleAddLoyaltyStamp = (med: Medication) => {
+    const updated = recordLoyaltyPurchase(med);
+    updateMedication(updated);
+  };
+
+  const handleClaimFreeReward = (med: Medication) => {
+    const { updatedMed } = claimLoyaltyReward(med);
+    updateMedication(updatedMed);
+    setTransferToast(
+      language === 'es'
+        ? `🎉 ¡Frasco/Caja Gratis reclamada! Se agregó +1 a ${med.name} sin costo.`
+        : `🎉 Free reward claimed! Added +1 to ${med.name} at $0 cost.`
+    );
+    setTimeout(() => setTransferToast(null), 5000);
+  };
+
+  const handleOpenTransferModal = (med: Medication) => {
+    const otherPatients = patients.filter(p => p.id !== activePatient.id);
+    setTransferModalMed(med);
+    setTargetPatientId(otherPatients[0]?.id || '');
+    setTransferQty(med.currentStock);
+    setTransferSavings(med.unitCost || 450);
+    setTransferNote(
+      language === 'es'
+        ? `Medicamento que ${activePatient.name} ya no utiliza y se traspasa solidariamente.`
+        : `Unused medication transferred as family donation.`
+    );
+  };
+
+  const handleConfirmTransfer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transferModalMed || !targetPatientId || transferQty <= 0) return;
+
+    const targetPatient = patients.find(p => p.id === targetPatientId);
+    if (!targetPatient) return;
+
+    const { updatedSourceMed, createdOrUpdatedTargetMed } = transferMedicationStock({
+      sourceMedication: transferModalMed,
+      sourcePatientName: activePatient.name,
+      targetPatientId: targetPatient.id,
+      targetPatientName: targetPatient.name,
+      quantityToTransfer: Number(transferQty),
+      commercialEstimatedValue: Number(transferSavings),
+      note: transferNote
+    });
+
+    updateMedication(updatedSourceMed);
+    addMedication(createdOrUpdatedTargetMed);
+
+    setTransferToast(
+      language === 'es'
+        ? `🤝 ¡Traspaso solidario exitoso! Se transfirieron ${transferQty} ${transferModalMed.presentation}s a ${targetPatient.name}.`
+        : `🤝 Successful donation! Transferred ${transferQty} items to ${targetPatient.name}.`
+    );
+    setTimeout(() => setTransferToast(null), 5000);
+    setTransferModalMed(null);
+  };
+
   const handleOpenEdit = (med: Medication) => {
     setMedicationToEdit(med);
     setIsModalOpen(true);
@@ -93,6 +165,32 @@ export const MedicationList: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Solidarity / Promo Toast Banner */}
+      {transferToast && (
+        <div
+          style={{
+            backgroundColor: '#065f46',
+            color: '#ffffff',
+            padding: '0.875rem 1.25rem',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            fontSize: '0.875rem',
+            fontWeight: 600
+          }}
+        >
+          <span>{transferToast}</span>
+          <button
+            onClick={() => setTransferToast(null)}
+            style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', display: 'flex' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Header & Quick Summary */}
       <div
         className="card"
@@ -373,6 +471,94 @@ export const MedicationList: React.FC = () => {
                       </div>
                     )
                   )}
+
+                  {/* Pharmacy Loyalty Program Stamp Card (ej: Farmacia Value 3+1) */}
+                  {med.loyaltyPromo && med.loyaltyPromo.enabled && (
+                    <div
+                      style={{
+                        backgroundColor: med.loyaltyPromo.isRewardReady ? '#ecfdf5' : '#eff6ff',
+                        border: med.loyaltyPromo.isRewardReady ? '1.5px solid #10b981' : '1px solid #bfdbfe',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.625rem 0.75rem',
+                        marginTop: '0.5rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Award size={16} color={med.loyaltyPromo.isRewardReady ? '#059669' : '#2563eb'} />
+                          <strong style={{ fontSize: '0.78rem', color: med.loyaltyPromo.isRewardReady ? '#065f46' : '#1e40af' }}>
+                            🎁 {med.loyaltyPromo.storeName}: {med.loyaltyPromo.rewardDescription}
+                          </strong>
+                        </div>
+
+                        {med.loyaltyPromo.isRewardReady ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ backgroundColor: '#059669', borderColor: '#059669', fontSize: '0.72rem', padding: '0.25rem 0.5rem' }}
+                            onClick={() => handleClaimFreeReward(med)}
+                          >
+                            🎉 {language === 'es' ? '¡Reclamar Caja Gratis!' : 'Claim Free Box!'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.45rem' }}
+                            onClick={() => handleAddLoyaltyStamp(med)}
+                          >
+                            +1 {language === 'es' ? 'Sellar Compra' : 'Add Stamp'}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Visual Stamp Progress Bubbles */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem' }}>
+                        {Array.from({ length: med.loyaltyPromo.requiredPurchases }).map((_, idx) => {
+                          const isFilled = idx < (med.loyaltyPromo?.currentPurchased || 0);
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '50%',
+                                backgroundColor: isFilled ? '#2563eb' : '#e2e8f0',
+                                color: isFilled ? '#ffffff' : '#94a3b8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.68rem',
+                                fontWeight: 800
+                              }}
+                            >
+                              {isFilled ? '✓' : idx + 1}
+                            </div>
+                          );
+                        })}
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '0.25rem' }}>
+                          ({med.loyaltyPromo.currentPurchased} {language === 'es' ? 'de' : 'of'} {med.loyaltyPromo.requiredPurchases} {language === 'es' ? 'sellos acumulados' : 'stamps'})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Inter-Family Solidarity Donation Badge */}
+                  {med.donationSource && (
+                    <div
+                      style={{
+                        backgroundColor: '#fdf4ff',
+                        border: '1px solid #f0abfc',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '0.5rem 0.75rem',
+                        marginTop: '0.5rem',
+                        fontSize: '0.75rem',
+                        color: '#86198f'
+                      }}
+                    >
+                      🤝 <strong>{language === 'es' ? 'Donación Solidaria Familiar:' : 'Family Donation:'}</strong> {language === 'es' ? 'Recibido de' : 'Received from'} <strong>{med.donationSource.fromPatientName}</strong> ({med.donationSource.date})
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Footer Actions */}
@@ -388,7 +574,7 @@ export const MedicationList: React.FC = () => {
                     gap: '0.5rem'
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '0.375rem' }}>
+                  <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleQuickRestock(med, 30)}
@@ -406,6 +592,17 @@ export const MedicationList: React.FC = () => {
                     >
                       <PackagePlus size={14} /> {t('quickAdd15')}
                     </button>
+
+                    {med.currentStock > 0 && patients.length > 1 && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleOpenTransferModal(med)}
+                        title={language === 'es' ? 'Traspasar o donar stock a otro familiar' : 'Donate to family member'}
+                        style={{ fontSize: '0.75rem', color: '#7c3aed' }}
+                      >
+                        <Gift size={14} /> {language === 'es' ? 'Donar a Familiar' : 'Donate'}
+                      </button>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.375rem' }}>
@@ -468,6 +665,127 @@ export const MedicationList: React.FC = () => {
         onClose={() => setIsAiScannerOpen(false)}
         onSelectMedication={handleAiExtractedMed}
       />
+
+      {/* Inter-Family Solidarity Transfer Modal */}
+      {transferModalMed && (
+        <div className="modal-backdrop" onClick={() => setTransferModalMed(null)}>
+          <div className="modal-content" style={{ maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Gift size={22} color="#7c3aed" />
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+                  {language === 'es' ? 'Donación / Traspaso Solidario a Familiar' : 'Family Medication Donation'}
+                </h2>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setTransferModalMed(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              {language === 'es'
+                ? `Traspasa medicamento que ${activePatient.name} ya no utiliza (ej. sobrante del IMSS o tratamiento finalizado) a otro familiar que lo necesite a costo $0 MXN.`
+                : `Transfer unused medication from ${activePatient.name} to another family member at $0 cost.`}
+            </p>
+
+            <form onSubmit={handleConfirmTransfer}>
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '1rem',
+                  fontSize: '0.8125rem'
+                }}
+              >
+                <div><strong>💊 Medicamento:</strong> {transferModalMed.name}</div>
+                <div><strong>📦 Stock Disponible en Botiquín:</strong> {transferModalMed.currentStock} {transferModalMed.presentation}s</div>
+                {transferModalMed.isImssCovered && (
+                  <div style={{ color: '#065f46', marginTop: '0.25rem' }}>
+                    🏥 <em>Suministro original del IMSS ($0 MXN)</em>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  👤 {language === 'es' ? 'Familiar Receptor (A quién se lo donas)' : 'Receiving Family Member'}
+                </label>
+                <select
+                  className="form-select"
+                  value={targetPatientId}
+                  onChange={e => setTargetPatientId(e.target.value)}
+                  required
+                >
+                  {patients
+                    .filter(p => p.id !== activePatient.id)
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.primaryDiagnosis || 'Familiar'})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="grid-2">
+                <div className="form-group">
+                  <label className="form-label">
+                    📦 {language === 'es' ? 'Cantidad a Traspasar' : 'Quantity to Transfer'}
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="1"
+                    max={transferModalMed.currentStock}
+                    value={transferQty}
+                    onChange={e => setTransferQty(Number(e.target.value))}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    💰 {language === 'es' ? 'Ahorro Estimado ($ MXN)' : 'Estimated Savings ($ MXN)'}
+                  </label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="0"
+                    value={transferSavings}
+                    onChange={e => setTransferSavings(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  📝 {language === 'es' ? 'Nota o Motivo del Traspaso' : 'Transfer Note'}
+                </label>
+                <textarea
+                  className="form-input"
+                  rows={2}
+                  value={transferNote}
+                  onChange={e => setTransferNote(e.target.value)}
+                  placeholder="e.g. Doña María ya no toma pregabalina del seguro y se la regalamos a la suegra para su neuropatía."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setTransferModalMed(null)}>
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1, backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
+                >
+                  🤝 {language === 'es' ? 'Confirmar Traspaso Solidario' : 'Confirm Donation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
