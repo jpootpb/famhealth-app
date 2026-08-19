@@ -29,6 +29,7 @@ import {
   addNewBatchToMedication
 } from '../utils/medicationBatchEngine';
 import { purgeDemoArtifacts, hasUserRealCustomData } from '../utils/demoPurgeEngine';
+import { exportFamilySyncPayload, parseAndValidateFamilySyncPayload } from '../lib/cloudSyncEngine';
 
 interface AppContextType {
   // Auth & Current User
@@ -50,6 +51,8 @@ interface AppContextType {
   setActiveFamilyId: (id: string) => void;
   createFamilyCircle: (name: string, isPersonal?: boolean) => FamilyCircle;
   joinFamilyCircleByCode: (code: string) => boolean;
+  exportFamilyBackup: () => string;
+  importFamilyBackup: (jsonStr: string) => { success: boolean; error?: string };
 
   // Patients
   patients: Patient[];
@@ -474,6 +477,102 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return true;
     }
     return false;
+  };
+
+  const exportFamilyBackup = (): string => {
+    if (!activeFamilyCircle) return '';
+    return exportFamilySyncPayload({
+      familyCircle: activeFamilyCircle,
+      patients: allPatients,
+      medications: allMedications,
+      doseLogs: allDoseLogs,
+      vitals: allVitals,
+      expenses: allExpenses,
+      appointments: allAppointments,
+      studies: allStudies,
+      routineLogs: allRoutineLogs
+    });
+  };
+
+  const importFamilyBackup = (jsonStr: string): { success: boolean; error?: string } => {
+    const { success, payload, error } = parseAndValidateFamilySyncPayload(jsonStr);
+    if (!success || !payload) {
+      return { success: false, error: error || 'Formato no válido' };
+    }
+
+    const famId = payload.familyId;
+
+    // Ensure family circle exists
+    setAllFamilyCircles(prev => {
+      if (prev.some(c => c.id === famId)) {
+        return prev.map(c => c.id === famId ? { ...c, name: payload.familyName || c.name } : c);
+      }
+      return [...prev, {
+        id: famId,
+        name: payload.familyName,
+        inviteCode: generateFamilyInviteCode(payload.familyName),
+        createdAt: formatDateIso(new Date())
+      }];
+    });
+
+    // Ensure joined
+    if (!currentUser.joinedFamilyIds?.includes(famId)) {
+      const updatedUser = {
+        ...currentUser,
+        joinedFamilyIds: [...(currentUser.joinedFamilyIds || []), famId],
+        activeFamilyId: famId
+      };
+      setCurrentUser(updatedUser);
+      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    }
+    setActiveFamilyIdState(famId);
+
+    // Merge patients
+    setAllPatients(prev => {
+      const other = prev.filter(p => (p.familyId || 'circle-poot') !== famId);
+      return [...other, ...payload.patients];
+    });
+
+    // Merge medications
+    setAllMedications(prev => {
+      const other = prev.filter(m => (m.familyId || 'circle-poot') !== famId);
+      return [...other, ...payload.medications];
+    });
+
+    // Merge doses
+    setAllDoseLogs(prev => {
+      const payloadMedIds = new Set(payload.medications.map(m => m.id));
+      const other = prev.filter(d => !payloadMedIds.has(d.medicationId));
+      return [...other, ...payload.doseLogs];
+    });
+
+    // Merge vitals
+    setAllVitals(prev => {
+      const payloadPatIds = new Set(payload.patients.map(p => p.id));
+      const other = prev.filter(v => !payloadPatIds.has(v.patientId));
+      return [...other, ...payload.vitals];
+    });
+
+    // Merge expenses
+    setAllExpenses(prev => {
+      const other = prev.filter(e => (e.familyId || 'circle-poot') !== famId);
+      return [...other, ...payload.expenses];
+    });
+
+    // Merge appointments
+    setAllAppointments(prev => {
+      const payloadPatIds = new Set(payload.patients.map(p => p.id));
+      const other = prev.filter(a => !payloadPatIds.has(a.patientId));
+      return [...other, ...payload.appointments];
+    });
+
+    // Merge studies
+    setAllStudies(prev => {
+      const other = prev.filter(s => (s.familyId || 'circle-poot') !== famId);
+      return [...other, ...payload.studies];
+    });
+
+    return { success: true };
   };
 
   const setActivePatientId = (id: string) => {
@@ -947,6 +1046,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setActiveFamilyId,
         createFamilyCircle,
         joinFamilyCircleByCode,
+        exportFamilyBackup,
+        importFamilyBackup,
 
         patients,
         allPatients,

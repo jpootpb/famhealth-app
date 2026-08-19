@@ -29,16 +29,21 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
     createFamilyCircle,
     joinFamilyCircleByCode,
     allPatients,
-    addPatient
+    addPatient,
+    exportFamilyBackup,
+    importFamilyBackup
   } = useApp();
   const { t, language } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<'switch' | 'create' | 'join'>('switch');
+  const [activeTab, setActiveTab] = useState<'switch' | 'create' | 'join' | 'sync'>('switch');
   const [newFamilyName, setNewFamilyName] = useState('');
   const [personalName, setPersonalName] = useState('');
   const [isPersonalMode, setIsPersonalMode] = useState(false);
   const [inviteCodeInput, setInviteCodeInput] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedSyncPayload, setCopiedSyncPayload] = useState(false);
+  const [syncInput, setSyncInput] = useState('');
+  const [syncStatusMsg, setSyncStatusMsg] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [joinError, setJoinError] = useState('');
   const [joinSuccess, setJoinSuccess] = useState(false);
 
@@ -217,27 +222,34 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
         )}
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('switch')}
             className={`btn btn-sm ${activeTab === 'switch' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ flex: 1, borderRadius: 'var(--radius-full)' }}
+            style={{ flex: 1, minWidth: '100px', borderRadius: 'var(--radius-full)' }}
           >
             {language === 'es' ? 'Mis Espacios' : 'My Spaces'}
           </button>
           <button
             onClick={() => setActiveTab('create')}
             className={`btn btn-sm ${activeTab === 'create' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ flex: 1, borderRadius: 'var(--radius-full)' }}
+            style={{ flex: 1, minWidth: '100px', borderRadius: 'var(--radius-full)' }}
           >
-            <Plus size={14} /> {language === 'es' ? 'Crear Nuevo' : 'Create New'}
+            <Plus size={14} /> {language === 'es' ? 'Crear' : 'Create'}
           </button>
           <button
             onClick={() => setActiveTab('join')}
             className={`btn btn-sm ${activeTab === 'join' ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ flex: 1, borderRadius: 'var(--radius-full)' }}
+            style={{ flex: 1, minWidth: '100px', borderRadius: 'var(--radius-full)' }}
           >
-            <KeyRound size={14} /> {language === 'es' ? 'Unirme con Código' : 'Join with Code'}
+            <KeyRound size={14} /> {language === 'es' ? 'Código' : 'Code'}
+          </button>
+          <button
+            onClick={() => setActiveTab('sync')}
+            className={`btn btn-sm ${activeTab === 'sync' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: 1, minWidth: '110px', borderRadius: 'var(--radius-full)' }}
+          >
+            🔄 {language === 'es' ? 'Sincronizar' : 'Sync'}
           </button>
         </div>
 
@@ -251,53 +263,72 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
               return (
                 <div
                   key={circle.id}
-                  onClick={() => {
-                    setActiveFamilyId(circle.id);
-                    onClose();
-                  }}
                   style={{
+                    backgroundColor: isCurrent ? '#f0f9ff' : 'var(--bg-secondary)',
+                    border: isCurrent ? '1.5px solid var(--primary)' : '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.875rem 1rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0.875rem 1rem',
-                    backgroundColor: isCurrent ? 'var(--primary-light)' : '#ffffff',
-                    border: `1px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`,
-                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
+                  }}
+                  onClick={() => {
+                    setActiveFamilyId(circle.id);
+                    onClose();
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div
                       style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: isCurrent ? 'var(--primary)' : 'var(--bg-secondary)',
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: isCurrent ? 'var(--primary)' : 'var(--border-color)',
                         color: isCurrent ? '#ffffff' : 'var(--text-secondary)',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '0.875rem'
+                        justifyContent: 'center'
                       }}
                     >
-                      {circle.name.charAt(0)}
+                      {circle.isPersonalSpace ? <User size={18} /> : <Building2 size={18} />}
                     </div>
                     <div>
-                      <strong style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-                        {circle.name}
-                      </strong>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        🔑 {circle.inviteCode} • {circlePatientsCount} {language === 'es' ? 'pacientes registrados' : 'patients'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.95rem', color: isCurrent ? 'var(--primary)' : 'var(--text-primary)' }}>
+                          {circle.name}
+                        </span>
+                        {isCurrent && (
+                          <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>
+                            {language === 'es' ? 'Activo' : 'Active'}
+                          </span>
+                        )}
                       </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        {circlePatientsCount === 1
+                          ? (language === 'es' ? '1 Paciente registrado' : '1 Patient registered')
+                          : (language === 'es' ? `${circlePatientsCount} Pacientes registrados` : `${circlePatientsCount} Patients registered`)}
+                        {' • '}
+                        <code style={{ fontFamily: 'var(--font-mono)' }}>{circle.inviteCode}</code>
+                      </span>
                     </div>
                   </div>
 
-                  {isCurrent && (
-                    <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
-                      ✓ {language === 'es' ? 'Activo' : 'Active'}
-                    </span>
+                  {isCurrent ? (
+                    <CheckCircle2 size={20} color="var(--primary)" />
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setActiveFamilyId(circle.id);
+                        onClose();
+                      }}
+                    >
+                      {language === 'es' ? 'Cambiar' : 'Switch'}
+                    </button>
                   )}
                 </div>
               );
@@ -305,46 +336,45 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
           </div>
         )}
 
-        {/* Tab 2: Create New Family Circle or Personal Space */}
+        {/* Tab 2: Create New Family Circle */}
         {activeTab === 'create' && (
           <form onSubmit={handleCreate}>
-            {/* Mode Toggle: Family vs Personal */}
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <button
                 type="button"
                 className={`btn btn-sm ${!isPersonalMode ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setIsPersonalMode(false)}
                 style={{ flex: 1 }}
+                onClick={() => setIsPersonalMode(false)}
               >
-                <Users size={14} /> {language === 'es' ? 'Familia / Cuidadores' : 'Family / Caregivers'}
+                <Users size={14} /> {language === 'es' ? 'Familia / Grupo' : 'Family / Group'}
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${isPersonalMode ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setIsPersonalMode(true)}
                 style={{ flex: 1 }}
+                onClick={() => setIsPersonalMode(true)}
               >
-                <User size={14} /> {language === 'es' ? 'Solo para Mí (Personal)' : 'Just for Me (Personal)'}
+                <User size={14} /> {language === 'es' ? 'Uso Personal' : 'Personal Use'}
               </button>
             </div>
 
             {isPersonalMode ? (
               <div className="form-group">
                 <label className="form-label">
-                  {language === 'es' ? 'Tu Nombre *' : 'Your Name *'}
+                  {language === 'es' ? 'Tu Nombre o Identificador *' : 'Your Name *'}
                 </label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Laura Poot, Carlos"
+                  placeholder={language === 'es' ? 'e.g. José Manuel Poot, Carlos' : 'e.g. John Doe'}
                   value={personalName}
                   onChange={e => setPersonalName(e.target.value)}
                   required
                 />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
                   {language === 'es'
-                    ? 'Se creará tu espacio privado e individual sin cuidadores ni división de gastos.'
-                    : 'A private single-user space will be created without caregivers or expense splitting.'}
+                    ? 'Se creará tu espacio individual privado para registrar tus medicamentos y signos vitales personales.'
+                    : 'A private space will be created to track your personal medicines and vitals.'}
                 </span>
               </div>
             ) : (
@@ -389,7 +419,7 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. POOT-7821, GOME-3390"
+                placeholder="e.g. POOT-7821, IBARRA-2026"
                 value={inviteCodeInput}
                 onChange={e => setInviteCodeInput(e.target.value)}
                 style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}
@@ -418,6 +448,106 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
               </button>
             </div>
           </form>
+        )}
+
+        {/* Tab 4: Sync & Backup across devices */}
+        {activeTab === 'sync' && (
+          <div>
+            <div style={{ backgroundColor: '#eff6ff', padding: '0.875rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.8125rem', color: '#1e40af' }}>
+              📲 <strong>{language === 'es' ? 'Sincronización Directa entre Dispositivos:' : 'Direct Multi-Device Sync:'}</strong>
+              <p style={{ margin: '0.25rem 0 0', opacity: 0.9 }}>
+                {language === 'es'
+                  ? 'Copia los datos de tu familia desde tu computadora o celular para pegarlos y sincronizarlos de inmediato en cualquier otro teléfono.'
+                  : 'Copy your family data from this device and paste it on another phone to sync immediately.'}
+              </p>
+            </div>
+
+            {/* Export Section */}
+            <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem', backgroundColor: '#ffffff' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>📤 1. Exportar Datos de {activeFamilyCircle?.name}</span>
+              </h4>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={async () => {
+                    const payload = exportFamilyBackup();
+                    try {
+                      await navigator.clipboard.writeText(payload);
+                      setCopiedSyncPayload(true);
+                      setTimeout(() => setCopiedSyncPayload(false), 2500);
+                    } catch {
+                      setSyncStatusMsg({ type: 'success', msg: 'Respaldo listo. Cópialo manualmente.' });
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  {copiedSyncPayload ? <Check size={14} color="#ffffff" /> : <Copy size={14} />}
+                  {copiedSyncPayload ? (language === 'es' ? '¡Datos Copiados al Portapapeles!' : 'Copied!') : (language === 'es' ? 'Copiar Datos de Respaldo' : 'Copy Backup Data')}
+                </button>
+              </div>
+            </div>
+
+            {/* Import Section */}
+            <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem', backgroundColor: '#ffffff' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>📥 2. Pegar Datos desde Otro Dispositivo</span>
+              </h4>
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder={language === 'es' ? 'Pega aquí el código de respaldo copiado de tu otro celular o computadora...' : 'Paste backup code here...'}
+                value={syncInput}
+                onChange={e => setSyncInput(e.target.value)}
+                style={{ fontSize: '0.75rem', fontFamily: 'monospace', marginBottom: '0.75rem' }}
+              />
+
+              {syncStatusMsg && (
+                <div
+                  style={{
+                    backgroundColor: syncStatusMsg.type === 'success' ? '#ecfdf5' : '#fee2e2',
+                    border: `1px solid ${syncStatusMsg.type === 'success' ? 'var(--success)' : 'var(--danger)'}`,
+                    color: syncStatusMsg.type === 'success' ? 'var(--success)' : 'var(--danger)',
+                    padding: '0.625rem',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.8125rem',
+                    marginBottom: '0.75rem'
+                  }}
+                >
+                  {syncStatusMsg.msg}
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+                disabled={!syncInput.trim()}
+                onClick={() => {
+                  setSyncStatusMsg(null);
+                  const res = importFamilyBackup(syncInput);
+                  if (res.success) {
+                    setSyncStatusMsg({
+                      type: 'success',
+                      msg: language === 'es' ? '✅ ¡Datos sincronizados y actualizados exitosamente en este celular!' : '✅ Synced successfully!'
+                    });
+                    setSyncInput('');
+                    setTimeout(() => {
+                      onClose();
+                    }, 1200);
+                  } else {
+                    setSyncStatusMsg({
+                      type: 'error',
+                      msg: res.error || (language === 'es' ? 'Error al procesar los datos de sincronización.' : 'Error importing data.')
+                    });
+                  }
+                }}
+              >
+                🔄 {language === 'es' ? 'Sincronizar y Actualizar este Celular' : 'Sync & Update this Phone'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
