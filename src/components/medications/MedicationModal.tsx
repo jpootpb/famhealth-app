@@ -39,6 +39,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
 
   const [name, setName] = useState('');
+  const [activeIngredient, setActiveIngredient] = useState('');
+  const [dosageStrength, setDosageStrength] = useState('');
   const [treatmentType, setTreatmentType] = useState<'chronic' | 'temporary'>('chronic');
   const [presentation, setPresentation] = useState('tablet');
   const [indication, setIndication] = useState('');
@@ -78,6 +80,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
   const handleAiExtractedMed = (med: ExtractedPrescriptionMed) => {
     setName(med.name);
+    if (med.activeIngredient) setActiveIngredient(med.activeIngredient);
+    if (med.dosageStrength) setDosageStrength(med.dosageStrength);
     if (med.presentation) setPresentation(med.presentation);
     if (med.laboratory) setLaboratory(med.laboratory);
     if (med.instructions) setIndication(med.instructions);
@@ -111,6 +115,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setTreatmentType(isTemp ? 'temporary' : 'chronic');
       setAssignedPatientId(medicationToEdit.patientId || activePatient?.id || '');
       setName(medicationToEdit.name || '');
+      setActiveIngredient(medicationToEdit.activeIngredient || '');
+      setDosageStrength(medicationToEdit.dosageStrength || '');
       setPresentation(medicationToEdit.presentation || 'tablet');
       setIndication(medicationToEdit.indication || '');
       setLaboratory(medicationToEdit.laboratory || '');
@@ -161,6 +167,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setTreatmentType(isPatientTemp ? 'temporary' : 'chronic');
       setAssignedPatientId(activePatient?.id || '');
       setName('');
+      setActiveIngredient('');
+      setDosageStrength('');
       setPresentation('tablet');
       setIndication('');
       setLaboratory('');
@@ -259,6 +267,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     const payload = {
       patientId: assignedPatientId || currentPatient.id,
       name: name.trim(),
+      activeIngredient: activeIngredient.trim() || undefined,
+      dosageStrength: dosageStrength.trim() || undefined,
       treatmentType,
       presentation,
       stockTrackingMode,
@@ -405,11 +415,13 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
           {/* Basic Details */}
           <div className="grid-2">
             <div className="form-group">
-              <label className="form-label">{t('medName')}</label>
+              <label className="form-label">
+                {language === 'es' ? 'Nombre Comercial / Marca:' : 'Brand / Commercial Name:'} <span style={{ color: 'var(--danger)' }}>*</span>
+              </label>
               <input
                 type="text"
                 className="form-input"
-                placeholder={t('medNamePlaceholder')}
+                placeholder={language === 'es' ? 'ej. Forxiga, Janumet, Xarelto, Tempra' : 'e.g. Forxiga, Tempra, Janumet'}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
@@ -446,6 +458,43 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                 <option value="injection">💉 {language === 'es' ? 'Inyectable / Ampolleta' : 'Injection'}</option>
                 <option value="patch">🩹 {language === 'es' ? 'Parche Transdérmico' : 'Patch'}</option>
               </select>
+            </div>
+          </div>
+
+          {/* Active Ingredient (Compuesto) & Dosage Strength (Gramaje / Concentración) */}
+          <div className="grid-2" style={{ marginTop: '0.25rem' }}>
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span>🧪</span>
+                <span>{language === 'es' ? 'Compuesto Activo / Sustancia (Genérico):' : 'Active Compound / Generic:'}</span>
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder={language === 'es' ? 'ej. Dapagliflozina, Metformina, Paracetamol' : 'e.g. Dapagliflozin, Metformin'}
+                value={activeIngredient}
+                onChange={e => setActiveIngredient(e.target.value)}
+              />
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem', display: 'block' }}>
+                {language === 'es' ? 'Fórmula química o nombre genérico del fármaco' : 'Generic compound formula'}
+              </span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span>⚖️</span>
+                <span>{language === 'es' ? 'Gramaje / Concentración / Volumen:' : 'Dosage Strength / Volume:'}</span>
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder={language === 'es' ? 'ej. 10 mg, 500 mg / 50 mg, 2.5 mg, 100 ml, 5 ml' : 'e.g. 10 mg, 500 mg, 100 ml'}
+                value={dosageStrength}
+                onChange={e => setDosageStrength(e.target.value)}
+              />
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.15rem', display: 'block' }}>
+                {language === 'es' ? 'Concentración indicada en la caja o receta' : 'Strength indicated on the medicine box'}
+              </span>
             </div>
           </div>
 

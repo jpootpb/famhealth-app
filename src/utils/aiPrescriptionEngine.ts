@@ -1,5 +1,7 @@
 export interface ExtractedPrescriptionMed {
   name: string;
+  activeIngredient?: string; // Compuesto activo / Sustancia activa (e.g. Dapagliflozina, Metformina, Rivaroxabán)
+  dosageStrength?: string; // Gramaje / Concentración (e.g. 10 mg, 500 mg, 100 ml)
   presentation?: string; // tablet, capsule, syrup, etc.
   dose?: number; // 1, 0.5, etc.
   frequencyHours?: number; // e.g. 8, 12, 24
@@ -19,14 +21,16 @@ Return ONLY a valid JSON object matching this exact schema:
 {
   "medications": [
     {
-      "name": "Medication Name (e.g. Metformina, Ciprofloxacino, Atorvastatina)",
+      "name": "Commercial / Brand Name (e.g. Forxiga, Tempra, Janumet, Xarelto)",
+      "activeIngredient": "Active chemical compound / Generic substance (e.g. Dapagliflozina, Paracetamol, Metformina/Sitagliptina, Rivaroxabán)",
+      "dosageStrength": "Grammage, concentration, or volume (e.g. 10 mg, 500 mg, 2.5 mg, 100 ml)",
       "presentation": "tablet" | "capsule" | "ml" | "drops" | "inhalation" | "injection" | "patch",
       "dose": 1,
       "frequencyHours": 12,
       "scheduledTimes": ["08:00", "20:00"],
       "durationDays": 7,
       "instructions": "e.g. Tomar con alimentos cada 12 horas",
-      "laboratory": "e.g. Silanes, Bayer, Genérico GI"
+      "laboratory": "e.g. Silanes, Bayer, Genérico GI, AstraZeneca"
     }
   ]
 }

@@ -341,6 +341,26 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
                 {slot.medicationName}
               </span>
 
+              {(med?.activeIngredient || med?.dosageStrength) && (
+                <span
+                  style={{
+                    backgroundColor: '#f0fdfa',
+                    color: '#0f766e',
+                    border: '1px solid #99f6e4',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '0.1rem 0.45rem',
+                    borderRadius: 'var(--radius-full)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.2rem'
+                  }}
+                >
+                  <span>🧪</span>
+                  <span>{med.activeIngredient || ''}{med.dosageStrength ? (med.activeIngredient ? ` • ${med.dosageStrength}` : med.dosageStrength) : ''}</span>
+                </span>
+              )}
+
               <span className="fractional-badge">
                 {formatDose(slot.dose, slot.presentation, language as any)}
               </span>

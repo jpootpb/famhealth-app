@@ -152,7 +152,17 @@ export const DoctorSummaryModal: React.FC<DoctorSummaryModalProps> = ({ isOpen, 
                   {patientMeds.map((m, idx) => (
                     <tr key={m.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
                       <td style={{ padding: '0.4rem 0.6rem', fontWeight: 700 }}>
-                        {m.name} {m.laboratory ? `(${m.laboratory})` : ''}
+                        <div>{m.name} {m.dosageStrength ? `(${m.dosageStrength})` : ''}</div>
+                        {m.activeIngredient && (
+                          <div style={{ fontSize: '0.72rem', color: '#0f766e', fontWeight: 600, marginTop: '0.1rem' }}>
+                            🧪 {m.activeIngredient}
+                          </div>
+                        )}
+                        {m.laboratory && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            Lab: {m.laboratory}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '0.4rem 0.6rem' }}>
                         {getFrequencyLabel(m.frequency)} ({m.frequency.doseSlots.map(s => s.time).join(', ')})

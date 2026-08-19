@@ -59,6 +59,7 @@ export const MedicationList: React.FC = () => {
   const { t, language } = useLanguage();
 
   const [statusTab, setStatusTab] = useState<'active' | 'completed'>('active');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState<Medication | null>(null);
@@ -140,6 +141,8 @@ export const MedicationList: React.FC = () => {
       id: '',
       patientId: activePatient.id,
       name: med.name,
+      activeIngredient: med.activeIngredient,
+      dosageStrength: med.dosageStrength,
       presentation: med.presentation || 'tablet',
       indication: med.instructions,
       laboratory: med.laboratory,
@@ -346,7 +349,18 @@ export const MedicationList: React.FC = () => {
     }
   };
 
-  const currentDisplayList = statusTab === 'active' ? activeMeds : completedMeds;
+  const rawDisplayList = statusTab === 'active' ? activeMeds : completedMeds;
+  const currentDisplayList = rawDisplayList.filter(med => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      med.name.toLowerCase().includes(q) ||
+      (med.activeIngredient && med.activeIngredient.toLowerCase().includes(q)) ||
+      (med.dosageStrength && med.dosageStrength.toLowerCase().includes(q)) ||
+      (med.laboratory && med.laboratory.toLowerCase().includes(q)) ||
+      (med.indication && med.indication.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -412,25 +426,39 @@ export const MedicationList: React.FC = () => {
         </div>
       </div>
 
-      {/* Status Filter Tabs (Activos vs Terminados / Historial) */}
-      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-        <button
-          onClick={() => setStatusTab('active')}
-          className={`btn btn-sm ${statusTab === 'active' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: 'var(--radius-full)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-        >
-          <Pill size={15} />
-          <span>{language === 'es' ? `💊 En Tratamiento Activo (${activeMeds.length})` : `💊 Active Medications (${activeMeds.length})`}</span>
-        </button>
+      {/* Search Bar & Status Filter Tabs */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setStatusTab('active')}
+            className={`btn btn-sm ${statusTab === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ borderRadius: 'var(--radius-full)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <Pill size={15} />
+            <span>{language === 'es' ? `💊 En Tratamiento Activo (${activeMeds.length})` : `💊 Active Medications (${activeMeds.length})`}</span>
+          </button>
 
-        <button
-          onClick={() => setStatusTab('completed')}
-          className={`btn btn-sm ${statusTab === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: 'var(--radius-full)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-        >
-          <Archive size={15} />
-          <span>{language === 'es' ? `🏁 Terminados / Concluidos (${completedMeds.length})` : `🏁 Completed / Finished (${completedMeds.length})`}</span>
-        </button>
+          <button
+            onClick={() => setStatusTab('completed')}
+            className={`btn btn-sm ${statusTab === 'completed' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ borderRadius: 'var(--radius-full)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <Archive size={15} />
+            <span>{language === 'es' ? `🏁 Terminados / Concluidos (${completedMeds.length})` : `🏁 Completed / Finished (${completedMeds.length})`}</span>
+          </button>
+        </div>
+
+        {/* Compound & Commercial Name Search Box */}
+        <div style={{ flex: 1, minWidth: '220px', maxWidth: '380px' }}>
+          <input
+            type="text"
+            className="form-input"
+            style={{ fontSize: '0.8125rem', padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-full)' }}
+            placeholder={language === 'es' ? '🔍 Buscar por nombre, compuesto (ej. Dapagliflozina) o gramaje...' : '🔍 Search by name, compound, or strength...'}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Stock Traffic Light Summary Badges (Only shown in Active tab) */}
@@ -597,8 +625,17 @@ export const MedicationList: React.FC = () => {
                         <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, textDecoration: isCompleted ? 'line-through' : 'none' }}>
                           {med.name}
                         </h3>
+
+                        {/* Active Ingredient (Compuesto) & Dosage Strength (Gramaje) Badge */}
+                        {(med.activeIngredient || med.dosageStrength) && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: '#0f766e', backgroundColor: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.12rem 0.5rem', borderRadius: 'var(--radius-full)', fontWeight: 700, marginTop: '0.2rem' }}>
+                            <span>🧪</span>
+                            <span>{med.activeIngredient || ''}{med.dosageStrength ? (med.activeIngredient ? ` • ${med.dosageStrength}` : med.dosageStrength) : ''}</span>
+                          </div>
+                        )}
+
                         {cardLab && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--secondary)', fontWeight: 600, marginTop: '0.15rem' }}>
                             <Building2 size={12} /> {cardLab}
                           </div>
                         )}

@@ -102,7 +102,9 @@ export interface Medication {
   id: string;
   familyId?: string;
   patientId: string;
-  name: string;
+  name: string; // Commercial / Brand name (e.g. Forxiga, Xarelto, Tempra, Janumet)
+  activeIngredient?: string; // Compuesto Activo / Sustancia Activa / Genérico (e.g. Dapagliflozina, Rivaroxabán, Paracetamol)
+  dosageStrength?: string; // Gramaje / Concentración / Mililitros (e.g. 10 mg, 500 mg, 2.5 mg, 100 ml, 5 ml / 120 mg)
   presentation: string; // tablet, capsule, ml, drops, etc.
   indication?: string;
   laboratory?: string; // Brand or Lab manufacturer (e.g. MSD, Silanes, Farmacias del Ahorro)
