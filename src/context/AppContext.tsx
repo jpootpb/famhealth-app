@@ -38,6 +38,8 @@ interface AppContextType {
   switchUser: (userId: string) => void;
   loginUser: (email: string, password?: string) => boolean;
   registerUser: (name: string, email: string, password?: string) => UserAccount;
+  resetUserPassword: (email: string, newPassword: string) => boolean;
+  loginWithSocialProvider: (provider: 'google' | 'facebook' | 'microsoft', email?: string, name?: string) => UserAccount;
   logoutUser: () => void;
 
   // Family Spaces
@@ -319,21 +321,79 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const registerUser = (name: string, email: string, password?: string): UserAccount => {
-    const initialFamId = allFamilyCircles[0]?.id || '';
+    const initialFamId = allFamilyCircles[0]?.id || 'circle-poot';
     const initialFamList = allFamilyCircles.map(c => c.id);
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user already exists
+    const existing = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      const updated = { ...existing, name: name.trim() || existing.name, password: password || existing.password || '123' };
+      setAllUsers(prev => prev.map(u => u.id === existing.id ? updated : u));
+      setCurrentUser(updated);
+      switchUser(existing.id);
+      return updated;
+    }
+
     const newUser: UserAccount = {
       id: 'user-' + Date.now(),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password: password || 'password123',
+      name: name.trim() || cleanEmail.split('@')[0],
+      email: cleanEmail,
+      password: password || '123',
       activeFamilyId: initialFamId,
-      joinedFamilyIds: initialFamList
+      joinedFamilyIds: initialFamList.length > 0 ? initialFamList : ['circle-poot']
     };
 
     setAllUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
     setActiveFamilyIdState(initialFamId);
     return newUser;
+  };
+
+  const resetUserPassword = (email: string, newPassword: string): boolean => {
+    const cleanEmail = email.trim().toLowerCase();
+    const user = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+    if (user) {
+      const updatedUser = { ...user, password: newPassword };
+      setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+      setCurrentUser(updatedUser);
+      switchUser(user.id);
+      return true;
+    }
+    // If not found in current local session, register it with this password
+    const newUser = registerUser(cleanEmail.split('@')[0], cleanEmail, newPassword);
+    switchUser(newUser.id);
+    return true;
+  };
+
+  const loginWithSocialProvider = (
+    provider: 'google' | 'facebook' | 'microsoft',
+    customEmail?: string,
+    customName?: string
+  ): UserAccount => {
+    let targetEmail = (customEmail || '').trim().toLowerCase();
+    let targetName = (customName || '').trim();
+
+    if (!targetEmail) {
+      if (provider === 'google') {
+        targetEmail = 'jpoot@gmail.com';
+        targetName = targetName || 'José Manuel Poot (Google)';
+      } else if (provider === 'facebook') {
+        targetEmail = 'jpoot.facebook@famhealth.app';
+        targetName = targetName || 'José Manuel Poot (Facebook)';
+      } else if (provider === 'microsoft') {
+        targetEmail = 'jpoot@outlook.com';
+        targetName = targetName || 'José Manuel Poot (Outlook)';
+      }
+    }
+
+    const existing = allUsers.find(u => u.email.toLowerCase() === targetEmail);
+    if (existing) {
+      switchUser(existing.id);
+      return existing;
+    }
+
+    return registerUser(targetName || 'Usuario', targetEmail, '123');
   };
 
   const logoutUser = () => {
@@ -850,6 +910,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         switchUser,
         loginUser,
         registerUser,
+        resetUserPassword,
+        loginWithSocialProvider,
         logoutUser,
 
         familyCircles,

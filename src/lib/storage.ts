@@ -29,8 +29,16 @@ import {
 
 export const initialUsers: UserAccount[] = [
   {
+    id: 'user-jpoot',
+    name: 'José Manuel Poot',
+    email: 'jpoot@outlook.com',
+    password: '123',
+    activeFamilyId: 'circle-poot',
+    joinedFamilyIds: ['circle-poot']
+  },
+  {
     id: 'user-jose',
-    name: 'José Manuel Poot (Familia Real)',
+    name: 'José Manuel Poot (Cuenta Principal)',
     email: 'jose@famhealth.app',
     password: '123',
     activeFamilyId: 'circle-poot',

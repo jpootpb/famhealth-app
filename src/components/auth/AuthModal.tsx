@@ -14,7 +14,8 @@ import {
   Mail,
   Lock,
   ArrowRight,
-  Trash2
+  Trash2,
+  HelpCircle
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -24,20 +25,23 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFamilyManager }) => {
-  const { currentUser, allUsers, switchUser, loginUser, registerUser, logoutUser, purgeAllDemoData } = useApp();
+  const { currentUser, allUsers, switchUser, loginUser, registerUser, resetUserPassword, loginWithSocialProvider, logoutUser, purgeAllDemoData } = useApp();
   const { t, language } = useLanguage();
 
-  const [authMode, setAuthMode] = useState<'profile' | 'login' | 'register'>('profile');
+  const [authMode, setAuthMode] = useState<'profile' | 'login' | 'register' | 'forgot_password'>('profile');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   if (!isOpen) return null;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
     const success = loginUser(email, password);
     if (success) {
       setEmail('');
@@ -46,8 +50,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
     } else {
       setErrorMessage(
         language === 'es'
-          ? 'Correo no encontrado. Puedes registrarte o seleccionar una cuenta de prueba.'
-          : 'Email not found. You can register or choose a demo account.'
+          ? 'Correo no encontrado en este dispositivo. Puedes crear tu cuenta o usar Recuperar Contraseña.'
+          : 'Email not found on this device. You can register or reset your password.'
       );
     }
   };
@@ -55,12 +59,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
     if (!name.trim() || !email.trim()) return;
 
-    registerUser(name, email, password);
+    registerUser(name, email, password || '123');
     setName('');
     setEmail('');
     setPassword('');
+    onClose();
+  };
+
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+    if (!email.trim() || !newPassword.trim()) return;
+
+    resetUserPassword(email, newPassword);
+    setSuccessMessage(
+      language === 'es'
+        ? `✅ ¡Contraseña actualizada exitosamente para ${email}! Has iniciado sesión.`
+        : `✅ Password updated successfully for ${email}! Signed in.`
+    );
+    setTimeout(() => {
+      onClose();
+    }, 1200);
+  };
+
+  const handleSocialLogin = (provider: 'google' | 'facebook' | 'microsoft') => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    loginWithSocialProvider(provider);
     onClose();
   };
 
@@ -84,7 +113,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                 ? (language === 'es' ? 'Cuenta de Usuario y Privacidad' : 'User Account & Privacy')
                 : authMode === 'login'
                 ? (language === 'es' ? 'Iniciar Sesión' : 'Sign In')
-                : (language === 'es' ? 'Crear Cuenta Nueva' : 'Create New Account')}
+                : authMode === 'register'
+                ? (language === 'es' ? 'Crear Cuenta Nueva' : 'Create New Account')
+                : (language === 'es' ? 'Recuperar Contraseña' : 'Reset Password')}
             </h2>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close modal">
@@ -118,135 +149,95 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontWeight: 900,
+                    fontWeight: 800,
                     fontSize: '1.1rem'
                   }}
                 >
-                  {currentUser.name.charAt(0)}
+                  {currentUser.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <strong style={{ fontSize: '1rem', color: 'var(--text-primary)', display: 'block' }}>
-                    {currentUser.name}
-                  </strong>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    {currentUser.email} • {currentUser.joinedFamilyIds.length} {language === 'es' ? 'espacios vinculados' : 'linked spaces'}
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{currentUser.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{currentUser.email}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.15rem' }}>
+                    🔑 {language === 'es' ? `Clave: ${currentUser.password || '123'}` : `Password: ${currentUser.password || '123'}`}
                   </div>
                 </div>
               </div>
 
               <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  logoutUser();
-                  setAuthMode('login');
-                }}
-                style={{ color: 'var(--danger)', fontSize: '0.75rem' }}
-                title="Sign out"
-              >
-                <LogOut size={14} /> {language === 'es' ? 'Salir' : 'Logout'}
-              </button>
-            </div>
-
-            {/* Direct Family Circles Manager Button */}
-            {onOpenFamilyManager && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    onClose();
-                    onOpenFamilyManager();
-                  }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#16a34a', borderColor: '#16a34a', padding: '0.625rem 1rem' }}
-                >
-                  <Users size={16} />
-                  <span>{language === 'es' ? '🏡 Crear o Cambiar Círculo Familiar (Mi Hogar, Papás, etc.)' : '🏡 Manage / Create Family Circles'}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Direct Purge Demo Data Button */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <button
                 type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  if (window.confirm(language === 'es' ? '¿Deseas purgar y limpiar todos los datos de prueba de ejemplo para dejar únicamente la información real de tu familia?' : 'Purge demo dummy data?')) {
-                    purgeAllDemoData();
-                    onClose();
-                  }
-                }}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#b91c1c', borderColor: '#fca5a5', backgroundColor: '#fef2f2', fontSize: '0.8rem', padding: '0.5rem' }}
-                title="Eliminar pacientes y medicinas de prueba demo"
+                className="btn btn-secondary btn-sm"
+                onClick={logoutUser}
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger-light)', fontSize: '0.75rem' }}
+                title={language === 'es' ? 'Cerrar sesión' : 'Sign out'}
               >
-                <Trash2 size={15} />
-                <span>{language === 'es' ? '🧹 Limpiar Datos Demo (Dejar Solo Familia Real)' : '🧹 Purge Demo Data (Real Only)'}</span>
+                <LogOut size={14} />
+                <span>{language === 'es' ? 'Salir' : 'Sign Out'}</span>
               </button>
             </div>
 
-            {/* Quick Demo Accounts Switcher */}
+            {/* Quick Switch Profiles */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
-                {language === 'es' ? '👥 Cambiar de Cuenta Rápida (1 Clic):' : '👥 Quick Account Switcher (1-Click):'}
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                  fontWeight: 800,
+                  display: 'block',
+                  marginBottom: '0.5rem'
+                }}
+              >
+                {language === 'es' ? '👥 Cambiar de Cuenta de Usuario:' : '👥 Switch User Profile:'}
               </span>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 {allUsers.map(user => {
-                  const isCurrent = currentUser.id === user.id;
-                  const isSandbox = user.email === 'demo@famhealth.app';
+                  const isCurrent = user.id === currentUser.id;
                   return (
-                    <div
+                    <button
                       key={user.id}
+                      type="button"
                       onClick={() => handleQuickSwitch(user.id)}
+                      className="btn btn-secondary btn-sm"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
-                        backgroundColor: isCurrent ? (isSandbox ? '#fef3c7' : '#f0fdf4') : 'var(--bg-secondary)',
-                        border: `1.5px solid ${isCurrent ? (isSandbox ? '#f59e0b' : '#16a34a') : 'var(--border-color)'}`,
-                        borderRadius: 'var(--radius-md)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
+                        textAlign: 'left',
+                        padding: '0.5rem 0.75rem',
+                        backgroundColor: isCurrent ? '#f0f9ff' : undefined,
+                        borderColor: isCurrent ? 'var(--primary)' : undefined,
+                        borderRadius: 'var(--radius-md)'
                       }}
                     >
-                      <div>
-                        <strong style={{ fontSize: '0.875rem', color: isSandbox ? '#b45309' : 'var(--text-primary)' }}>
-                          {user.name}
-                        </strong>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {user.email} • {language === 'es' ? 'Clave:' : 'Pass:'} <strong>{user.password || '123'}</strong>
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <User size={14} color={isCurrent ? 'var(--primary)' : 'var(--text-secondary)'} />
+                        <span style={{ fontSize: '0.8125rem', fontWeight: isCurrent ? 800 : 500, color: isCurrent ? 'var(--primary)' : 'var(--text-primary)' }}>
+                          {user.name} ({user.email})
+                        </span>
                       </div>
-
-                      {isCurrent ? (
-                        <span className={`badge ${isSandbox ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.7rem', fontWeight: 700 }}>
-                          ✓ {language === 'es' ? 'En Uso' : 'Active'}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600 }}>
-                          {language === 'es' ? 'Entrar →' : 'Switch →'}
-                        </span>
-                      )}
-                    </div>
+                      {isCurrent && <CheckCircle size={14} color="var(--primary)" />}
+                    </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1.25rem' }}>
               <button
-                className="btn btn-secondary"
-                style={{ flex: 1, justifyContent: 'center' }}
+                type="button"
+                className="btn btn-primary btn-sm"
                 onClick={() => setAuthMode('login')}
-              >
-                <LogIn size={16} /> {language === 'es' ? 'Iniciar Sesión' : 'Sign In'}
-              </button>
-              <button
-                className="btn btn-primary"
                 style={{ flex: 1, justifyContent: 'center' }}
+              >
+                <LogIn size={16} /> {language === 'es' ? 'Iniciar con Otra Cuenta' : 'Sign In Another Account'}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
                 onClick={() => setAuthMode('register')}
+                style={{ flex: 1, justifyContent: 'center' }}
               >
                 <UserPlus size={16} /> {language === 'es' ? 'Crear Cuenta' : 'Register'}
               </button>
@@ -261,38 +252,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => {
-                  loginUser('carlos@famhealth.app');
-                  onClose();
-                }}
+                onClick={() => handleSocialLogin('google')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.625rem',
                   padding: '0.65rem 1rem',
-                  border: '1.5px solid #e5e7eb',
+                  border: '1.5px solid #ea4335',
                   backgroundColor: '#ffffff',
+                  color: '#c5221f',
                   fontWeight: 700,
                   fontSize: '0.875rem'
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
+                <span style={{ fontSize: '1.1rem' }}>🔴</span>
                 <span>{language === 'es' ? 'Continuar con Google (Gmail)' : 'Continue with Google'}</span>
               </button>
 
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => {
-                  loginUser('claudia@famhealth.app');
-                  onClose();
-                }}
+                onClick={() => handleSocialLogin('facebook')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -306,10 +287,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                   fontSize: '0.875rem'
                 }}
               >
-                <svg width="18" height="18" fill="#ffffff" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
+                <span style={{ fontSize: '1.1rem' }}>🔵</span>
                 <span>{language === 'es' ? 'Continuar con Facebook' : 'Continue with Facebook'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => handleSocialLogin('microsoft')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.625rem',
+                  padding: '0.65rem 1rem',
+                  border: '1.5px solid #0284c7',
+                  backgroundColor: '#f0fdfa',
+                  color: '#0369a1',
+                  fontWeight: 700,
+                  fontSize: '0.875rem'
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>✉️</span>
+                <span>{language === 'es' ? 'Continuar con Outlook / jpoot@outlook.com' : 'Continue with Outlook'}</span>
               </button>
             </div>
 
@@ -343,7 +343,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="e.g. carlos@famhealth.app"
+                  placeholder="jpoot@outlook.com"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
@@ -352,11 +352,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
             </div>
 
             <div className="form-group">
-              <label className="form-label">{language === 'es' ? 'Contraseña' : 'Password'}</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label">{language === 'es' ? 'Contraseña' : 'Password'}</label>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('forgot_password')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0
+                  }}
+                >
+                  {language === 'es' ? '¿Olvidaste tu contraseña?' : 'Forgot password?'}
+                </button>
+              </div>
               <input
                 type="password"
                 className="form-input"
-                placeholder="••••••••"
+                placeholder="123"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -386,7 +404,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Roberto Gómez"
+                placeholder="e.g. José Manuel Poot"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
@@ -398,7 +416,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
               <input
                 type="email"
                 className="form-input"
-                placeholder="e.g. roberto@gmail.com"
+                placeholder="jpoot@outlook.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -410,7 +428,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
               <input
                 type="password"
                 className="form-input"
-                placeholder="••••••••"
+                placeholder="123"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -427,7 +445,85 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                 {t('cancel')}
               </button>
               <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                <UserPlus size={16} /> {language === 'es' ? 'Crear Cuenta Limpia' : 'Register Account'}
+                <UserPlus size={16} /> {language === 'es' ? 'Crear Cuenta' : 'Register Account'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {authMode === 'forgot_password' && (
+          <form onSubmit={handleForgotPassword}>
+            <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.75rem', color: '#1e40af' }}>
+              💡 {language === 'es' ? 'Escribe tu correo y la nueva contraseña que deseas asignar. Se actualizará e iniciarás sesión de inmediato.' : 'Enter your email and your new password to sign in immediately.'}
+            </div>
+
+            {errorMessage && (
+              <div
+                style={{
+                  backgroundColor: '#fee2e2',
+                  border: '1px solid var(--danger)',
+                  color: 'var(--danger)',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.8125rem',
+                  marginBottom: '1rem'
+                }}
+              >
+                {errorMessage}
+              </div>
+            )}
+
+            {successMessage && (
+              <div
+                style={{
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid var(--success)',
+                  color: 'var(--success)',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.8125rem',
+                  marginBottom: '1rem'
+                }}
+              >
+                {successMessage}
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">{language === 'es' ? 'Correo de tu Cuenta' : 'Account Email'}</label>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="jpoot@outlook.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">{language === 'es' ? 'Nueva Contraseña' : 'New Password'}</label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="123"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setAuthMode('login')}
+              >
+                {t('cancel')}
+              </button>
+              <button type="submit" className="btn btn-primary" style={{ flex: 1, backgroundColor: '#0284c7' }}>
+                <KeyRound size={16} /> {language === 'es' ? 'Restablecer y Entrar' : 'Reset & Sign In'}
               </button>
             </div>
           </form>

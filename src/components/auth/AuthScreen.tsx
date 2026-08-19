@@ -6,34 +6,38 @@ import {
   LogIn,
   UserPlus,
   ShieldCheck,
-  Users,
   Globe,
   ArrowRight,
-  Sparkles,
+  KeyRound,
   Lock,
   Mail,
-  User
+  User,
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
-  const { allUsers, switchUser, loginUser, registerUser } = useApp();
+  const { allUsers, switchUser, loginUser, registerUser, resetUserPassword, loginWithSocialProvider } = useApp();
   const { t, language, setLanguage } = useLanguage();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     const success = loginUser(email, password);
     if (!success) {
       setErrorMsg(
         language === 'es'
-          ? 'Correo no encontrado. Puedes registrarte o seleccionar una cuenta de prueba.'
-          : 'Email not found. You can register or choose a demo account.'
+          ? 'Correo no encontrado en este dispositivo. Puedes crear tu cuenta o usar Recuperar Contraseña.'
+          : 'Email not found on this device. You can register or reset your password.'
       );
     }
   };
@@ -41,8 +45,29 @@ export const AuthScreen: React.FC = () => {
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     if (!name.trim() || !email.trim()) return;
-    registerUser(name, email, password);
+    registerUser(name, email, password || '123');
+  };
+
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (!email.trim() || !newPassword.trim()) return;
+
+    resetUserPassword(email, newPassword);
+    setSuccessMsg(
+      language === 'es'
+        ? `✅ ¡Contraseña actualizada exitosamente para ${email}! Has iniciado sesión.`
+        : `✅ Password updated successfully for ${email}! Signed in.`
+    );
+  };
+
+  const handleSocialLogin = (provider: 'google' | 'facebook' | 'microsoft') => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    loginWithSocialProvider(provider);
   };
 
   const toggleLanguage = () => {
@@ -147,18 +172,22 @@ export const AuthScreen: React.FC = () => {
               <ShieldCheck size={26} />
             </div>
             <h1 style={{ fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.25rem' }}>
-              {language === 'es' ? 'Acceso Seguro y Privado' : 'Secure & Private Access'}
+              {mode === 'forgot_password'
+                ? (language === 'es' ? 'Recuperar Contraseña' : 'Reset Password')
+                : mode === 'register'
+                ? (language === 'es' ? 'Crear Cuenta Nueva' : 'Create Account')
+                : (language === 'es' ? 'Acceso Seguro y Privado' : 'Secure & Private Access')}
             </h1>
             <p style={{ fontSize: '0.8125rem', opacity: 0.9, margin: 0 }}>
-              {language === 'es'
-                ? 'Inicia sesión para acceder únicamente a tus espacios familiares.'
-                : 'Sign in to access only your authorized family spaces.'}
+              {mode === 'forgot_password'
+                ? (language === 'es' ? 'Restablece tu clave para entrar desde tu celular o computadora.' : 'Reset your password for mobile or desktop access.')
+                : (language === 'es' ? 'Inicia sesión para acceder únicamente a tus espacios familiares.' : 'Sign in to access your family spaces.')}
             </p>
           </div>
 
           <div style={{ padding: '1.5rem' }}>
-            {/* Quick 1-Click Demo Accounts */}
-            <div style={{ marginBottom: '1.5rem' }}>
+            {/* Social Login Buttons (Google, Facebook, Outlook) */}
+            <div style={{ marginBottom: '1.25rem' }}>
               <span
                 style={{
                   fontSize: '0.75rem',
@@ -169,10 +198,88 @@ export const AuthScreen: React.FC = () => {
                   marginBottom: '0.625rem'
                 }}
               >
-                {language === 'es' ? '⚡ Acceso Rápido de Prueba (Demo Cuentas):' : '⚡ 1-Click Demo Accounts:'}
+                {language === 'es' ? '⚡ Iniciar con Redes y Cuentas:' : '⚡ Sign in with Social & Email:'}
               </span>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('google')}
+                  className="btn btn-secondary"
+                  style={{
+                    justifyContent: 'center',
+                    padding: '0.65rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid #ea4335',
+                    color: '#c5221f',
+                    fontWeight: 700,
+                    fontSize: '0.8125rem',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span style={{ fontSize: '1rem' }}>🔴</span>
+                  <span>{language === 'es' ? 'Continuar con Google (Gmail)' : 'Continue with Google'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('facebook')}
+                  className="btn btn-secondary"
+                  style={{
+                    justifyContent: 'center',
+                    padding: '0.65rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: '#f0f6ff',
+                    border: '1.5px solid #1877f2',
+                    color: '#1877f2',
+                    fontWeight: 700,
+                    fontSize: '0.8125rem',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span style={{ fontSize: '1rem' }}>🔵</span>
+                  <span>{language === 'es' ? 'Continuar con Facebook' : 'Continue with Facebook'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSocialLogin('microsoft')}
+                  className="btn btn-secondary"
+                  style={{
+                    justifyContent: 'center',
+                    padding: '0.65rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: '#f0fdfa',
+                    border: '1.5px solid #0284c7',
+                    color: '#0369a1',
+                    fontWeight: 700,
+                    fontSize: '0.8125rem',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span style={{ fontSize: '1rem' }}>✉️</span>
+                  <span>{language === 'es' ? 'Continuar con Outlook / jpoot@outlook.com' : 'Continue with Outlook'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick 1-Click Saved Accounts */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                  fontWeight: 800,
+                  display: 'block',
+                  marginBottom: '0.5rem'
+                }}
+              >
+                {language === 'es' ? '👤 O toca tu perfil directo (Contraseña: 123):' : '👤 Or tap your profile (Password: 123):'}
+              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 {allUsers.map(user => (
                   <button
                     key={user.id}
@@ -182,21 +289,21 @@ export const AuthScreen: React.FC = () => {
                     style={{
                       justifyContent: 'space-between',
                       textAlign: 'left',
-                      padding: '0.75rem 1rem',
+                      padding: '0.65rem 0.875rem',
                       borderRadius: 'var(--radius-md)',
                       backgroundColor: 'var(--bg-secondary)',
                       border: '1px solid var(--border-color)'
                     }}
                   >
                     <div>
-                      <strong style={{ fontSize: '0.875rem', display: 'block', color: 'var(--text-primary)' }}>
+                      <strong style={{ fontSize: '0.8125rem', display: 'block', color: 'var(--text-primary)' }}>
                         {user.name}
                       </strong>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        {user.email} {user.joinedFamilyIds.length === 2 ? '• 2 Familias' : '• 1 Espacio'}
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        {user.email} (Clave: {user.password || '123'})
                       </span>
                     </div>
-                    <ArrowRight size={16} color="var(--primary)" />
+                    <ArrowRight size={15} color="var(--primary)" />
                   </button>
                 ))}
               </div>
@@ -214,11 +321,11 @@ export const AuthScreen: React.FC = () => {
               }}
             >
               <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
-              <span>{language === 'es' ? 'O INICIA CON TU CORREO' : 'OR SIGN IN WITH EMAIL'}</span>
+              <span>{language === 'es' ? 'O ACCEDE CON TU CONTRASEÑA' : 'OR WITH PASSWORD'}</span>
               <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
             </div>
 
-            {/* Error message */}
+            {/* Error & Success messages */}
             {errorMsg && (
               <div
                 style={{
@@ -235,14 +342,30 @@ export const AuthScreen: React.FC = () => {
               </div>
             )}
 
-            {mode === 'login' ? (
+            {successMsg && (
+              <div
+                style={{
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid var(--success)',
+                  color: 'var(--success)',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.8125rem',
+                  marginBottom: '1rem'
+                }}
+              >
+                {successMsg}
+              </div>
+            )}
+
+            {mode === 'login' && (
               <form onSubmit={handleLogin}>
                 <div className="form-group">
                   <label className="form-label">{language === 'es' ? 'Correo Electrónico' : 'Email Address'}</label>
                   <input
                     type="email"
                     className="form-input"
-                    placeholder="carlos@famhealth.app"
+                    placeholder="jpoot@outlook.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -250,11 +373,29 @@ export const AuthScreen: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">{language === 'es' ? 'Contraseña' : 'Password'}</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="form-label">{language === 'es' ? 'Contraseña' : 'Password'}</label>
+                    <button
+                      type="button"
+                      onClick={() => setMode('forgot_password')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        padding: 0
+                      }}
+                    >
+                      {language === 'es' ? '¿Olvidaste tu contraseña?' : 'Forgot password?'}
+                    </button>
+                  </div>
                   <input
                     type="password"
                     className="form-input"
-                    placeholder="••••••••"
+                    placeholder="123"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
@@ -287,14 +428,16 @@ export const AuthScreen: React.FC = () => {
                   </button>
                 </p>
               </form>
-            ) : (
+            )}
+
+            {mode === 'register' && (
               <form onSubmit={handleRegister}>
                 <div className="form-group">
                   <label className="form-label">{language === 'es' ? 'Nombre Completo' : 'Full Name'}</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Roberto Gómez"
+                    placeholder="José Manuel Poot"
                     value={name}
                     onChange={e => setName(e.target.value)}
                     required
@@ -306,7 +449,7 @@ export const AuthScreen: React.FC = () => {
                   <input
                     type="email"
                     className="form-input"
-                    placeholder="roberto@gmail.com"
+                    placeholder="jpoot@outlook.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -318,7 +461,7 @@ export const AuthScreen: React.FC = () => {
                   <input
                     type="password"
                     className="form-input"
-                    placeholder="••••••••"
+                    placeholder="123"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     required
@@ -348,6 +491,63 @@ export const AuthScreen: React.FC = () => {
                     }}
                   >
                     {language === 'es' ? 'Iniciar Sesión' : 'Sign In'}
+                  </button>
+                </p>
+              </form>
+            )}
+
+            {mode === 'forgot_password' && (
+              <form onSubmit={handleForgotPassword}>
+                <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.75rem', color: '#1e40af' }}>
+                  💡 {language === 'es' ? 'Escribe tu correo y la nueva contraseña que deseas asignar. Se actualizará e iniciarás sesión de inmediato.' : 'Enter your email and your new password to sign in immediately.'}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{language === 'es' ? 'Correo de tu Cuenta' : 'Account Email'}</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="jpoot@outlook.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">{language === 'es' ? 'Nueva Contraseña' : 'New Password'}</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="123"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', marginTop: '1rem', padding: '0.75rem', backgroundColor: '#0284c7' }}
+                >
+                  <KeyRound size={18} /> {language === 'es' ? 'Restablecer Contraseña y Entrar' : 'Reset Password & Sign In'}
+                </button>
+
+                <p style={{ textAlign: 'center', fontSize: '0.8125rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setMode('login')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--primary)',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    ← {language === 'es' ? 'Volver al Inicio de Sesión' : 'Back to Sign In'}
                   </button>
                 </p>
               </form>
