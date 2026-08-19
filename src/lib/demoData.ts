@@ -14,6 +14,12 @@ import {
 
 export const initialFamilyCircles: FamilyCircle[] = [
   {
+    id: 'circle-poot-ibarra',
+    name: 'Familia Poot Ibarra',
+    inviteCode: 'IBARRA-2026',
+    createdAt: '2026-08-18'
+  },
+  {
     id: 'circle-poot',
     name: 'Familia Poot Burgos',
     inviteCode: 'POOT-7821',
