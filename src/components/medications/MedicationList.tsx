@@ -24,7 +24,8 @@ import {
   Info,
   Layers,
   FlaskConical,
-  ShoppingCart
+  ShoppingCart,
+  UserPlus
 } from 'lucide-react';
 import { getStockStatus, formatDose, getExpirationStatus } from '../../utils/formatters';
 import { getFrequencyLabel } from '../../utils/frequencyEngine';
@@ -32,6 +33,7 @@ import { MedicationModal } from './MedicationModal';
 import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
 import { MedicationBatchesModal } from './MedicationBatchesModal';
+import { PatientSelector } from '../layout/PatientSelector';
 import { getActiveBatch } from '../../utils/medicationBatchEngine';
 import {
   recordLoyaltyPurchase,
@@ -83,11 +85,36 @@ export const MedicationList: React.FC = () => {
   // Reactivate / Restock Modal State
   const [reactivateModalMed, setReactivateModalMed] = useState<Medication | null>(null);
   const [reactivateStock, setReactivateStock] = useState<number>(30);
+  const [isPatientSelectorOpen, setIsPatientSelectorOpen] = useState(false);
 
   if (!activePatient) {
     return (
-      <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>{t('selectPatientPrompt')}</p>
+      <div className="card text-center" style={{ padding: '3rem 1.5rem', backgroundColor: '#f8fafc' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#eff6ff', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+          <Pill size={28} />
+        </div>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+          {language === 'es' ? 'No hay personas registradas en esta familia' : 'No persons registered in this family yet'}
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '440px', margin: '0 auto 1.25rem' }}>
+          {language === 'es'
+            ? 'Para comenzar a capturar medicamentos o subir recetas en este círculo familiar, primero da de alta a la persona a cuidar.'
+            : 'To start adding medications or prescriptions, please register a family member first.'}
+        </p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setIsPatientSelectorOpen(true)}
+          style={{ margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <UserPlus size={18} />
+          <span>{language === 'es' ? '+ Dar de Alta Persona a Cuidar' : '+ Register Person to Care For'}</span>
+        </button>
+
+        <PatientSelector
+          isOpen={isPatientSelectorOpen}
+          onClose={() => setIsPatientSelectorOpen(false)}
+        />
       </div>
     );
   }

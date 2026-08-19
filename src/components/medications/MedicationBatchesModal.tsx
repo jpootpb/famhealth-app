@@ -19,6 +19,7 @@ import {
   Check
 } from 'lucide-react';
 import { ensureBatches, getActiveBatch } from '../../utils/medicationBatchEngine';
+import { compressImage } from '../../utils/imageCompressor';
 
 interface MedicationBatchesModalProps {
   isOpen: boolean;
@@ -71,14 +72,15 @@ export const MedicationBatchesModal: React.FC<MedicationBatchesModalProps> = ({
   const reserveBatches = batches.filter(b => b.id !== activeBatch?.id && !b.finishedAt && b.remainingUnits > 0);
   const finishedBatches = batches.filter(b => b.finishedAt || b.remainingUnits <= 0);
 
-  const handleImageCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewImageUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 800, 0.75);
+        setNewImageUrl(compressed);
+      } catch (err) {
+        console.warn('Error compressing batch photo:', err);
+      }
     }
   };
 

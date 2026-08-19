@@ -26,6 +26,7 @@ import { formatDateIso } from '../../utils/frequencyEngine';
 import { buildStudyWhatsAppMessage, buildStudyEmailLink } from '../../utils/studySharingEngine';
 import { shareViaWhatsApp } from '../../lib/whatsapp';
 import { openDocumentInNewTab } from '../../utils/pdfHelper';
+import { compressImage } from '../../utils/imageCompressor';
 
 export const StudiesView: React.FC = () => {
   const { activePatient, studies, addStudy, deleteStudy, currentUser } = useApp();
@@ -78,18 +79,27 @@ export const StudiesView: React.FC = () => {
     ? patientStudies
     : patientStudies.filter(s => s.category === activeCategory);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const isPdf = file.type === 'application/pdf';
     setFileType(isPdf ? 'pdf' : 'image');
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFileUrl(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (isPdf) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFileUrl(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      try {
+        const compressed = await compressImage(file, 1200, 0.8);
+        setFileUrl(compressed);
+      } catch (err) {
+        console.warn('Error compressing study photo:', err);
+      }
+    }
   };
 
   const handleCreate = (e: React.FormEvent) => {

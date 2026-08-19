@@ -26,6 +26,7 @@ import {
   AIProvider
 } from '../../utils/aiPrescriptionEngine';
 import { formatDateIso } from '../../utils/frequencyEngine';
+import { compressImage } from '../../utils/imageCompressor';
 
 interface AIPrescriptionScannerModalProps {
   isOpen: boolean;
@@ -38,7 +39,7 @@ export const AIPrescriptionScannerModal: React.FC<AIPrescriptionScannerModalProp
   onClose,
   onSelectMedication
 }) => {
-  const { activePatient, addStudy } = useApp();
+  const { activePatient, addStudy, patients } = useApp();
   const { t, language } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'manual' | 'ai'>('manual');
@@ -61,16 +62,17 @@ export const AIPrescriptionScannerModal: React.FC<AIPrescriptionScannerModalProp
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImagePreview(event.target?.result as string);
+    try {
+      const compressed = await compressImage(file, 1200, 0.8);
+      setImagePreview(compressed);
       setSavedAsStudy(false);
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('Error compressing prescription photo:', err);
+    }
   };
 
   const handleProviderChange = (newProvider: AIProvider) => {

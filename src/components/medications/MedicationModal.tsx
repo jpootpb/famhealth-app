@@ -17,6 +17,7 @@ import {
 import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
 import { formatDateIso } from '../../utils/frequencyEngine';
+import { compressImage } from '../../utils/imageCompressor';
 import { Sparkles } from 'lucide-react';
 
 interface MedicationModalProps {
@@ -172,19 +173,19 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     }
   }, [medicationToEdit, isOpen, language, activePatient?.id]);
 
-  if (!isOpen || !activePatient) return null;
+  const currentPatient = activePatient || (patients.length > 0 ? patients[0] : null);
+  if (!isOpen || !currentPatient) return null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setImageUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 800, 0.75);
+      setImageUrl(compressed);
+    } catch (err) {
+      console.warn('Error compressing medicine photo:', err);
+    }
   };
 
   const handleAddDoseSlot = () => {
@@ -214,7 +215,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     }
 
     const payload = {
-      patientId: assignedPatientId || activePatient.id,
+      patientId: assignedPatientId || currentPatient.id,
       name: name.trim(),
       presentation,
       stockTrackingMode,
