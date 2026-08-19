@@ -119,7 +119,7 @@ export const MedicationList: React.FC = () => {
     );
   }
 
-  const patientMeds = medications.filter(m => m.patientId === activePatient.id);
+  const patientMeds = medications.filter(m => !m.patientId || m.patientId === activePatient.id);
   const activeMeds = patientMeds.filter(m => m.status !== 'completed' && m.status !== 'suspended');
   const completedMeds = patientMeds.filter(m => m.status === 'completed' || m.status === 'suspended');
 

@@ -103,10 +103,10 @@ export const AppointmentsView: React.FC = () => {
     );
   }
 
-  const patientApps = appointments.filter(a => a.patientId === activePatient.id);
+  const patientApps = appointments.filter(a => !a.patientId || a.patientId === activePatient.id);
   const sortedApps = [...patientApps].sort((a, b) => a.dateTime.localeCompare(b.dateTime));
 
-  const patientReminders = (bookingReminders || []).filter(r => r.patientId === activePatient.id);
+  const patientReminders = (bookingReminders || []).filter(r => !r.patientId || r.patientId === activePatient.id);
   const sortedReminders = [...patientReminders].sort((a, b) => a.callClinicDate.localeCompare(b.callClinicDate));
 
   // Reminders ready to be called right now (agenda window open)

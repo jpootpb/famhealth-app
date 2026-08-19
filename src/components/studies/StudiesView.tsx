@@ -64,7 +64,7 @@ export const StudiesView: React.FC = () => {
 
   // Filter studies by active patient and privacy permissions
   const patientStudies = studies.filter(s => {
-    if (s.patientId !== activePatient.id) return false;
+    if (s.patientId && s.patientId !== activePatient.id) return false;
     if (s.isPrivate) {
       return s.ownerUserId === currentUser.id || s.uploadedByName === currentUser.name || !s.ownerUserId;
     }

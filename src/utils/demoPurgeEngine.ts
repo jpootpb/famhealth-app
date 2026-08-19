@@ -67,14 +67,14 @@ export function purgeDemoArtifacts(state: {
   // If user only had demo patients or nothing, keep existing or let it be clean
   const realPatientIds = new Set(cleanPatients.map(p => p.id));
 
-  const cleanMedications = state.medications.filter(m => realPatientIds.has(m.patientId));
-  const cleanDoseLogs = state.doseLogs.filter(d => realPatientIds.has(d.patientId));
-  const cleanVitals = state.vitals.filter(v => realPatientIds.has(v.patientId));
-  const cleanCampaigns = state.campaigns.filter(c => realPatientIds.has(c.patientId));
-  const cleanExpenses = state.expenses.filter(e => realPatientIds.has(e.patientId));
-  const cleanAppointments = state.appointments.filter(a => realPatientIds.has(a.patientId));
-  const cleanStudies = state.studies.filter(s => realPatientIds.has(s.patientId));
-  const cleanBookingReminders = state.bookingReminders.filter(r => realPatientIds.has(r.patientId));
+  const cleanMedications = state.medications.filter(m => !m.patientId || realPatientIds.has(m.patientId));
+  const cleanDoseLogs = state.doseLogs.filter(d => !d.patientId || realPatientIds.has(d.patientId));
+  const cleanVitals = state.vitals.filter(v => !v.patientId || realPatientIds.has(v.patientId));
+  const cleanCampaigns = state.campaigns.filter(c => !c.patientId || realPatientIds.has(c.patientId));
+  const cleanExpenses = state.expenses.filter(e => !e.patientId || realPatientIds.has(e.patientId));
+  const cleanAppointments = state.appointments.filter(a => !a.patientId || realPatientIds.has(a.patientId));
+  const cleanStudies = state.studies.filter(s => !s.patientId || realPatientIds.has(s.patientId));
+  const cleanBookingReminders = state.bookingReminders.filter(r => !r.patientId || realPatientIds.has(r.patientId));
 
   // Keep family members (caregivers) that are not demo dummy
   const cleanFamilies = state.families.filter(f => !f.id.includes('demo') && f.name !== 'Laura Poot');
