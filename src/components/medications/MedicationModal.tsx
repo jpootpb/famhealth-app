@@ -74,6 +74,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     if (med.presentation) setPresentation(med.presentation);
     if (med.laboratory) setLaboratory(med.laboratory);
     if (med.instructions) setIndication(med.instructions);
+    if (med.imageUrl) setImageUrl(med.imageUrl);
     if (med.durationDays) {
       setDurationDays(med.durationDays);
       setFrequencyType('temporary_hourly');

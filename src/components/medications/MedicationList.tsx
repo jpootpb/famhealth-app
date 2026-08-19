@@ -374,9 +374,10 @@ export const MedicationList: React.FC = () => {
           <button
             className="btn btn-secondary"
             onClick={() => setIsAiScannerOpen(true)}
-            style={{ color: '#059669', borderColor: '#059669' }}
+            style={{ color: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <Sparkles size={18} /> {language === 'es' ? 'Escanear Receta con IA' : 'Scan with AI'}
+            <Sparkles size={16} />
+            <span>{language === 'es' ? '📸 Subir / Escanear Receta' : '📸 Upload / Scan Prescription'}</span>
           </button>
           <button className="btn btn-primary" onClick={handleOpenAdd}>
             <Plus size={18} /> {t('addNewMedication')}

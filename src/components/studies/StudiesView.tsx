@@ -210,6 +210,13 @@ export const StudiesView: React.FC = () => {
         >
           {t('nutritionPlans')}
         </button>
+        <button
+          className={`btn btn-sm ${activeCategory === 'prescription' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveCategory('prescription')}
+          style={{ borderRadius: 'var(--radius-full)' }}
+        >
+          {language === 'es' ? '💊 Recetas Médicas' : '💊 Prescriptions'}
+        </button>
       </div>
 
       {/* Hidden Private Studies Notice */}
@@ -623,6 +630,7 @@ export const StudiesView: React.FC = () => {
                 <div className="form-group">
                   <label className="form-label">{t('studyCategory')}</label>
                   <select className="form-select" value={category} onChange={e => setCategory(e.target.value as any)}>
+                    <option value="prescription">💊 {language === 'es' ? 'Receta Médica (Foto de consulta)' : 'Prescription'}</option>
                     <option value="nutrition_plan">{t('nutritionPlans')} (Menús, Dietas, Porciones)</option>
                     <option value="imaging">{t('imagingTests')} (Tomografía, TAC, Rayos X, Resonancia)</option>
                     <option value="blood_test">{t('bloodTests')}</option>

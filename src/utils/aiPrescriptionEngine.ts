@@ -7,6 +7,7 @@ export interface ExtractedPrescriptionMed {
   durationDays?: number;
   instructions?: string;
   laboratory?: string;
+  imageUrl?: string;
 }
 
 export type AIProvider = 'gemini' | 'openai';
