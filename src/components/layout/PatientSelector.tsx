@@ -100,65 +100,77 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
 
         {!isAddingNew ? (
           <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1.25rem' }}>
-              {patients.map(p => {
-                const isCurrent = activePatient?.id === p.id;
-                const formattedAgeStr = formatPatientAge(p.birthDate, p.age, language);
+            {patients.length === 0 ? (
+              <div className="card text-center" style={{ padding: '2rem 1rem', marginBottom: '1.25rem', backgroundColor: '#f8fafc' }}>
+                <Users size={36} color="var(--primary)" style={{ opacity: 0.5, margin: '0 auto 0.75rem' }} />
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.35rem 0' }}>
+                  {language === 'es' ? 'Esta nueva familia aún no tiene personas registradas' : 'No persons registered in this family yet'}
+                </h4>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  {language === 'es' ? 'Da de alta a tu primer familiar, esposa, hijos o autocuidado para comenzar.' : 'Add your first family member, spouse, children or self-care to get started.'}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '1.25rem' }}>
+                {patients.map(p => {
+                  const isCurrent = activePatient?.id === p.id;
+                  const formattedAgeStr = formatPatientAge(p.birthDate, p.age, language);
 
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => handleSelect(p)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.875rem 1rem',
-                      backgroundColor: isCurrent ? 'var(--primary-light)' : '#ffffff',
-                      border: `1.5px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`,
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div
-                        style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '50%',
-                          backgroundColor: p.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: '0.9375rem'
-                        }}
-                      >
-                        {p.name.charAt(0)}
-                      </div>
-                      <div>
-                        <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                          {p.name}
-                        </strong>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {formattedAgeStr && <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formattedAgeStr} • </span>}
-                          {p.type === 'chronic' ? t('chronicCare') : t('tempCare')}
-                          {p.primaryDiagnosis ? ` • ${p.primaryDiagnosis}` : ''}
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleSelect(p)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.875rem 1rem',
+                        backgroundColor: isCurrent ? 'var(--primary-light)' : '#ffffff',
+                        border: `1.5px solid ${isCurrent ? 'var(--primary)' : 'var(--border-color)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '50%',
+                            backgroundColor: p.type === 'chronic' ? 'var(--secondary)' : 'var(--warning)',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '0.9375rem'
+                          }}
+                        >
+                          {p.name.charAt(0)}
+                        </div>
+                        <div>
+                          <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                            {p.name}
+                          </strong>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            {formattedAgeStr && <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formattedAgeStr} • </span>}
+                            {p.type === 'chronic' ? t('chronicCare') : t('tempCare')}
+                            {p.primaryDiagnosis ? ` • ${p.primaryDiagnosis}` : ''}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {isCurrent && (
-                      <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
-                        ✓ {language === 'es' ? 'Seleccionado' : 'Selected'}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      {isCurrent && (
+                        <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                          ✓ {language === 'es' ? 'Seleccionado' : 'Selected'}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <button
               className="btn btn-primary"

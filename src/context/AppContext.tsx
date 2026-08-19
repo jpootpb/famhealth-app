@@ -253,19 +253,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [allPatients]);
 
-  // Filter entities by active family circle with backwards compatibility for unmigrated local storage
-  const patients = allPatients.filter(p => !p.familyId || p.familyId === currentFamilyId);
-  const medications = allMedications.filter(m => !m.familyId || m.familyId === currentFamilyId);
-  const doseLogs = allDoseLogs.filter(d => !d.familyId || d.familyId === currentFamilyId);
-  const vitals = allVitals.filter(v => !v.familyId || v.familyId === currentFamilyId);
-  const campaigns = allCampaigns.filter(c => !c.familyId || c.familyId === currentFamilyId);
-  const families = allFamilies.filter(f => !f.familyId || f.familyId === currentFamilyId);
-  const expenses = allExpenses.filter(e => !e.familyId || e.familyId === currentFamilyId);
-  const appointments = allAppointments.filter(a => !a.familyId || a.familyId === currentFamilyId);
-  const bookingReminders = allBookingReminders.filter(r => !r.familyId || r.familyId === currentFamilyId);
-  const studies = allStudies.filter(s => !s.familyId || s.familyId === currentFamilyId);
+  // Normalize legacy unassigned entities in storage to origin circle 'circle-poot'
+  useEffect(() => {
+    if (allPatients.some(p => !p.familyId)) {
+      setAllPatients(prev => prev.map(p => p.familyId ? p : { ...p, familyId: 'circle-poot' }));
+    }
+    if (allMedications.some(m => !m.familyId)) {
+      setAllMedications(prev => prev.map(m => m.familyId ? m : { ...m, familyId: 'circle-poot' }));
+    }
+    if (allDoseLogs.some(d => !d.familyId)) {
+      setAllDoseLogs(prev => prev.map(d => d.familyId ? d : { ...d, familyId: 'circle-poot' }));
+    }
+    if (allVitals.some(v => !v.familyId)) {
+      setAllVitals(prev => prev.map(v => v.familyId ? v : { ...v, familyId: 'circle-poot' }));
+    }
+    if (allExpenses.some(e => !e.familyId)) {
+      setAllExpenses(prev => prev.map(e => e.familyId ? e : { ...e, familyId: 'circle-poot' }));
+    }
+    if (allAppointments.some(a => !a.familyId)) {
+      setAllAppointments(prev => prev.map(a => a.familyId ? a : { ...a, familyId: 'circle-poot' }));
+    }
+    if (allStudies.some(s => !s.familyId)) {
+      setAllStudies(prev => prev.map(s => s.familyId ? s : { ...s, familyId: 'circle-poot' }));
+    }
+  }, []);
 
-  // Active Patient inside current family with automatic auto-selection fallback
+  // Strict entity filtering by active family circle (Zero Cross-Circle Contamination)
+  const patients = allPatients.filter(p => (p.familyId || 'circle-poot') === currentFamilyId);
+  const medications = allMedications.filter(m => (m.familyId || 'circle-poot') === currentFamilyId);
+  const doseLogs = allDoseLogs.filter(d => (d.familyId || 'circle-poot') === currentFamilyId);
+  const vitals = allVitals.filter(v => (v.familyId || 'circle-poot') === currentFamilyId);
+  const campaigns = allCampaigns.filter(c => (c.familyId || 'circle-poot') === currentFamilyId);
+  const families = allFamilies.filter(f => (f.familyId || 'circle-poot') === currentFamilyId);
+  const expenses = allExpenses.filter(e => (e.familyId || 'circle-poot') === currentFamilyId);
+  const appointments = allAppointments.filter(a => (a.familyId || 'circle-poot') === currentFamilyId);
+  const bookingReminders = allBookingReminders.filter(r => (r.familyId || 'circle-poot') === currentFamilyId);
+  const studies = allStudies.filter(s => (s.familyId || 'circle-poot') === currentFamilyId);
+
+  // Active Patient inside current family (undefined if current family has 0 patients)
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0];
 
   const switchUser = (userId: string) => {
@@ -277,10 +302,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newActiveFamId = visible.length > 0 ? (visible.find(c => c.id === user.activeFamilyId)?.id || visible[0].id) : '';
     setActiveFamilyIdState(newActiveFamId);
 
-    const familyPatients = allPatients.filter(p => !p.familyId || p.familyId === newActiveFamId);
-    if (familyPatients.length > 0) {
-      setActivePatientIdState(familyPatients[0].id);
-    }
+    const familyPatients = allPatients.filter(p => (p.familyId || 'circle-poot') === newActiveFamId);
+    setActivePatientIdState(familyPatients.length > 0 ? familyPatients[0].id : '');
   };
 
   const loginUser = (email: string, password?: string): boolean => {
@@ -293,18 +316,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const registerUser = (name: string, email: string, password?: string): UserAccount => {
+    const initialFamId = allFamilyCircles[0]?.id || '';
+    const initialFamList = allFamilyCircles.map(c => c.id);
     const newUser: UserAccount = {
       id: 'user-' + Date.now(),
       name: name.trim(),
       email: email.trim().toLowerCase(),
       password: password || 'password123',
-      activeFamilyId: '',
-      joinedFamilyIds: []
+      activeFamilyId: initialFamId,
+      joinedFamilyIds: initialFamList
     };
 
     setAllUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
-    setActiveFamilyIdState('');
+    setActiveFamilyIdState(initialFamId);
     return newUser;
   };
 
@@ -318,11 +343,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setActiveFamilyIdState(id);
     setCurrentUser(prev => ({ ...prev, activeFamilyId: id }));
 
-    // When switching family, auto-select the first patient of that family
-    const familyPatients = allPatients.filter(p => !p.familyId || p.familyId === id);
-    if (familyPatients.length > 0) {
-      setActivePatientIdState(familyPatients[0].id);
-    }
+    // When switching family, auto-select the first patient of that family or empty if brand new
+    const familyPatients = allPatients.filter(p => (p.familyId || 'circle-poot') === id);
+    setActivePatientIdState(familyPatients.length > 0 ? familyPatients[0].id : '');
   };
 
   const createFamilyCircle = (name: string, isPersonal: boolean = false): FamilyCircle => {
@@ -348,6 +371,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(updatedUser);
     setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
     setActiveFamilyIdState(newCircle.id);
+    setActivePatientIdState(''); // Brand new family starts completely clean with 0 patients
 
     return newCircle;
   };
