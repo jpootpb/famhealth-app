@@ -69,7 +69,7 @@ export const initialPatients: Patient[] = [
 export const initialMedications: Medication[] = [
   {
     id: 'med-sara-rivaroxaban',
-    familyId: 'circle-poot',
+    familyId: 'circle-poot-ibarra',
     patientId: 'patient-sara-burgos',
     name: 'Rivaroxaban 2.5 mg',
     presentation: 'tablet',
@@ -92,7 +92,7 @@ export const initialMedications: Medication[] = [
   },
   {
     id: 'med-sara-kryntantek',
-    familyId: 'circle-poot',
+    familyId: 'circle-poot-ibarra',
     patientId: 'patient-sara-burgos',
     name: 'KRYNTANTEK oftteno',
     presentation: 'drops',
@@ -114,7 +114,7 @@ export const initialMedications: Medication[] = [
   },
   {
     id: 'med-sara-isox',
-    familyId: 'circle-poot',
+    familyId: 'circle-poot-ibarra',
     patientId: 'patient-sara-burgos',
     name: 'Isox 15D',
     presentation: 'capsule',

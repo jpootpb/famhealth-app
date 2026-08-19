@@ -205,9 +205,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Auto-heal current user & reconcile default family circles across devices
   useEffect(() => {
-    // 1. Ensure circle-poot-ibarra is in allFamilyCircles
-    const hasPootIbarra = allFamilyCircles.some(c => c.id === 'circle-poot-ibarra');
-    if (!hasPootIbarra) {
+    // 1. Deduplicate any multiple "Familia Poot Ibarra" circles into ONE single circle
+    const ibarraCircles = allFamilyCircles.filter(c => c.name.toLowerCase().includes('ibarra') || c.id === 'circle-poot-ibarra');
+    if (ibarraCircles.length > 1) {
+      const primaryId = 'circle-poot-ibarra';
+      const duplicateIds = new Set(ibarraCircles.map(c => c.id).filter(id => id !== primaryId));
+
+      // Migrate all entities from duplicate circles to primary circle-poot-ibarra
+      setAllPatients(prev => prev.map(p => duplicateIds.has(p.familyId || '') ? { ...p, familyId: primaryId } : p));
+      setAllMedications(prev => prev.map(m => duplicateIds.has(m.familyId || '') ? { ...m, familyId: primaryId } : m));
+      setAllDoseLogs(prev => prev.map(d => duplicateIds.has(d.familyId || '') ? { ...d, familyId: primaryId } : d));
+      setAllVitals(prev => prev.map(v => duplicateIds.has(v.familyId || '') ? { ...v, familyId: primaryId } : v));
+      setAllExpenses(prev => prev.map(e => duplicateIds.has(e.familyId || '') ? { ...e, familyId: primaryId } : e));
+      setAllAppointments(prev => prev.map(a => duplicateIds.has(a.familyId || '') ? { ...a, familyId: primaryId } : a));
+      setAllStudies(prev => prev.map(s => duplicateIds.has(s.familyId || '') ? { ...s, familyId: primaryId } : s));
+
+      // Deduplicate the circles list
+      setAllFamilyCircles(prev => {
+        const seen = new Set<string>();
+        return prev.filter(c => {
+          if (duplicateIds.has(c.id)) return false;
+          if (c.name.toLowerCase().includes('ibarra')) {
+            if (seen.has('ibarra')) return false;
+            seen.add('ibarra');
+          }
+          return true;
+        });
+      });
+
+      if (duplicateIds.has(activeFamilyId)) {
+        setActiveFamilyIdState(primaryId);
+      }
+    } else if (ibarraCircles.length === 0) {
       const ibarraCircle: FamilyCircle = {
         id: 'circle-poot-ibarra',
         name: 'Familia Poot Ibarra',
@@ -217,16 +246,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setAllFamilyCircles(prev => [ibarraCircle, ...prev]);
     }
 
-    // 2. If current user is jpoot@outlook.com or jose@famhealth.app, ensure circle-poot-ibarra is linked
+    // 2. If current user is jpoot@outlook.com or jose@famhealth.app, ensure circle-poot-ibarra is active
     if (currentUser && currentUser.id !== 'guest' && (currentUser.email === 'jpoot@outlook.com' || currentUser.email === 'jose@famhealth.app')) {
-      const needsIbarra = !currentUser.joinedFamilyIds?.includes('circle-poot-ibarra');
-      if (needsIbarra) {
-        const updatedIds = ['circle-poot-ibarra', ...(currentUser.joinedFamilyIds || ['circle-poot'])];
-        const updatedUser: UserAccount = {
-          ...currentUser,
-          activeFamilyId: 'circle-poot-ibarra',
-          joinedFamilyIds: updatedIds
-        };
+      const updatedIds = Array.from(new Set(['circle-poot-ibarra', ...(currentUser.joinedFamilyIds || ['circle-poot-ibarra'])]));
+      const updatedUser: UserAccount = {
+        ...currentUser,
+        activeFamilyId: 'circle-poot-ibarra',
+        joinedFamilyIds: updatedIds
+      };
+      if (currentUser.activeFamilyId !== 'circle-poot-ibarra' || currentUser.joinedFamilyIds?.length !== updatedIds.length) {
         setCurrentUser(updatedUser);
         setActiveFamilyIdState('circle-poot-ibarra');
         setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
@@ -593,16 +621,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     if (!isSupabaseConfigured() || !activeFamilyCircle) return;
 
-    // Pull latest snapshot from cloud on family change or mount
+    // Pull latest snapshot from cloud on family change or mount (only if snapshot has real data)
     pullFamilyDataFromCloud(activeFamilyCircle.id).then(res => {
-      if (res.success && res.payload) {
+      if (res.success && res.payload && (res.payload.patients?.length > 0 || res.payload.medications?.length > 0)) {
         importFamilyBackup(JSON.stringify(res.payload));
       }
     });
 
-    // Realtime subscription
+    // Realtime subscription (only merge if payload has real data)
     const unsubscribe = subscribeToFamilyCloudUpdates(activeFamilyCircle.id, payload => {
-      if (payload && payload.familyId === activeFamilyCircle.id) {
+      if (payload && payload.familyId === activeFamilyCircle.id && (payload.patients?.length > 0 || payload.medications?.length > 0)) {
         importFamilyBackup(JSON.stringify(payload));
       }
     });
