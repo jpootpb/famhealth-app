@@ -26,7 +26,7 @@ const RELATIONSHIP_PRESETS = [
 ];
 
 export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClose }) => {
-  const { patients, activePatient, setActivePatientId, addPatient } = useApp();
+  const { patients, activePatient, setActivePatientId, addPatient, purgeAllDemoData } = useApp();
   const { t, language } = useLanguage();
   const [isAddingNew, setIsAddingNew] = useState(false);
 
@@ -167,6 +167,19 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({ isOpen, onClos
             >
               <UserPlus size={18} /> {language === 'es' ? '+ Dar de Alta Nueva Persona / Familiar a Cuidar' : '+ Register New Person to Care For'}
             </button>
+
+            {patients.some(p => p.id === 'patient-grandfather' || p.id === 'patient-maria') && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ width: '100%', justifyContent: 'center', marginTop: '0.75rem', color: '#b91c1c', borderColor: '#fca5a5', backgroundColor: '#fef2f2', fontSize: '0.78rem' }}
+                onClick={() => {
+                  purgeAllDemoData();
+                }}
+              >
+                🧹 {language === 'es' ? 'Limpiar Pacientes de Prueba Demo (Dejar solo mi Familia Real)' : 'Purge Demo Dummy Patients'}
+              </button>
+            )}
           </div>
         ) : (
           <form onSubmit={handleCreatePatient}>

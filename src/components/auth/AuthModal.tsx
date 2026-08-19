@@ -13,7 +13,8 @@ import {
   KeyRound,
   Mail,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -23,7 +24,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFamilyManager }) => {
-  const { currentUser, allUsers, switchUser, loginUser, registerUser, logoutUser } = useApp();
+  const { currentUser, allUsers, switchUser, loginUser, registerUser, logoutUser, purgeAllDemoData } = useApp();
   const { t, language } = useLanguage();
 
   const [authMode, setAuthMode] = useState<'profile' | 'login' | 'register'>('profile');
@@ -163,6 +164,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                 </button>
               </div>
             )}
+
+            {/* Direct Purge Demo Data Button */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (window.confirm(language === 'es' ? '¿Deseas purgar y limpiar todos los datos de prueba de ejemplo para dejar únicamente la información real de tu familia?' : 'Purge demo dummy data?')) {
+                    purgeAllDemoData();
+                    onClose();
+                  }
+                }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#b91c1c', borderColor: '#fca5a5', backgroundColor: '#fef2f2', fontSize: '0.8rem', padding: '0.5rem' }}
+                title="Eliminar pacientes y medicinas de prueba demo"
+              >
+                <Trash2 size={15} />
+                <span>{language === 'es' ? '🧹 Limpiar Datos Demo (Dejar Solo Familia Real)' : '🧹 Purge Demo Data (Real Only)'}</span>
+              </button>
+            </div>
 
             {/* Quick Demo Accounts Switcher */}
             <div style={{ marginBottom: '1.25rem' }}>

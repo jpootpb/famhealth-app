@@ -28,6 +28,7 @@ import {
   adjustBatchStockUnits,
   addNewBatchToMedication
 } from '../utils/medicationBatchEngine';
+import { purgeDemoArtifacts, hasUserRealCustomData } from '../utils/demoPurgeEngine';
 
 interface AppContextType {
   // Auth & Current User
@@ -140,6 +141,9 @@ interface AppContextType {
   studies: MedicalStudy[];
   addStudy: (s: Omit<MedicalStudy, 'id'>) => void;
   deleteStudy: (id: string) => void;
+
+  // Clean Production Purge
+  purgeAllDemoData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -206,6 +210,48 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const activeFamilyCircle = familyCircles.find(c => c.id === activeFamilyId) || familyCircles[0] || allFamilyCircles[0];
   const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : (allFamilyCircles[0]?.id || '');
+
+  const purgeAllDemoData = () => {
+    const cleaned = purgeDemoArtifacts({
+      patients: allPatients,
+      medications: allMedications,
+      doseLogs: allDoseLogs,
+      vitals: allVitals,
+      campaigns: allCampaigns,
+      families: allFamilies,
+      expenses: allExpenses,
+      appointments: allAppointments,
+      studies: allStudies,
+      bookingReminders: allBookingReminders,
+      familyCircles: allFamilyCircles,
+      users: allUsers,
+      currentUserId: currentUser.id
+    });
+
+    setAllPatients(cleaned.patients);
+    setAllMedications(cleaned.medications);
+    setAllDoseLogs(cleaned.doseLogs);
+    setAllVitals(cleaned.vitals);
+    setAllCampaigns(cleaned.campaigns);
+    setAllFamilies(cleaned.families);
+    setAllExpenses(cleaned.expenses);
+    setAllAppointments(cleaned.appointments);
+    setAllStudies(cleaned.studies);
+    setAllBookingReminders(cleaned.bookingReminders);
+    setAllFamilyCircles(cleaned.familyCircles);
+    setAllUsers(cleaned.users);
+
+    if (cleaned.patients.length > 0) {
+      setActivePatientIdState(cleaned.patients[0].id);
+    }
+  };
+
+  // Auto-clean demo mock data when user has registered real custom patients (e.g. Sara Burgos Uc)
+  useEffect(() => {
+    if (hasUserRealCustomData(allPatients) && allPatients.some(p => p.id === 'patient-grandfather' || p.id === 'patient-maria')) {
+      purgeAllDemoData();
+    }
+  }, [allPatients]);
 
   // Filter entities by active family circle with backwards compatibility for unmigrated local storage
   const patients = allPatients.filter(p => !p.familyId || p.familyId === currentFamilyId);
@@ -846,7 +892,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         studies,
         addStudy,
-        deleteStudy
+        deleteStudy,
+
+        purgeAllDemoData
       }}
     >
       {children}
