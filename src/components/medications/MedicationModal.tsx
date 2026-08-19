@@ -18,6 +18,7 @@ import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
 import { formatDateIso } from '../../utils/frequencyEngine';
 import { compressImage } from '../../utils/imageCompressor';
+import { getPresentationConfig } from '../../utils/presentationHelper';
 import { Sparkles } from 'lucide-react';
 
 interface MedicationModalProps {
@@ -179,6 +180,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
   const currentPatient = activePatient || (patients.length > 0 ? patients[0] : null);
   if (!isOpen || !currentPatient) return null;
+
+  const presConfig = getPresentationConfig(presentation, language);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -381,11 +384,13 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                 onChange={e => {
                   const val = e.target.value;
                   setPresentation(val);
-                  const isLiquid = ['drops', 'ear_drops', 'nasal_spray', 'syrup', 'cream', 'inhalation'].includes(val);
-                  if (isLiquid) {
-                    setStockTrackingMode('manual_bottle');
-                  } else {
-                    setStockTrackingMode('pieces');
+                  const cfg = getPresentationConfig(val, language);
+                  setStockTrackingMode(cfg.defaultTrackingMode);
+                  if (cfg.defaultTrackingMode === 'manual_bottle') {
+                    setBottlesCount(1);
+                  }
+                  if (cfg.doseOptions.length > 0 && !cfg.doseOptions.some(opt => opt.value === doseSlots[0]?.dose)) {
+                    setDoseSlots(prev => prev.map(s => ({ ...s, dose: cfg.doseOptions[0].value })));
                   }
                 }}
               >
@@ -396,10 +401,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                 <option value="nasal_spray">👃 {language === 'es' ? 'Spray / Gotas Nasales' : 'Nasal Spray'}</option>
                 <option value="syrup">🥄 {language === 'es' ? 'Jarabe / Suspensión Líquida' : 'Syrup'}</option>
                 <option value="cream">🧴 {language === 'es' ? 'Crema / Pomada / Gel / Ungüento' : 'Cream / Ointment'}</option>
+                <option value="sachet">🍵 {language === 'es' ? 'Sobre / Polvo soluble (ej. Electrolitos, Mucolítico)' : 'Sachet / Powder'}</option>
                 <option value="inhalation">🫁 {language === 'es' ? 'Inhalador / Aerosol (Disparos)' : 'Inhaler / Puffs'}</option>
                 <option value="injection">💉 {language === 'es' ? 'Inyectable / Ampolleta' : 'Injection'}</option>
                 <option value="patch">🩹 {language === 'es' ? 'Parche Transdérmico' : 'Patch'}</option>
-                <option value="sachet">🍵 {language === 'es' ? 'Sobre / Polvo soluble' : 'Sachet'}</option>
               </select>
             </div>
           </div>
@@ -614,7 +619,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
             {stockTrackingMode === 'manual_bottle' ? (
               <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                 <label className="form-label" style={{ fontWeight: 700 }}>
-                  🧴 {language === 'es' ? 'Cantidad de Frascos / Muestras Disponibles:' : 'Available Bottles / Samples:'}
+                  {presConfig.icon} {presConfig.bottleCountLabel}
                 </label>
                 <input
                   type="number"
@@ -624,13 +629,15 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   onChange={e => setBottlesCount(Number(e.target.value))}
                 />
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                  {language === 'es' ? 'ej. Si compraste 2 muestras de 3ml en Farmacia Regina, pon 2 (1 en uso y 1 de reserva).' : 'e.g. 2 sample bottles'}
+                  {presConfig.bottleHint}
                 </p>
               </div>
             ) : (
               <div className="grid-3" style={{ marginBottom: '0.75rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">{t('currentStockCount')}</label>
+                  <label className="form-label">
+                    {presConfig.icon} {presConfig.stockCountLabel}
+                  </label>
                   <input
                     type="number"
                     className="form-input"
@@ -642,7 +649,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">
-                    📦 {language === 'es' ? 'Unid. por caja' : 'Units/box'}
+                    📦 {presConfig.unitsPerBoxLabel}
                   </label>
                   <input
                     type="number"
@@ -656,7 +663,9 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
                 {treatmentType === 'chronic' ? (
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label">{t('lowStockThreshold')}</label>
+                    <label className="form-label">
+                      ⚠️ {presConfig.lowStockLabel} ({presConfig.unitNounPlural})
+                    </label>
                     <input
                       type="number"
                       className="form-input"
@@ -1149,17 +1158,15 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
                   <select
                     className="form-select"
-                    style={{ width: '130px' }}
+                    style={{ width: '140px' }}
                     value={slot.dose}
                     onChange={e => handleUpdateDoseSlot(idx, 'dose', Number(e.target.value))}
                   >
-                    <option value={0.25}>1/4</option>
-                    <option value={0.5}>1/2</option>
-                    <option value={0.75}>3/4</option>
-                    <option value={1}>1</option>
-                    <option value={1.5}>1 1/2</option>
-                    <option value={2}>2</option>
-                    <option value={3}>3</option>
+                    {presConfig.doseOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
 
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

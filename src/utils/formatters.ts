@@ -23,7 +23,25 @@ export function formatDose(dose: number, presentation: string = 'tablet', lang: 
     return isEn ? '1 application' : '1 aplicación';
   }
 
-  if (pres.includes('ml')) {
+  if (pres.includes('sachet') || pres.includes('sobre')) {
+    if (dose === 0.5) return isEn ? '1/2 sachet' : '1/2 sobre';
+    if (dose === 1) return isEn ? '1 sachet' : '1 sobre';
+    return isEn ? `${dose} sachets` : `${dose} sobres`;
+  }
+
+  if (pres.includes('patch') || pres.includes('parche')) {
+    if (dose === 0.5) return isEn ? '1/2 patch' : '1/2 parche';
+    if (dose === 1) return isEn ? '1 patch' : '1 parche';
+    return isEn ? `${dose} patches` : `${dose} parches`;
+  }
+
+  if (pres.includes('inject') || pres.includes('ampoll') || pres.includes('jeringa')) {
+    if (dose === 1) return isEn ? '1 ampoule' : '1 ampolleta';
+    if (dose > 3) return isEn ? `${dose} Units` : `${dose} Unidades`;
+    return isEn ? `${dose} ampoules` : `${dose} ampolletas`;
+  }
+
+  if (pres.includes('syrup') || pres.includes('jarab') || pres.includes('ml')) {
     return `${dose} ml`;
   }
 
@@ -31,7 +49,7 @@ export function formatDose(dose: number, presentation: string = 'tablet', lang: 
   if (dose === 0.25) return isEn ? '1/4 unit' : '1/4 ' + (pres.includes('capsul') ? 'cápsula' : 'tableta');
   if (dose === 0.75) return isEn ? '3/4 unit' : '3/4 ' + (pres.includes('capsul') ? 'cápsula' : 'tableta');
   if (dose === 1) return isEn ? `1 ${presentation}` : `1 ${presentation === 'tablet' ? 'tableta' : presentation === 'capsule' ? 'cápsula' : presentation}`;
-  return `${dose} ${presentation}${dose > 1 && !pres.endsWith('s') ? 's' : ''}`;
+  return `${dose} ${presentation === 'tablet' ? 'tabletas' : presentation === 'capsule' ? 'cápsulas' : presentation}`;
 }
 
 export function formatCurrency(amount: number): string {
