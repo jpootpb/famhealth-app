@@ -149,7 +149,40 @@ export async function pullFamilyDataFromCloud(familyId: string): Promise<{
 }
 
 /**
- * Subscribes to Realtime updates for a family from Supabase
+ * Asynchronously pulls all family sync snapshots from Supabase cloud table
+ */
+export async function pullAllFamilySnapshotsFromCloud(): Promise<{
+  success: boolean;
+  snapshots?: FamilySyncPayload[];
+  error?: string;
+}> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Supabase no está configurado.' };
+  }
+
+  try {
+    const { data, error } = await client
+      .from('family_sync_snapshots')
+      .select('payload');
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      return { success: false, error: 'No se encontraron datos en Supabase.' };
+    }
+
+    const payloads = data.map(d => d.payload).filter(Boolean) as FamilySyncPayload[];
+    return { success: true, snapshots: payloads };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Error de conexión con la nube.' };
+  }
+}
+
+/**
+ * Subscribes to Realtime updates for all families from Supabase
  */
 export function subscribeToFamilyCloudUpdates(
   familyId: string,
@@ -162,14 +195,13 @@ export function subscribeToFamilyCloudUpdates(
 
   try {
     const channel = client
-      .channel(`family-sync-${familyId}`)
+      .channel('family-sync-global')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'family_sync_snapshots',
-          filter: `family_id=eq.${familyId}`
+          table: 'family_sync_snapshots'
         },
         (payload: any) => {
           if (payload.new && payload.new.payload) {

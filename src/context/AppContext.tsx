@@ -34,6 +34,7 @@ import {
   parseAndValidateFamilySyncPayload,
   pushFamilyDataToCloud,
   pullFamilyDataFromCloud,
+  pullAllFamilySnapshotsFromCloud,
   subscribeToFamilyCloudUpdates
 } from '../lib/cloudSyncEngine';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
@@ -589,20 +590,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true };
   };
 
-  // Automated Cloud Sync (Pull on mount/family change, Realtime subscription)
+  // Automated Cloud Sync (Pull ALL snapshots from Supabase on mount, Realtime subscription)
   useEffect(() => {
-    if (!isSupabaseConfigured() || !activeFamilyCircle) return;
+    if (!isSupabaseConfigured()) return;
 
-    // Pull latest snapshot from cloud on family change or mount (only if snapshot has real data)
-    pullFamilyDataFromCloud(activeFamilyCircle.id).then(res => {
-      if (res.success && res.payload && (res.payload.patients?.length > 0 || res.payload.medications?.length > 0)) {
-        importFamilyBackup(JSON.stringify(res.payload));
+    // Pull ALL snapshots from Supabase cloud table (loads all families, wife, mom and medications)
+    pullAllFamilySnapshotsFromCloud().then(res => {
+      if (res.success && res.snapshots) {
+        res.snapshots.forEach(snapshot => {
+          if (snapshot.patients?.length > 0 || snapshot.medications?.length > 0) {
+            importFamilyBackup(JSON.stringify(snapshot));
+          }
+        });
       }
     });
 
     // Realtime subscription (only merge if payload has real data)
-    const unsubscribe = subscribeToFamilyCloudUpdates(activeFamilyCircle.id, payload => {
-      if (payload && payload.familyId === activeFamilyCircle.id && (payload.patients?.length > 0 || payload.medications?.length > 0)) {
+    const unsubscribe = subscribeToFamilyCloudUpdates(activeFamilyId, payload => {
+      if (payload && (payload.patients?.length > 0 || payload.medications?.length > 0)) {
         importFamilyBackup(JSON.stringify(payload));
       }
     });
@@ -610,7 +615,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [activeFamilyId]);
+  }, []);
 
   // Debounced auto-push to Supabase cloud whenever data changes
   useEffect(() => {
