@@ -15,85 +15,121 @@ import {
 export const initialFamilyCircles: FamilyCircle[] = [
   {
     id: 'circle-poot',
-    name: 'Familia Poot (Cuidado Familiar)',
+    name: 'Familia Poot Burgos',
     inviteCode: 'POOT-7821',
     createdAt: '2026-08-01'
   },
   {
-    id: 'circle-gomez',
-    name: 'Familia Gómez (Suegros)',
-    inviteCode: 'GOME-3390',
+    id: 'circle-demo-sandbox',
+    name: '🧪 Laboratorio de Pruebas (Demo Sandbox)',
+    inviteCode: 'DEMO-9999',
     createdAt: '2026-08-10'
-  },
-  {
-    id: 'circle-personal-laura',
-    name: 'Mi Cuidado Personal (Laura)',
-    inviteCode: 'LAUR-9912',
-    createdAt: '2026-08-15',
-    isPersonalSpace: true
   }
 ];
 
 export const initialPatients: Patient[] = [
   {
-    id: 'patient-grandfather',
+    id: 'patient-sara-burgos',
     familyId: 'circle-poot',
-    name: 'Don Manuel Poot (Papá)',
+    name: 'Sara Burgos Uc (Mamá)',
+    type: 'chronic',
+    primaryDiagnosis: 'Control Médico Integral',
+    notes: 'Tratamiento continuo con seguimiento familiar.'
+  },
+  {
+    id: 'patient-demo-manuel',
+    familyId: 'circle-demo-sandbox',
+    name: 'Don Manuel Poot (Demo Pruebas)',
     birthDate: '1948-03-15',
     age: 78,
     type: 'chronic',
-    primaryDiagnosis: 'Diabetes Tipo 2 e Hipertensión',
-    notes: 'Dieta baja en sodio y control estricto de glucosa en ayunas.'
+    primaryDiagnosis: 'Diabetes Tipo 2 e Hipertensión (Pruebas)',
+    notes: 'Paciente demo para probar nuevas funcionalidades.'
   },
   {
-    id: 'patient-maria',
-    familyId: 'circle-poot',
-    name: 'Doña María Poot (Mamá)',
+    id: 'patient-demo-maria',
+    familyId: 'circle-demo-sandbox',
+    name: 'Doña María (Demo Pruebas)',
     birthDate: '1952-06-20',
     age: 74,
     type: 'temporary',
-    primaryDiagnosis: 'Tratamiento Antibiótico & Cuidado General',
+    primaryDiagnosis: 'Tratamiento Antibiótico (Pruebas)',
     treatmentStartDate: '2026-08-15',
     durationDays: 7,
-    notes: 'Tomar medicamento con alimentos. Reposo y control médico.'
-  },
-  {
-    id: 'patient-jose',
-    familyId: 'circle-poot',
-    name: 'José Manuel Poot (Mi Autocuidado)',
-    birthDate: '1988-08-10',
-    age: 38,
-    type: 'preventive',
-    primaryDiagnosis: 'Prediabetes y Control Preventivo',
-    notes: 'Monitoreo de glucosa en ayunas, peso y gotas oculares Eyestil Plus.'
-  },
-  {
-    id: 'patient-suegro',
-    familyId: 'circle-gomez',
-    name: 'Don Roberto Gómez',
-    birthDate: '1952-01-25',
-    age: 74,
-    type: 'chronic',
-    primaryDiagnosis: 'Hipertensión y Artrosis',
-    notes: 'Toma de presión arterial matutina.'
-  },
-  {
-    id: 'patient-laura-self',
-    familyId: 'circle-personal-laura',
-    name: 'Laura Poot',
-    birthDate: '1988-11-05',
-    age: 38,
-    type: 'preventive',
-    primaryDiagnosis: 'Control Preventivo de Tiroides',
-    notes: 'Tomas matutinas en ayunas 30 min antes del desayuno.'
+    notes: 'Medicamento con alimentos. Control demo.'
   }
 ];
 
 export const initialMedications: Medication[] = [
   {
-    id: 'med-metformin',
+    id: 'med-sara-rivaroxaban',
     familyId: 'circle-poot',
-    patientId: 'patient-grandfather',
+    patientId: 'patient-sara-burgos',
+    name: 'Rivaroxaban 2.5 mg',
+    presentation: 'tablet',
+    indication: 'Prevenir y tratar la formación de coágulos de sangre en las venas y arterias',
+    laboratory: 'Camber',
+    expirationDate: '2027-10-15',
+    isImssCovered: false,
+    source: 'private_pharmacy',
+    unitCost: 450,
+    preferredStore: 'Farmacias Guadalajara',
+    frequency: {
+      type: 'daily_fixed',
+      doseSlots: [
+        { time: '08:00', dose: 1, instruction: 'Con alimentos' }
+      ],
+      startDate: '2026-08-01'
+    },
+    currentStock: 56,
+    minimumStockAlert: 5
+  },
+  {
+    id: 'med-sara-kryntantek',
+    familyId: 'circle-poot',
+    patientId: 'patient-sara-burgos',
+    name: 'KRYNTANTEK oftteno',
+    presentation: 'drops',
+    indication: 'Glaucoma y presión intraocular',
+    laboratory: 'Sophia',
+    stockTrackingMode: 'manual_bottle',
+    bottlesCount: 2,
+    isMedicalSample: true,
+    sampleNotes: '2 muestras médicas de 3ml compradas en Farmacia Regina',
+    frequency: {
+      type: 'daily_fixed',
+      doseSlots: [
+        { time: '09:00', dose: 1, instruction: '1 gota en ojo derecho' }
+      ],
+      startDate: '2026-08-01'
+    },
+    currentStock: 2,
+    minimumStockAlert: 1
+  },
+  {
+    id: 'med-sara-isox',
+    familyId: 'circle-poot',
+    patientId: 'patient-sara-burgos',
+    name: 'Isox 15D',
+    presentation: 'capsule',
+    indication: 'Candidiasis vaginal aguda o recurrente',
+    laboratory: 'Itra',
+    isMedicalSample: true,
+    sampleNotes: '4 cajas de 2 cápsulas (Farmacia Regina)',
+    frequency: {
+      type: 'daily_fixed',
+      doseSlots: [
+        { time: '09:00', dose: 1, instruction: 'Con el desayuno' }
+      ],
+      startDate: '2026-08-01'
+    },
+    currentStock: 8,
+    minimumStockAlert: 2
+  },
+  {
+    id: 'med-metformin',
+    familyId: 'circle-demo-sandbox',
+    patientId: 'patient-demo-manuel',
     name: 'Metformina / Sitagliptina (500mg)',
     presentation: 'tablet',
     indication: 'Control glucémico en Diabetes Tipo 2',
@@ -116,10 +152,10 @@ export const initialMedications: Medication[] = [
     minimumStockAlert: 6
   },
   {
-    id: 'med-rivaroxaban',
-    familyId: 'circle-poot',
-    patientId: 'patient-grandfather',
-    name: 'Rivaroxabán (20mg)',
+    id: 'med-demo-rivaroxaban',
+    familyId: 'circle-demo-sandbox',
+    patientId: 'patient-demo-manuel',
+    name: 'Rivaroxabán (20mg Demo)',
     presentation: 'tablet',
     indication: 'Anticoagulante preventivo',
     laboratory: 'Bayer / Xarelto',
@@ -128,7 +164,7 @@ export const initialMedications: Medication[] = [
     source: 'online_store',
     unitCost: 510,
     preferredStore: 'Mercado Libre',
-    purchaseNotes: 'Comprar genérico en Mercado Libre con misma sal (Rivaroxabán 20mg) a $510 MXN. En farmacias cuesta $1,200 (¡Ahorro de $690 MXN por caja!).',
+    purchaseNotes: 'Comprar genérico en Mercado Libre con misma sal (Rivaroxabán 20mg) a $510 MXN.',
     frequency: {
       type: 'alternate_days',
       doseSlots: [

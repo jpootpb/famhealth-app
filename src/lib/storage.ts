@@ -29,28 +29,28 @@ import {
 
 export const initialUsers: UserAccount[] = [
   {
+    id: 'user-jose',
+    name: 'José Manuel Poot (Familia Real)',
+    email: 'jose@famhealth.app',
+    password: '123',
+    activeFamilyId: 'circle-poot',
+    joinedFamilyIds: ['circle-poot']
+  },
+  {
+    id: 'user-demo',
+    name: '🧪 Demo Sandbox (Laboratorio de Pruebas)',
+    email: 'demo@famhealth.app',
+    password: '123',
+    activeFamilyId: 'circle-demo-sandbox',
+    joinedFamilyIds: ['circle-demo-sandbox']
+  },
+  {
     id: 'user-carlos',
     name: 'Carlos Poot (Cuidador)',
     email: 'carlos@famhealth.app',
-    password: 'password123',
+    password: '123',
     activeFamilyId: 'circle-poot',
-    joinedFamilyIds: ['circle-poot', 'circle-gomez'] // Has access to both Dad & In-laws
-  },
-  {
-    id: 'user-claudia',
-    name: 'Claudia Gómez (Esposa)',
-    email: 'claudia@famhealth.app',
-    password: 'password123',
-    activeFamilyId: 'circle-gomez',
-    joinedFamilyIds: ['circle-gomez'] // Only has access to her own parents
-  },
-  {
-    id: 'user-laura',
-    name: 'Laura Poot (Prima - Uso Personal)',
-    email: 'laura@famhealth.app',
-    password: 'password123',
-    activeFamilyId: 'circle-personal-laura',
-    joinedFamilyIds: ['circle-personal-laura'] // Only personal self-care
+    joinedFamilyIds: ['circle-poot']
   }
 ];
 

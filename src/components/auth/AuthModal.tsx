@@ -187,12 +187,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
             {/* Quick Demo Accounts Switcher */}
             <div style={{ marginBottom: '1.25rem' }}>
               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
-                {language === 'es' ? '👥 Cambiar de Cuenta Rápida (Demostración de Aislamiento):' : '👥 Quick Account Switcher (Multi-Tenant Demo):'}
+                {language === 'es' ? '👥 Cambiar de Cuenta Rápida (1 Clic):' : '👥 Quick Account Switcher (1-Click):'}
               </span>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {allUsers.map(user => {
                   const isCurrent = currentUser.id === user.id;
+                  const isSandbox = user.email === 'demo@famhealth.app';
                   return (
                     <div
                       key={user.id}
@@ -202,23 +203,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.75rem 1rem',
-                        backgroundColor: isCurrent ? '#f0fdf4' : 'var(--bg-secondary)',
-                        border: `1px solid ${isCurrent ? '#16a34a' : 'var(--border-color)'}`,
+                        backgroundColor: isCurrent ? (isSandbox ? '#fef3c7' : '#f0fdf4') : 'var(--bg-secondary)',
+                        border: `1.5px solid ${isCurrent ? (isSandbox ? '#f59e0b' : '#16a34a') : 'var(--border-color)'}`,
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease'
                       }}
                     >
                       <div>
-                        <strong style={{ fontSize: '0.875rem' }}>{user.name}</strong>
+                        <strong style={{ fontSize: '0.875rem', color: isSandbox ? '#b45309' : 'var(--text-primary)' }}>
+                          {user.name}
+                        </strong>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {user.email} {user.joinedFamilyIds.length === 2 ? (language === 'es' ? '(Cuidador de 2 Familias)' : '(Dual Caregiver)') : ''}
+                          {user.email} • {language === 'es' ? 'Clave:' : 'Pass:'} <strong>{user.password || '123'}</strong>
                         </div>
                       </div>
 
-                      {isCurrent && (
-                        <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
-                          ✓ {language === 'es' ? 'Activo' : 'Active'}
+                      {isCurrent ? (
+                        <span className={`badge ${isSandbox ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.7rem', fontWeight: 700 }}>
+                          ✓ {language === 'es' ? 'En Uso' : 'Active'}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 600 }}>
+                          {language === 'es' ? 'Entrar →' : 'Switch →'}
                         </span>
                       )}
                     </div>
