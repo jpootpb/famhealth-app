@@ -126,6 +126,7 @@ export interface Medication {
     notes?: string;
   };
   badgeColor?: string;
+  treatmentType?: 'chronic' | 'temporary'; // 'chronic' = ongoing treatment requiring minimum stock alerts; 'temporary' = acute/by-days treatment without repurchase alerts
   expirationDate?: string; // YYYY-MM-DD
   stockTrackingMode?: 'pieces' | 'manual_bottle'; // 'pieces' = subtract units on each dose; 'manual_bottle' = eye drops/ointments/syrups managed manually until empty
   bottlesCount?: number; // Quantity of bottles or samples in stock (e.g. 2 bottles of 3ml)

@@ -38,6 +38,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [isAiScannerOpen, setIsAiScannerOpen] = useState(false);
 
   const [name, setName] = useState('');
+  const [treatmentType, setTreatmentType] = useState<'chronic' | 'temporary'>('chronic');
   const [presentation, setPresentation] = useState('tablet');
   const [indication, setIndication] = useState('');
   const [laboratory, setLaboratory] = useState('');
@@ -101,7 +102,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
   useEffect(() => {
     if (medicationToEdit) {
-      setAssignedPatientId(medicationToEdit.patientId || activePatient?.id || '');
+      const isTemp = medicationToEdit.treatmentType === 'temporary' || medicationToEdit.frequency.type === 'temporary_hourly';
+      setTreatmentType(isTemp ? 'temporary' : 'chronic');
       setName(medicationToEdit.name);
       setPresentation(medicationToEdit.presentation);
       setIndication(medicationToEdit.indication || '');
@@ -114,7 +116,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIsMedicalSample(Boolean(medicationToEdit.isMedicalSample));
       setSampleNotes(medicationToEdit.sampleNotes || '');
       setCurrentStock(medicationToEdit.currentStock);
-      setMinimumStockAlert(medicationToEdit.minimumStockAlert);
+      setMinimumStockAlert(isTemp ? 0 : medicationToEdit.minimumStockAlert);
       setUnitCost(medicationToEdit.unitCost !== undefined ? medicationToEdit.unitCost : '');
       setExpirationDate(medicationToEdit.expirationDate || '');
       setIsImssCovered(Boolean(medicationToEdit.isImssCovered || medicationToEdit.source === 'imss'));
@@ -140,6 +142,8 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIntervalHours(medicationToEdit.frequency.intervalHours || 8);
       setDoseSlots(medicationToEdit.frequency.doseSlots.length > 0 ? medicationToEdit.frequency.doseSlots : [{ time: '08:00', dose: 1 }]);
     } else {
+      const isPatientTemp = activePatient?.type === 'temporary';
+      setTreatmentType(isPatientTemp ? 'temporary' : 'chronic');
       setAssignedPatientId(activePatient?.id || '');
       setName('');
       setPresentation('tablet');
@@ -152,7 +156,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setIsMedicalSample(false);
       setSampleNotes('');
       setCurrentStock(30);
-      setMinimumStockAlert(5);
+      setMinimumStockAlert(isPatientTemp ? 0 : 5);
       setUnitCost('');
       setExpirationDate('');
       setIsImssCovered(false);
@@ -163,7 +167,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setLoyaltyRequired(3);
       setLoyaltyPurchased(0);
       setLoyaltyReward('1 Frasco / Caja Gratis');
-      setFrequencyType('daily_fixed');
+      setFrequencyType(isPatientTemp ? 'temporary_hourly' : 'daily_fixed');
       setStartDate(formatDateIso(new Date()));
       setEndDate('');
       setDurationDays(7);
@@ -217,6 +221,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     const payload = {
       patientId: assignedPatientId || currentPatient.id,
       name: name.trim(),
+      treatmentType,
       presentation,
       stockTrackingMode,
       bottlesCount: stockTrackingMode === 'manual_bottle' ? (Number(bottlesCount) || 1) : undefined,
@@ -227,7 +232,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       laboratory: laboratory.trim() || undefined,
       imageUrl: imageUrl || undefined,
       currentStock: stockTrackingMode === 'manual_bottle' ? (Number(bottlesCount) || 1) : (Number(currentStock) || 0),
-      minimumStockAlert: stockTrackingMode === 'manual_bottle' ? 0 : (Number(minimumStockAlert) || 3),
+      minimumStockAlert: treatmentType === 'temporary' ? 0 : (stockTrackingMode === 'manual_bottle' ? 0 : (Number(minimumStockAlert) || 0)),
       unitCost: isImssCovered ? 0 : (unitCost ? Number(unitCost) : undefined),
       isImssCovered,
       source: (isImssCovered ? 'imss' : (preferredStore ? 'private_pharmacy' : undefined)) as any,
@@ -558,9 +563,44 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
           {/* Stock, Expiration & Cost Settings */}
           <div className="card" style={{ padding: '1rem', backgroundColor: 'var(--bg-secondary)', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <AlertCircle size={16} color="var(--primary)" /> {t('inventorySettings')}
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <AlertCircle size={16} color="var(--primary)" /> {t('inventorySettings')}
+              </h3>
+
+              {/* Treatment Type Switcher (Crónico vs Temporal) */}
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${treatmentType === 'chronic' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => {
+                    setTreatmentType('chronic');
+                    if (minimumStockAlert <= 0) setMinimumStockAlert(5);
+                  }}
+                  style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  🔄 {language === 'es' ? 'Crónico (Continuo)' : 'Chronic'}
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${treatmentType === 'temporary' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => {
+                    setTreatmentType('temporary');
+                    setMinimumStockAlert(0);
+                  }}
+                  style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: treatmentType === 'temporary' ? '#d97706' : undefined, borderColor: treatmentType === 'temporary' ? '#d97706' : undefined }}
+                >
+                  ⏱️ {language === 'es' ? 'Temporal (Por Días)' : 'Temporary (Acute)'}
+                </button>
+              </div>
+            </div>
+
+            {/* Explanatory banner based on treatmentType */}
+            {treatmentType === 'temporary' && (
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.75rem', marginBottom: '0.75rem' }}>
+                ⏱️ {language === 'es' ? 'Tratamiento Temporal (ej. Antibiótico o analgésico por días): No requiere stock mínimo de recompra ya que concluye al terminar la caja o tomas programadas.' : 'Temporary treatment: No repurchase threshold needed.'}
+              </div>
+            )}
 
             {/* Inventory count based on mode */}
             {stockTrackingMode === 'manual_bottle' ? (
@@ -606,16 +646,28 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   />
                 </div>
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">{t('lowStockThreshold')}</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    min="1"
-                    value={minimumStockAlert}
-                    onChange={e => setMinimumStockAlert(Number(e.target.value))}
-                  />
-                </div>
+                {treatmentType === 'chronic' ? (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">{t('lowStockThreshold')}</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      min="0"
+                      value={minimumStockAlert}
+                      onChange={e => setMinimumStockAlert(Number(e.target.value))}
+                      placeholder="5"
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group" style={{ margin: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e' }}>
+                      ⏱️ Sin Alerta de Recompra
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                      {language === 'es' ? 'Ciclo único.' : 'Single cycle.'}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

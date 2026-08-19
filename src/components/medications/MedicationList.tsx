@@ -124,7 +124,7 @@ export const MedicationList: React.FC = () => {
   const completedMeds = patientMeds.filter(m => m.status === 'completed' || m.status === 'suspended');
 
   const lowStockCount = activeMeds.filter(
-    m => m.currentStock > 0 && m.currentStock <= m.minimumStockAlert
+    m => m.treatmentType !== 'temporary' && m.minimumStockAlert > 0 && m.currentStock > 0 && m.currentStock <= m.minimumStockAlert
   ).length;
 
   const depletedCount = activeMeds.filter(m => m.currentStock <= 0).length;
@@ -608,6 +608,18 @@ export const MedicationList: React.FC = () => {
                           </p>
                         )}
                         <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                          {med.treatmentType === 'temporary' || med.frequency.type === 'temporary_hourly' ? (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#92400e', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                              <Clock size={11} />
+                              <span>⏱️ {language === 'es' ? 'Temporal (Por Días)' : 'Temporary'}</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#0369a1', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                              <RotateCcw size={11} />
+                              <span>🔄 {language === 'es' ? 'Crónico Continuo' : 'Chronic'}</span>
+                            </div>
+                          )}
+
                           {med.isMedicalSample && (
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '0.1rem 0.45rem', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
                               <FlaskConical size={11} />
