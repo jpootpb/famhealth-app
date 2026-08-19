@@ -31,7 +31,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   onClose,
   medicationToEdit
 }) => {
-  const { activePatient, patients, addMedication, updateMedication, customPharmacies, addCustomPharmacy } = useApp();
+  const { activePatient, patients, addMedication, updateMedication, customPharmacies, addCustomPharmacy, currentFamilyId } = useApp();
   const { t, language } = useLanguage();
 
   const [assignedPatientId, setAssignedPatientId] = useState<string>('');
@@ -264,9 +264,17 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     };
 
     if (medicationToEdit) {
-      updateMedication({ ...payload, id: medicationToEdit.id });
+      updateMedication({
+        ...medicationToEdit,
+        ...payload,
+        id: medicationToEdit.id,
+        familyId: medicationToEdit.familyId || currentFamilyId
+      });
     } else {
-      addMedication(payload);
+      addMedication({
+        ...payload,
+        familyId: currentFamilyId
+      });
     }
 
     onClose();

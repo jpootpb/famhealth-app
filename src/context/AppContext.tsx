@@ -44,6 +44,7 @@ interface AppContextType {
   familyCircles: FamilyCircle[];
   allFamilyCircles: FamilyCircle[];
   activeFamilyCircle: FamilyCircle | undefined;
+  currentFamilyId: string;
   setActiveFamilyId: (id: string) => void;
   createFamilyCircle: (name: string, isPersonal?: boolean) => FamilyCircle;
   joinFamilyCircleByCode: (code: string) => boolean;
@@ -278,17 +279,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  // Strict entity filtering by active family circle (Zero Cross-Circle Contamination)
+  // Strict entity filtering by active family circle (Zero Cross-Circle Contamination + Patient Ownership)
   const patients = allPatients.filter(p => (p.familyId || 'circle-poot') === currentFamilyId);
-  const medications = allMedications.filter(m => (m.familyId || 'circle-poot') === currentFamilyId);
-  const doseLogs = allDoseLogs.filter(d => (d.familyId || 'circle-poot') === currentFamilyId);
-  const vitals = allVitals.filter(v => (v.familyId || 'circle-poot') === currentFamilyId);
-  const campaigns = allCampaigns.filter(c => (c.familyId || 'circle-poot') === currentFamilyId);
+  const patientIdSet = new Set(patients.map(p => p.id));
+
+  const medications = allMedications.filter(m => (m.familyId || 'circle-poot') === currentFamilyId || (m.patientId && patientIdSet.has(m.patientId)));
+  const doseLogs = allDoseLogs.filter(d => (d.familyId || 'circle-poot') === currentFamilyId || (d.patientId && patientIdSet.has(d.patientId)));
+  const vitals = allVitals.filter(v => (v.familyId || 'circle-poot') === currentFamilyId || (v.patientId && patientIdSet.has(v.patientId)));
+  const campaigns = allCampaigns.filter(c => (c.familyId || 'circle-poot') === currentFamilyId || (c.patientId && patientIdSet.has(c.patientId)));
   const families = allFamilies.filter(f => (f.familyId || 'circle-poot') === currentFamilyId);
-  const expenses = allExpenses.filter(e => (e.familyId || 'circle-poot') === currentFamilyId);
-  const appointments = allAppointments.filter(a => (a.familyId || 'circle-poot') === currentFamilyId);
-  const bookingReminders = allBookingReminders.filter(r => (r.familyId || 'circle-poot') === currentFamilyId);
-  const studies = allStudies.filter(s => (s.familyId || 'circle-poot') === currentFamilyId);
+  const expenses = allExpenses.filter(e => (e.familyId || 'circle-poot') === currentFamilyId || (e.patientId && patientIdSet.has(e.patientId)));
+  const appointments = allAppointments.filter(a => (a.familyId || 'circle-poot') === currentFamilyId || (a.patientId && patientIdSet.has(a.patientId)));
+  const bookingReminders = allBookingReminders.filter(r => (r.familyId || 'circle-poot') === currentFamilyId || (r.patientId && patientIdSet.has(r.patientId)));
+  const studies = allStudies.filter(s => (s.familyId || 'circle-poot') === currentFamilyId || (s.patientId && patientIdSet.has(s.patientId)));
 
   // Active Patient inside current family (undefined if current family has 0 patients)
   const activePatient = patients.find(p => p.id === activePatientId) || patients[0];
@@ -402,7 +405,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updatePatient = (p: Patient) => {
-    setAllPatients(prev => prev.map(item => item.id === p.id ? p : item));
+    setAllPatients(prev => prev.map(item => item.id === p.id ? { ...item, ...p, familyId: p.familyId || item.familyId || currentFamilyId } : item));
   };
 
   const addCustomPharmacy = (pharmacyName: string) => {
@@ -421,7 +424,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newMed: Medication = {
       ...m,
       id: 'med-' + Date.now(),
-      familyId: currentFamilyId
+      familyId: m.familyId || currentFamilyId
     };
     setAllMedications(prev => [...prev, newMed]);
   };
@@ -430,7 +433,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (m.preferredStore) {
       addCustomPharmacy(m.preferredStore);
     }
-    setAllMedications(prev => prev.map(item => item.id === m.id ? m : item));
+    setAllMedications(prev => prev.map(item => item.id === m.id ? { ...item, ...m, familyId: m.familyId || item.familyId || currentFamilyId } : item));
   };
 
   const deleteMedication = (id: string) => {
@@ -852,6 +855,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         familyCircles,
         allFamilyCircles,
         activeFamilyCircle,
+        currentFamilyId,
         setActiveFamilyId,
         createFamilyCircle,
         joinFamilyCircleByCode,
