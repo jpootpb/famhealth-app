@@ -78,8 +78,13 @@ export interface FrequencyRule {
   doseSlots: DoseSlot[];
   startDate: string;
   endDate?: string;
+  durationDays?: number;
   intervalDays?: number;
   intervalHours?: number;
+  startFirstDoseTime?: string; // HH:MM - First dose time on start date (e.g. 14:00 for mid-day doctor start)
+  firstDoseTiming?: 'breakfast' | 'lunch' | 'dinner' | 'custom';
+  totalPrescribedDoses?: number; // Total count of doses (e.g. 21 doses for 7 days x 3 doses/day)
+  endDoseTime?: string; // HH:MM - Exact time on endDate where the final dose completes
 }
 
 export type MedicationSource =

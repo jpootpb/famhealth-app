@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { AIPrescriptionScannerModal } from './AIPrescriptionScannerModal';
 import { ExtractedPrescriptionMed } from '../../utils/aiPrescriptionEngine';
-import { formatDateIso } from '../../utils/frequencyEngine';
+import { formatDateIso, calculateTemporaryTreatmentSchedule } from '../../utils/frequencyEngine';
 import { compressImage } from '../../utils/imageCompressor';
 import { getPresentationConfig } from '../../utils/presentationHelper';
 import { Sparkles } from 'lucide-react';
@@ -71,6 +71,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   const [durationDays, setDurationDays] = useState<number>(7);
   const [intervalDays, setIntervalDays] = useState<number>(2);
   const [intervalHours, setIntervalHours] = useState<number>(8);
+  const [startFirstDoseTime, setStartFirstDoseTime] = useState<string>('08:00');
+  const [firstDoseTiming, setFirstDoseTiming] = useState<'breakfast' | 'lunch' | 'dinner' | 'custom'>('breakfast');
+  const [endDoseTime, setEndDoseTime] = useState<string>('20:00');
+  const [totalPrescribedDoses, setTotalPrescribedDoses] = useState<number>(21);
 
   const handleAiExtractedMed = (med: ExtractedPrescriptionMed) => {
     setName(med.name);
@@ -141,7 +145,12 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setEndDate(medicationToEdit.frequency.endDate || '');
       setIntervalDays(medicationToEdit.frequency.intervalDays || 2);
       setIntervalHours(medicationToEdit.frequency.intervalHours || 8);
-      setDoseSlots(medicationToEdit.frequency.doseSlots.length > 0 ? medicationToEdit.frequency.doseSlots : [{ time: '08:00', dose: 1 }]);
+      const editDoseSlots = medicationToEdit.frequency.doseSlots.length > 0 ? medicationToEdit.frequency.doseSlots : [{ time: '08:00', dose: 1 }];
+      setDoseSlots(editDoseSlots);
+      setStartFirstDoseTime(medicationToEdit.frequency.startFirstDoseTime || editDoseSlots[0]?.time || '08:00');
+      setFirstDoseTiming(medicationToEdit.frequency.firstDoseTiming || 'breakfast');
+      setEndDoseTime(medicationToEdit.frequency.endDoseTime || '20:00');
+      setTotalPrescribedDoses(medicationToEdit.frequency.totalPrescribedDoses || (editDoseSlots.length * (medicationToEdit.frequency.durationDays || 7)));
     } else {
       const isPatientTemp = activePatient?.type === 'temporary';
       setTreatmentType(isPatientTemp ? 'temporary' : 'chronic');
@@ -174,6 +183,10 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setDurationDays(7);
       setIntervalDays(2);
       setIntervalHours(8);
+      setStartFirstDoseTime('08:00');
+      setFirstDoseTiming('breakfast');
+      setEndDoseTime('20:00');
+      setTotalPrescribedDoses(21);
       setDoseSlots([{ time: '08:00', dose: 1, instruction: language === 'es' ? 'Con el desayuno' : 'With breakfast' }]);
     }
   }, [medicationToEdit, isOpen, language, activePatient?.id]);
@@ -182,6 +195,15 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
   if (!isOpen || !currentPatient) return null;
 
   const presConfig = getPresentationConfig(presentation, language);
+  const isTemporaryTreatment = treatmentType === 'temporary' || frequencyType === 'temporary_hourly';
+
+  const tempSchedule = calculateTemporaryTreatmentSchedule({
+    startDate,
+    durationDays: Number(durationDays) || 7,
+    doseSlots,
+    startFirstDoseTime,
+    lang: language as any
+  });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -214,12 +236,20 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
     e.preventDefault();
     if (!name.trim()) return;
 
-    let computedEndDate = endDate;
-    if (frequencyType === 'temporary_hourly' && !computedEndDate && durationDays > 0) {
-      const end = new Date(startDate);
-      end.setDate(end.getDate() + durationDays);
-      computedEndDate = formatDateIso(end);
-    }
+    const schedule = isTemporaryTreatment
+      ? calculateTemporaryTreatmentSchedule({
+          startDate,
+          durationDays: Number(durationDays) || 7,
+          doseSlots,
+          startFirstDoseTime,
+          lang: language as any
+        })
+      : null;
+
+    const computedEndDate = schedule ? schedule.endDate : (endDate || undefined);
+    const computedEndDoseTime = schedule ? schedule.endDoseTime : undefined;
+    const computedTotalDoses = schedule ? schedule.totalPrescribedDoses : undefined;
+    const computedFirstDoseTime = schedule ? schedule.startFirstDoseTime : undefined;
 
     const payload = {
       patientId: assignedPatientId || currentPatient.id,
@@ -261,6 +291,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
         })),
         startDate,
         endDate: computedEndDate || undefined,
+        durationDays: isTemporaryTreatment ? (Number(durationDays) || 7) : undefined,
+        startFirstDoseTime: isTemporaryTreatment ? computedFirstDoseTime : undefined,
+        firstDoseTiming: isTemporaryTreatment ? firstDoseTiming : undefined,
+        endDoseTime: isTemporaryTreatment ? computedEndDoseTime : undefined,
+        totalPrescribedDoses: isTemporaryTreatment ? computedTotalDoses : undefined,
         intervalDays: frequencyType === 'every_n_days' ? intervalDays : undefined,
         intervalHours: frequencyType === 'temporary_hourly' ? intervalHours : undefined
       }
@@ -1103,7 +1138,7 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
             )}
 
-            {frequencyType === 'temporary_hourly' && (
+            {isTemporaryTreatment && (
               <div className="form-group">
                 <label className="form-label">{t('durationDays')}</label>
                 <input
@@ -1116,6 +1151,104 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* First Dose Timing Selector for Partial First Day */}
+          {isTemporaryTreatment && (
+            <div
+              className="card"
+              style={{
+                padding: '0.875rem 1rem',
+                backgroundColor: '#fffbeb',
+                border: '1.5px solid #fde68a',
+                marginBottom: '1.25rem'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label className="form-label" style={{ fontWeight: 800, color: '#92400e', margin: 0, fontSize: '0.8125rem' }}>
+                  🕒 {language === 'es' ? '¿A qué hora o comida inicia la 1ra toma hoy (Día 1)?' : 'First dose timing on Day 1:'}
+                </label>
+              </div>
+              <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.72rem', color: '#78350f' }}>
+                {language === 'es'
+                  ? 'Si compraste la medicina después de la consulta médica (ej. 11:00 AM), inicia en la Comida o Cena para no marcar como atrasada la mañana.'
+                  : 'Select first meal/time so prior morning doses are not marked overdue.'}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${firstDoseTiming === 'breakfast' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => {
+                    setFirstDoseTiming('breakfast');
+                    const morningSlot = doseSlots[0]?.time || '08:00';
+                    setStartFirstDoseTime(morningSlot);
+                  }}
+                  style={{ fontSize: '0.72rem', fontWeight: 700, justifyContent: 'center' }}
+                >
+                  🌅 {language === 'es' ? 'Desayuno (Día Completo)' : 'Breakfast (Full Day)'}
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn btn-sm ${firstDoseTiming === 'lunch' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => {
+                    setFirstDoseTiming('lunch');
+                    const midSlot = doseSlots.length > 1 ? doseSlots[1]?.time : '14:00';
+                    setStartFirstDoseTime(midSlot);
+                  }}
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    justifyContent: 'center',
+                    backgroundColor: firstDoseTiming === 'lunch' ? '#d97706' : undefined,
+                    borderColor: firstDoseTiming === 'lunch' ? '#d97706' : undefined
+                  }}
+                >
+                  ☀️ {language === 'es' ? 'Comida / Almuerzo' : 'Lunch / Mid-day'}
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn btn-sm ${firstDoseTiming === 'dinner' ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => {
+                    setFirstDoseTiming('dinner');
+                    const lastSlot = doseSlots[doseSlots.length - 1]?.time || '20:00';
+                    setStartFirstDoseTime(lastSlot);
+                  }}
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    justifyContent: 'center',
+                    backgroundColor: firstDoseTiming === 'dinner' ? '#9333ea' : undefined,
+                    borderColor: firstDoseTiming === 'dinner' ? '#9333ea' : undefined
+                  }}
+                >
+                  🌙 {language === 'es' ? 'Cena / Noche' : 'Dinner / Night'}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e' }}>
+                  {language === 'es' ? 'Hora exacta de 1ra toma:' : 'Exact 1st dose time:'}
+                </label>
+                <input
+                  type="time"
+                  className="form-input"
+                  style={{ width: '110px', padding: '0.25rem 0.5rem', fontSize: '0.8125rem' }}
+                  value={startFirstDoseTime}
+                  onChange={e => {
+                    setStartFirstDoseTime(e.target.value);
+                    setFirstDoseTiming('custom');
+                  }}
+                />
+              </div>
+
+              {/* Live Intelligent Schedule Summary */}
+              <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: 'var(--radius-sm)', fontSize: '0.72rem', color: '#92400e', fontWeight: 600 }}>
+                ✨ {tempSchedule.summaryText}
+              </div>
+            </div>
+          )}
 
           {/* Dosing Times & Fractional Multipliers */}
           <div style={{ marginBottom: '1.25rem' }}>
