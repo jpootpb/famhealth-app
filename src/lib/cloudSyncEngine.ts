@@ -153,3 +153,42 @@ export async function pullFamilyDataFromCloud(familyId: string): Promise<{
     return { success: false, error: err?.message || 'Error de conexión con la nube.' };
   }
 }
+
+/**
+ * Subscribes to Realtime updates for a family from Supabase
+ */
+export function subscribeToFamilyCloudUpdates(
+  familyId: string,
+  onUpdate: (payload: FamilySyncPayload) => void
+): (() => void) | null {
+  if (!isSupabaseConfigured() || !supabase) {
+    return null;
+  }
+
+  try {
+    const channel = supabase
+      .channel(`family-sync-${familyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'family_sync_snapshots',
+          filter: `family_id=eq.${familyId}`
+        },
+        (payload: any) => {
+          if (payload.new && payload.new.payload) {
+            onUpdate(payload.new.payload as FamilySyncPayload);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Realtime subscription error:', err);
+    return null;
+  }
+}

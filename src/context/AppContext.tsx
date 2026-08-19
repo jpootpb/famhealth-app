@@ -29,7 +29,14 @@ import {
   addNewBatchToMedication
 } from '../utils/medicationBatchEngine';
 import { purgeDemoArtifacts, hasUserRealCustomData } from '../utils/demoPurgeEngine';
-import { exportFamilySyncPayload, parseAndValidateFamilySyncPayload } from '../lib/cloudSyncEngine';
+import {
+  exportFamilySyncPayload,
+  parseAndValidateFamilySyncPayload,
+  pushFamilyDataToCloud,
+  pullFamilyDataFromCloud,
+  subscribeToFamilyCloudUpdates
+} from '../lib/cloudSyncEngine';
+import { isSupabaseConfigured } from '../lib/supabaseClient';
 
 interface AppContextType {
   // Auth & Current User
@@ -574,6 +581,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     return { success: true };
   };
+
+  // Automated Cloud Sync (Pull on mount/family change, Realtime subscription)
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !activeFamilyCircle) return;
+
+    // Pull latest snapshot from cloud on family change or mount
+    pullFamilyDataFromCloud(activeFamilyCircle.id).then(res => {
+      if (res.success && res.payload) {
+        importFamilyBackup(JSON.stringify(res.payload));
+      }
+    });
+
+    // Realtime subscription
+    const unsubscribe = subscribeToFamilyCloudUpdates(activeFamilyCircle.id, payload => {
+      if (payload && payload.familyId === activeFamilyCircle.id) {
+        importFamilyBackup(JSON.stringify(payload));
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [activeFamilyId]);
+
+  // Debounced auto-push to Supabase cloud whenever data changes
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !activeFamilyCircle) return;
+
+    const timer = setTimeout(() => {
+      const payloadStr = exportFamilySyncPayload({
+        familyCircle: activeFamilyCircle,
+        patients: allPatients,
+        medications: allMedications,
+        doseLogs: allDoseLogs,
+        vitals: allVitals,
+        expenses: allExpenses,
+        appointments: allAppointments,
+        studies: allStudies,
+        routineLogs: allRoutineLogs
+      });
+      try {
+        const parsed = JSON.parse(payloadStr);
+        pushFamilyDataToCloud(parsed);
+      } catch (err) {
+        console.warn('Sync push error:', err);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [allPatients, allMedications, allDoseLogs, allVitals, allExpenses, allAppointments, allStudies, allRoutineLogs]);
 
   const setActivePatientId = (id: string) => {
     setActivePatientIdState(id);
