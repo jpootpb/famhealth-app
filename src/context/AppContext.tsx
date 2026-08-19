@@ -623,6 +623,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return [...other, ...payload.studies];
     });
 
+    if (payload.patients.length > 0) {
+      setActivePatientIdState(payload.patients[0].id);
+    }
+
     return { success: true };
   };
 

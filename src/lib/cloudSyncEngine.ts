@@ -43,31 +43,23 @@ export function exportFamilySyncPayload(params: {
   const { familyCircle, patients, medications, doseLogs, vitals, expenses, appointments, studies, routineLogs } = params;
   const famId = familyCircle.id;
 
+  // Filter out demo sandbox, keep ALL real user data for the family!
+  const realPatients = patients.filter(p => p.familyId !== 'circle-demo-sandbox');
+  const realPatientIds = new Set(realPatients.map(p => p.id));
+
   const payload: FamilySyncPayload = {
     version: 1,
     familyId: famId,
     familyName: familyCircle.name,
     syncedAt: new Date().toISOString(),
-    patients: patients.filter(p => (p.familyId || 'circle-poot') === famId),
-    medications: medications.filter(m => (m.familyId || 'circle-poot') === famId),
-    doseLogs: doseLogs.filter(d => {
-      const med = medications.find(m => m.id === d.medicationId);
-      return (med?.familyId || 'circle-poot') === famId;
-    }),
-    vitals: vitals.filter(v => {
-      const pat = patients.find(p => p.id === v.patientId);
-      return (pat?.familyId || 'circle-poot') === famId;
-    }),
-    expenses: expenses.filter(e => (e.familyId || 'circle-poot') === famId),
-    appointments: appointments.filter(a => {
-      const pat = patients.find(p => p.id === a.patientId);
-      return (pat?.familyId || 'circle-poot') === famId;
-    }),
-    studies: studies.filter(s => (s.familyId || 'circle-poot') === famId),
-    routineLogs: (routineLogs || []).filter(r => {
-      const pat = patients.find(p => p.id === r.patientId);
-      return (pat?.familyId || 'circle-poot') === famId;
-    })
+    patients: realPatients.map(p => ({ ...p, familyId: famId })),
+    medications: medications.filter(m => m.familyId !== 'circle-demo-sandbox' || (m.patientId && realPatientIds.has(m.patientId))).map(m => ({ ...m, familyId: famId })),
+    doseLogs: doseLogs.filter(d => d.familyId !== 'circle-demo-sandbox' || (d.patientId && realPatientIds.has(d.patientId))).map(d => ({ ...d, familyId: famId })),
+    vitals: vitals.filter(v => v.familyId !== 'circle-demo-sandbox' || (v.patientId && realPatientIds.has(v.patientId))).map(v => ({ ...v, familyId: famId })),
+    expenses: expenses.filter(e => e.familyId !== 'circle-demo-sandbox' || (e.patientId && realPatientIds.has(e.patientId))).map(e => ({ ...e, familyId: famId })),
+    appointments: appointments.filter(a => a.familyId !== 'circle-demo-sandbox' || (a.patientId && realPatientIds.has(a.patientId))).map(a => ({ ...a, familyId: famId })),
+    studies: studies.filter(s => s.familyId !== 'circle-demo-sandbox' || (s.patientId && realPatientIds.has(s.patientId))).map(s => ({ ...s, familyId: famId })),
+    routineLogs: (routineLogs || []).filter(r => r.familyId !== 'circle-demo-sandbox' || (r.patientId && realPatientIds.has(r.patientId))).map(r => ({ ...r, familyId: famId }))
   };
 
   return JSON.stringify(payload);
