@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 import {
   Patient,
   Medication,
@@ -88,12 +88,13 @@ export function parseAndValidateFamilySyncPayload(rawJson: string): {
  * Asynchronously pushes family sync payload to Supabase cloud table if configured
  */
 export async function pushFamilyDataToCloud(payload: FamilySyncPayload): Promise<{ success: boolean; error?: string }> {
-  if (!isSupabaseConfigured() || !supabase) {
-    return { success: false, error: 'Supabase no está configurado.' };
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Supabase no está configurado (faltan credenciales).' };
   }
 
   try {
-    const { error } = await supabase
+    const { error } = await client
       .from('family_sync_snapshots')
       .upsert({
         family_id: payload.familyId,
@@ -121,12 +122,13 @@ export async function pullFamilyDataFromCloud(familyId: string): Promise<{
   payload?: FamilySyncPayload;
   error?: string;
 }> {
-  if (!isSupabaseConfigured() || !supabase) {
+  const client = getSupabaseClient();
+  if (!client) {
     return { success: false, error: 'Supabase no está configurado.' };
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('family_sync_snapshots')
       .select('payload')
       .eq('family_id', familyId)
@@ -153,12 +155,13 @@ export function subscribeToFamilyCloudUpdates(
   familyId: string,
   onUpdate: (payload: FamilySyncPayload) => void
 ): (() => void) | null {
-  if (!isSupabaseConfigured() || !supabase) {
+  const client = getSupabaseClient();
+  if (!client) {
     return null;
   }
 
   try {
-    const channel = supabase
+    const channel = client
       .channel(`family-sync-${familyId}`)
       .on(
         'postgres_changes',
@@ -177,7 +180,7 @@ export function subscribeToFamilyCloudUpdates(
       .subscribe();
 
     return () => {
-      supabase?.removeChannel(channel);
+      client.removeChannel(channel);
     };
   } catch (err) {
     console.warn('Realtime subscription error:', err);

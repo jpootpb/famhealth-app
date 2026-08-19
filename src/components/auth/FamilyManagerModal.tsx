@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { shareViaWhatsApp } from '../../lib/whatsapp';
 import { pushFamilyDataToCloud, pullFamilyDataFromCloud } from '../../lib/cloudSyncEngine';
-import { isSupabaseConfigured } from '../../lib/supabaseClient';
+import { isSupabaseConfigured, getSupabaseConfig, setSupabaseConfig, testSupabaseConnection } from '../../lib/supabaseClient';
 
 interface FamilyManagerModalProps {
   isOpen: boolean;
@@ -51,6 +51,14 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
   const [syncStatusMsg, setSyncStatusMsg] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [joinError, setJoinError] = useState('');
   const [joinSuccess, setJoinSuccess] = useState(false);
+
+  // Supabase Live Credentials Configuration State
+  const initialConfig = getSupabaseConfig();
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(initialConfig.url);
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState(initialConfig.anonKey);
+  const [isConfiguringSupabase, setIsConfiguringSupabase] = useState(false);
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [supabaseTestFeedback, setSupabaseTestFeedback] = useState<{ success: boolean; msg: string } | null>(null);
 
   if (!isOpen) return null;
 
@@ -469,10 +477,119 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
 
             {/* Cloud Push / Pull Section */}
             <div style={{ border: '1.5px solid #0284c7', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem', backgroundColor: '#f0fdfa' }}>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0369a1' }}>
-                <Cloud size={18} />
-                <span>{language === 'es' ? '☁️ Sincronización Automática con Supabase' : '☁️ Supabase Cloud Sync'}</span>
-              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0369a1' }}>
+                  <Cloud size={18} />
+                  <span>{language === 'es' ? '☁️ Sincronización Automática con Supabase' : '☁️ Supabase Cloud Sync'}</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setIsConfiguringSupabase(!isConfiguringSupabase)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  {isConfiguringSupabase ? (language === 'es' ? 'Ocultar Llaves' : 'Hide Keys') : (language === 'es' ? '⚙️ Configurar Llaves' : '⚙️ Config Keys')}
+                </button>
+              </div>
+
+              {/* Supabase Connection Status Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.75rem', fontSize: '0.75rem' }}>
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: isSupabaseConfigured() ? '#16a34a' : '#dc2626'
+                  }}
+                />
+                <span style={{ fontWeight: 600, color: isSupabaseConfigured() ? '#15803d' : '#b91c1c' }}>
+                  {isSupabaseConfigured()
+                    ? (language === 'es' ? 'Supabase Conectado' : 'Supabase Connected')
+                    : (language === 'es' ? 'Supabase Desconectado (Faltan credenciales)' : 'Supabase Disconnected (Missing credentials)')}
+                </span>
+              </div>
+
+              {/* Collapsible Supabase Credentials Configuration Form */}
+              {isConfiguringSupabase && (
+                <div style={{ backgroundColor: '#ffffff', border: '1px solid #bae6fd', borderRadius: 'var(--radius-sm)', padding: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                      {language === 'es' ? 'Project URL de Supabase:' : 'Supabase Project URL:'}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ fontSize: '0.75rem' }}
+                      placeholder="https://xyzabcdefg.supabase.co"
+                      value={supabaseUrlInput}
+                      onChange={e => setSupabaseUrlInput(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                      {language === 'es' ? 'Project API Anon Key (Pública):' : 'Project API Anon Key:'}
+                    </label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      style={{ fontSize: '0.75rem' }}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                      value={supabaseKeyInput}
+                      onChange={e => setSupabaseKeyInput(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1 }}
+                      onClick={() => {
+                        setSupabaseConfig(supabaseUrlInput, supabaseKeyInput);
+                        setSupabaseTestFeedback({
+                          success: true,
+                          msg: language === 'es' ? '✓ Credenciales guardadas. Probando conexión...' : '✓ Credentials saved. Testing...'
+                        });
+                        setIsTestingSupabase(true);
+                        testSupabaseConnection().then(res => {
+                          setIsTestingSupabase(false);
+                          setSupabaseTestFeedback({
+                            success: res.success,
+                            msg: res.message
+                          });
+                        });
+                      }}
+                    >
+                      {language === 'es' ? 'Guardar y Probar Conexión' : 'Save & Test Connection'}
+                    </button>
+                  </div>
+
+                  {supabaseTestFeedback && (
+                    <div
+                      style={{
+                        marginTop: '0.5rem',
+                        padding: '0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        backgroundColor: supabaseTestFeedback.success ? '#ecfdf5' : '#fee2e2',
+                        color: supabaseTestFeedback.success ? '#15803d' : '#b91c1c',
+                        border: `1px solid ${supabaseTestFeedback.success ? '#86efac' : '#fca5a5'}`
+                      }}
+                    >
+                      {supabaseTestFeedback.msg}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
                 <button
