@@ -292,42 +292,49 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [allPatients]);
 
-  // Normalize legacy unassigned entities in storage to origin circle 'circle-poot'
+  // Normalize and bridge entities to primary family circle 'circle-poot-ibarra'
   useEffect(() => {
-    if (allPatients.some(p => !p.familyId)) {
-      setAllPatients(prev => prev.map(p => p.familyId ? p : { ...p, familyId: 'circle-poot' }));
-    }
-    if (allMedications.some(m => !m.familyId)) {
-      setAllMedications(prev => prev.map(m => m.familyId ? m : { ...m, familyId: 'circle-poot' }));
-    }
-    if (allDoseLogs.some(d => !d.familyId)) {
-      setAllDoseLogs(prev => prev.map(d => d.familyId ? d : { ...d, familyId: 'circle-poot' }));
-    }
-    if (allVitals.some(v => !v.familyId)) {
-      setAllVitals(prev => prev.map(v => v.familyId ? v : { ...v, familyId: 'circle-poot' }));
-    }
-    if (allExpenses.some(e => !e.familyId)) {
-      setAllExpenses(prev => prev.map(e => e.familyId ? e : { ...e, familyId: 'circle-poot' }));
-    }
-    if (allAppointments.some(a => !a.familyId)) {
-      setAllAppointments(prev => prev.map(a => a.familyId ? a : { ...a, familyId: 'circle-poot' }));
-    }
-    if (allStudies.some(s => !s.familyId)) {
-      setAllStudies(prev => prev.map(s => s.familyId ? s : { ...s, familyId: 'circle-poot' }));
-    }
+    setAllPatients(prev => prev.map(p => (!p.familyId || p.familyId === 'circle-poot') ? { ...p, familyId: 'circle-poot-ibarra' } : p));
+    setAllMedications(prev => prev.map(m => (!m.familyId || m.familyId === 'circle-poot') ? { ...m, familyId: 'circle-poot-ibarra' } : m));
+    setAllDoseLogs(prev => prev.map(d => (!d.familyId || d.familyId === 'circle-poot') ? { ...d, familyId: 'circle-poot-ibarra' } : d));
+    setAllVitals(prev => prev.map(v => (!v.familyId || v.familyId === 'circle-poot') ? { ...v, familyId: 'circle-poot-ibarra' } : v));
+    setAllExpenses(prev => prev.map(e => (!e.familyId || e.familyId === 'circle-poot') ? { ...e, familyId: 'circle-poot-ibarra' } : e));
+    setAllAppointments(prev => prev.map(a => (!a.familyId || a.familyId === 'circle-poot') ? { ...a, familyId: 'circle-poot-ibarra' } : a));
+    setAllStudies(prev => prev.map(s => (!s.familyId || s.familyId === 'circle-poot') ? { ...s, familyId: 'circle-poot-ibarra' } : s));
   }, []);
 
   // Strict entity filtering by active family circle (Zero Cross-Circle Contamination + Patient Ownership)
-  const patients = allPatients.filter(p => (p.familyId || 'circle-poot') === currentFamilyId);
+  const patients = allPatients.filter(p => {
+    const fam = p.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot');
+  });
   const patientIdSet = new Set(patients.map(p => p.id));
 
-  const medications = allMedications.filter(m => (m.familyId || 'circle-poot') === currentFamilyId || (m.patientId && patientIdSet.has(m.patientId)));
-  const doseLogs = allDoseLogs.filter(d => (d.familyId || 'circle-poot') === currentFamilyId || (d.patientId && patientIdSet.has(d.patientId)));
-  const vitals = allVitals.filter(v => (v.familyId || 'circle-poot') === currentFamilyId || (v.patientId && patientIdSet.has(v.patientId)));
-  const campaigns = allCampaigns.filter(c => (c.familyId || 'circle-poot') === currentFamilyId || (c.patientId && patientIdSet.has(c.patientId)));
-  const families = allFamilies.filter(f => (f.familyId || 'circle-poot') === currentFamilyId);
-  const expenses = allExpenses.filter(e => (e.familyId || 'circle-poot') === currentFamilyId || (e.patientId && patientIdSet.has(e.patientId)));
-  const appointments = allAppointments.filter(a => (a.familyId || 'circle-poot') === currentFamilyId || (a.patientId && patientIdSet.has(a.patientId)));
+  const medications = allMedications.filter(m => {
+    const fam = m.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot') || (m.patientId && patientIdSet.has(m.patientId));
+  });
+  const doseLogs = allDoseLogs.filter(d => {
+    const fam = d.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot') || (d.patientId && patientIdSet.has(d.patientId));
+  });
+  const vitals = allVitals.filter(v => {
+    const fam = v.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot') || (v.patientId && patientIdSet.has(v.patientId));
+  });
+  const campaigns = allCampaigns.filter(c => {
+    const fam = c.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot') || (c.patientId && patientIdSet.has(c.patientId));
+  });
+  const families = allFamilies.filter(f => (f.familyId || 'circle-poot-ibarra') === currentFamilyId);
+  const expenses = allExpenses.filter(e => {
+    const fam = e.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot') || (e.patientId && patientIdSet.has(e.patientId));
+  });
+  const appointments = allAppointments.filter(a => {
+    const fam = a.familyId || 'circle-poot-ibarra';
+    return fam === currentFamilyId || (currentFamilyId === 'circle-poot-ibarra' && fam === 'circle-poot') || (a.patientId && patientIdSet.has(a.patientId));
+  });
   const bookingReminders = allBookingReminders.filter(r => (r.familyId || 'circle-poot') === currentFamilyId || (r.patientId && patientIdSet.has(r.patientId)));
   const studies = allStudies.filter(s => (s.familyId || 'circle-poot') === currentFamilyId || (s.patientId && patientIdSet.has(s.patientId)));
 

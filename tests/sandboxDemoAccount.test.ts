@@ -30,12 +30,12 @@ describe('Sandbox Demo Account & Real Production Account Isolation', () => {
     expect(demoCircles.map(c => c.id)).not.toContain('circle-poot');
   });
 
-  it('3. Real patient (Sara Burgos Uc) belongs to circle-poot without fake demo items', () => {
-    const realPatients = initialPatients.filter(p => p.familyId === 'circle-poot');
+  it('3. Real patient (Sara Burgos Uc) belongs to circle-poot-ibarra without fake demo items', () => {
+    const realPatients = initialPatients.filter(p => p.familyId === 'circle-poot-ibarra' || p.familyId === 'circle-poot');
     expect(realPatients.length).toBe(1);
     expect(realPatients[0].name).toBe('Sara Burgos Uc (Mamá)');
 
-    const realMeds = initialMedications.filter(m => m.familyId === 'circle-poot');
+    const realMeds = initialMedications.filter(m => m.familyId === 'circle-poot-ibarra' || m.familyId === 'circle-poot');
     expect(realMeds.map(m => m.name)).toContain('Rivaroxaban 2.5 mg');
     expect(realMeds.map(m => m.name)).toContain('KRYNTANTEK oftteno');
     expect(realMeds.map(m => m.name)).toContain('Isox 15D');

@@ -36,7 +36,7 @@ export const initialFamilyCircles: FamilyCircle[] = [
 export const initialPatients: Patient[] = [
   {
     id: 'patient-sara-burgos',
-    familyId: 'circle-poot',
+    familyId: 'circle-poot-ibarra',
     name: 'Sara Burgos Uc (Mamá)',
     type: 'chronic',
     primaryDiagnosis: 'Control Médico Integral',
