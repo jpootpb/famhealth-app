@@ -36,7 +36,7 @@ export const initialFamilyCircles: FamilyCircle[] = [
 export const initialPatients: Patient[] = [
   {
     id: 'patient-sara-burgos',
-    familyId: 'circle-poot-ibarra',
+    familyId: 'circle-poot',
     name: 'Sara Burgos Uc (Mamá)',
     type: 'chronic',
     primaryDiagnosis: 'Control Médico Integral',
@@ -69,7 +69,7 @@ export const initialPatients: Patient[] = [
 export const initialMedications: Medication[] = [
   {
     id: 'med-sara-rivaroxaban',
-    familyId: 'circle-poot-ibarra',
+    familyId: 'circle-poot',
     patientId: 'patient-sara-burgos',
     name: 'Rivaroxaban 2.5 mg',
     presentation: 'tablet',
@@ -92,7 +92,7 @@ export const initialMedications: Medication[] = [
   },
   {
     id: 'med-sara-kryntantek',
-    familyId: 'circle-poot-ibarra',
+    familyId: 'circle-poot',
     patientId: 'patient-sara-burgos',
     name: 'KRYNTANTEK oftteno',
     presentation: 'drops',
@@ -114,7 +114,7 @@ export const initialMedications: Medication[] = [
   },
   {
     id: 'med-sara-isox',
-    familyId: 'circle-poot-ibarra',
+    familyId: 'circle-poot',
     patientId: 'patient-sara-burgos',
     name: 'Isox 15D',
     presentation: 'capsule',
