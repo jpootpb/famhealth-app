@@ -186,11 +186,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.saveStudies(allStudies); }, [allStudies]);
   useEffect(() => { LocalStore.saveCustomPharmacies(customPharmacies); }, [customPharmacies]);
 
-  // Family circles visible to current logged-in user
-  const familyCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);
+  // Family circles visible to current logged-in user (with fallback to allFamilyCircles if empty)
+  const userCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);
+  const familyCircles = userCircles.length > 0 ? userCircles : allFamilyCircles;
 
-  const activeFamilyCircle = familyCircles.find(c => c.id === activeFamilyId) || familyCircles[0];
-  const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : (familyCircles[0]?.id || '');
+  const activeFamilyCircle = familyCircles.find(c => c.id === activeFamilyId) || familyCircles[0] || allFamilyCircles[0];
+  const currentFamilyId = activeFamilyCircle ? activeFamilyCircle.id : (allFamilyCircles[0]?.id || '');
 
   // Filter entities by active family circle with backwards compatibility for unmigrated local storage
   const patients = allPatients.filter(p => !p.familyId || p.familyId === currentFamilyId);

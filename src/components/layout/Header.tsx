@@ -25,7 +25,7 @@ import { requestNotificationPermission, sendLocalNotification } from '../../lib/
 import { getDailyDoseSlots, formatDateIso } from '../../utils/frequencyEngine';
 
 export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
-  const { currentUser, logoutUser, activePatient, activeFamilyCircle, medications, doseLogs } = useApp();
+  const { currentUser, logoutUser, activePatient, activeFamilyCircle, allFamilyCircles, medications, doseLogs } = useApp();
   const { t, language, setLanguage } = useLanguage();
 
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
@@ -177,29 +177,29 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
               </span>
             </button>
 
-            {/* Family Circle Badge Selector */}
-            {activeFamilyCircle && (
-              <button
-                onClick={() => setIsFamilyModalOpen(true)}
-                className="btn btn-secondary btn-sm"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  borderRadius: 'var(--radius-full)',
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  padding: '0.25rem 0.65rem'
-                }}
-                title={t('switchFamily')}
-              >
-                <Users size={13} color="var(--primary)" />
-                <strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>
-                  {activeFamilyCircle.name}
-                </strong>
-                <ChevronDown size={11} color="var(--text-muted)" />
-              </button>
-            )}
+            {/* Family Circle Badge Selector - Always Visible & Highly Prominent */}
+            <button
+              onClick={() => setIsFamilyModalOpen(true)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: '#f0fdf4',
+                border: '1.5px solid #16a34a',
+                padding: '0.3rem 0.75rem',
+                color: '#15803d',
+                cursor: 'pointer'
+              }}
+              title={language === 'es' ? 'Gestionar o Cambiar Círculo Familiar (Mi Hogar, Papás, etc.)' : 'Manage / Switch Family Circle'}
+            >
+              <Users size={14} color="#16a34a" />
+              <strong style={{ fontSize: '0.8rem', color: '#15803d' }}>
+                {activeFamilyCircle?.name || allFamilyCircles?.[0]?.name || (language === 'es' ? '👨‍👩‍👧 Círculos Familiares' : 'Family Circles')}
+              </strong>
+              <ChevronDown size={12} color="#16a34a" />
+            </button>
           </div>
 
           {/* Center: Active Patient Pill Selector */}

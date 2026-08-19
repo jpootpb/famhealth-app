@@ -9,7 +9,7 @@ export function isUserAuthenticated(user?: UserAccount | null): boolean {
 
 export function getUserVisibleFamilyCircles(user: UserAccount, allCircles: FamilyCircle[]): FamilyCircle[] {
   if (!isUserAuthenticated(user)) return [];
-  return allCircles.filter(circle => user.joinedFamilyIds.includes(circle.id));
+  return allCircles.filter(circle => user.joinedFamilyIds?.includes(circle.id));
 }
 
 export function joinFamilyWithCode(
