@@ -28,7 +28,7 @@ import {
   adjustBatchStockUnits,
   addNewBatchToMedication
 } from '../utils/medicationBatchEngine';
-import { purgeDemoArtifacts, hasUserRealCustomData } from '../utils/demoPurgeEngine';
+import { purgeDemoArtifacts, hasUserRealCustomData, isDemoNameOrId } from '../utils/demoPurgeEngine';
 import {
   exportFamilySyncPayload,
   parseAndValidateFamilySyncPayload,
@@ -313,9 +313,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Auto-clean demo mock data when user has registered real custom patients (e.g. Sara Burgos Uc)
+  // Auto-clean demo mock data when user has registered real custom patients (e.g. Geni Yazmin, Sara Burgos)
   useEffect(() => {
-    if (hasUserRealCustomData(allPatients) && allPatients.some(p => p.id === 'patient-grandfather' || p.id === 'patient-maria')) {
+    if (allPatients.some(p => isDemoNameOrId(p.id, p.name))) {
       purgeAllDemoData();
     }
   }, [allPatients]);
