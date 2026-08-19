@@ -36,7 +36,8 @@ describe('Sandbox Demo Account & Real Production Account Isolation', () => {
     expect(realPatients[0].name).toBe('Sara Burgos Uc (Mamá)');
 
     const realMeds = initialMedications.filter(m => m.familyId === 'circle-poot-ibarra' || m.familyId === 'circle-poot');
-    expect(realMeds.map(m => m.name)).toContain('Rivaroxaban 2.5 mg');
+    expect(realMeds.map(m => m.name)).toContain('Rivaroxaban');
+    expect(realMeds.find(m => m.name === 'Rivaroxaban')?.dosageStrength).toBe('2.5 mg');
     expect(realMeds.map(m => m.name)).toContain('KRYNTANTEK oftteno');
     expect(realMeds.map(m => m.name)).toContain('Isox 15D');
   });
