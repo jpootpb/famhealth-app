@@ -12,9 +12,14 @@ import {
   Share2,
   Building2,
   HeartHandshake,
-  User
+  User,
+  CloudUpload,
+  CloudDownload,
+  Cloud
 } from 'lucide-react';
 import { shareViaWhatsApp } from '../../lib/whatsapp';
+import { pushFamilyDataToCloud, pullFamilyDataFromCloud } from '../../lib/cloudSyncEngine';
+import { isSupabaseConfigured } from '../../lib/supabaseClient';
 
 interface FamilyManagerModalProps {
   isOpen: boolean;
@@ -454,18 +459,84 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
         {activeTab === 'sync' && (
           <div>
             <div style={{ backgroundColor: '#eff6ff', padding: '0.875rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.8125rem', color: '#1e40af' }}>
-              📲 <strong>{language === 'es' ? 'Sincronización Directa entre Dispositivos:' : 'Direct Multi-Device Sync:'}</strong>
+              📲 <strong>{language === 'es' ? 'Sincronización en la Nube y entre Dispositivos:' : 'Cloud & Multi-Device Sync:'}</strong>
               <p style={{ margin: '0.25rem 0 0', opacity: 0.9 }}>
                 {language === 'es'
-                  ? 'Copia los datos de tu familia desde tu computadora o celular para pegarlos y sincronizarlos de inmediato en cualquier otro teléfono.'
-                  : 'Copy your family data from this device and paste it on another phone to sync immediately.'}
+                  ? 'Mantén sincronizados todos tus celulares y computadoras con Supabase o usando el código de respaldo directo.'
+                  : 'Keep all your phones and computers synced with Supabase or via direct backup code.'}
               </p>
             </div>
 
-            {/* Export Section */}
+            {/* Cloud Push / Pull Section */}
+            <div style={{ border: '1.5px solid #0284c7', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem', backgroundColor: '#f0fdfa' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0369a1' }}>
+                <Cloud size={18} />
+                <span>{language === 'es' ? '☁️ Sincronización Automática con Supabase' : '☁️ Supabase Cloud Sync'}</span>
+              </h4>
+
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ flex: 1, minWidth: '180px', backgroundColor: '#0284c7' }}
+                  onClick={async () => {
+                    setSyncStatusMsg(null);
+                    const payloadStr = exportFamilyBackup();
+                    if (!payloadStr) return;
+                    const parsed = JSON.parse(payloadStr);
+                    const res = await pushFamilyDataToCloud(parsed);
+                    if (res.success) {
+                      setSyncStatusMsg({
+                        type: 'success',
+                        msg: language === 'es' ? '✅ ¡Datos subidos exitosamente a Supabase! Ya están disponibles en la nube.' : '✅ Uploaded to Supabase successfully!'
+                      });
+                    } else {
+                      setSyncStatusMsg({
+                        type: 'error',
+                        msg: res.error || (language === 'es' ? 'Error al subir a Supabase.' : 'Error uploading.')
+                      });
+                    }
+                  }}
+                >
+                  <CloudUpload size={14} />
+                  <span>{language === 'es' ? 'Subir a Supabase' : 'Push to Cloud'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ flex: 1, minWidth: '180px' }}
+                  onClick={async () => {
+                    if (!activeFamilyCircle) return;
+                    setSyncStatusMsg(null);
+                    const res = await pullFamilyDataFromCloud(activeFamilyCircle.id);
+                    if (res.success && res.payload) {
+                      importFamilyBackup(JSON.stringify(res.payload));
+                      setSyncStatusMsg({
+                        type: 'success',
+                        msg: language === 'es' ? '✅ ¡Datos descargados de Supabase y actualizados en este dispositivo!' : '✅ Pulled from Supabase successfully!'
+                      });
+                      setTimeout(() => {
+                        onClose();
+                      }, 1200);
+                    } else {
+                      setSyncStatusMsg({
+                        type: 'error',
+                        msg: res.error || (language === 'es' ? 'Error al descargar de Supabase.' : 'Error pulling.')
+                      });
+                    }
+                  }}
+                >
+                  <CloudDownload size={14} />
+                  <span>{language === 'es' ? 'Descargar de Supabase' : 'Pull from Cloud'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Direct WhatsApp / Clipboard Transfer Section */}
             <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem', backgroundColor: '#ffffff' }}>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span>📤 1. Exportar Datos de {activeFamilyCircle?.name}</span>
+                <span>📤 {language === 'es' ? '1. Copiar o Enviar Respaldo a mi Celular' : '1. Copy or Send to Mobile'}</span>
               </h4>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
@@ -481,10 +552,24 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
                       setSyncStatusMsg({ type: 'success', msg: 'Respaldo listo. Cópialo manualmente.' });
                     }
                   }}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: '150px' }}
                 >
                   {copiedSyncPayload ? <Check size={14} color="#ffffff" /> : <Copy size={14} />}
-                  {copiedSyncPayload ? (language === 'es' ? '¡Datos Copiados al Portapapeles!' : 'Copied!') : (language === 'es' ? 'Copiar Datos de Respaldo' : 'Copy Backup Data')}
+                  {copiedSyncPayload ? (language === 'es' ? '¡Copiado al Portapapeles!' : 'Copied!') : (language === 'es' ? 'Copiar Respaldo' : 'Copy Backup')}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const payload = exportFamilyBackup();
+                    const msg = `*FamHealth Sync Data (${activeFamilyCircle?.name}):*\n${payload}`;
+                    shareViaWhatsApp(msg);
+                  }}
+                  style={{ flex: 1, minWidth: '150px', color: '#16a34a', borderColor: '#16a34a' }}
+                >
+                  <Share2 size={14} />
+                  <span>{language === 'es' ? 'Enviar a WhatsApp' : 'Send to WhatsApp'}</span>
                 </button>
               </div>
             </div>
@@ -492,12 +577,12 @@ export const FamilyManagerModal: React.FC<FamilyManagerModalProps> = ({ isOpen, 
             {/* Import Section */}
             <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem', backgroundColor: '#ffffff' }}>
               <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span>📥 2. Pegar Datos desde Otro Dispositivo</span>
+                <span>📥 {language === 'es' ? '2. Pegar Datos en este Celular' : '2. Paste Data on this Device'}</span>
               </h4>
               <textarea
                 className="form-input"
                 rows={3}
-                placeholder={language === 'es' ? 'Pega aquí el código de respaldo copiado de tu otro celular o computadora...' : 'Paste backup code here...'}
+                placeholder={language === 'es' ? 'Pega aquí el código de respaldo copiado de tu computadora o WhatsApp...' : 'Paste backup code here...'}
                 value={syncInput}
                 onChange={e => setSyncInput(e.target.value)}
                 style={{ fontSize: '0.75rem', fontFamily: 'monospace', marginBottom: '0.75rem' }}
