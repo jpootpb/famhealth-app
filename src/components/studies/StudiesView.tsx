@@ -18,7 +18,9 @@ import {
   Layers,
   Maximize2,
   Eye,
-  FileCheck
+  FileCheck,
+  Lock,
+  Users
 } from 'lucide-react';
 import { formatDateIso } from '../../utils/frequencyEngine';
 import { buildStudyWhatsAppMessage, buildStudyEmailLink } from '../../utils/studySharingEngine';
@@ -26,7 +28,7 @@ import { shareViaWhatsApp } from '../../lib/whatsapp';
 import { openDocumentInNewTab } from '../../utils/pdfHelper';
 
 export const StudiesView: React.FC = () => {
-  const { activePatient, studies, addStudy, deleteStudy } = useApp();
+  const { activePatient, studies, addStudy, deleteStudy, currentUser } = useApp();
   const { t, language } = useLanguage();
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -49,6 +51,7 @@ export const StudiesView: React.FC = () => {
   const [accessCredentials, setAccessCredentials] = useState('');
   const [fileUrl, setFileUrl] = useState<string | undefined>(undefined);
   const [fileType, setFileType] = useState<'pdf' | 'image' | undefined>(undefined);
+  const [isPrivate, setIsPrivate] = useState(false);
 
   if (!activePatient) {
     return (
@@ -58,7 +61,19 @@ export const StudiesView: React.FC = () => {
     );
   }
 
-  const patientStudies = studies.filter(s => s.patientId === activePatient.id);
+  // Filter studies by active patient and privacy permissions
+  const patientStudies = studies.filter(s => {
+    if (s.patientId !== activePatient.id) return false;
+    if (s.isPrivate) {
+      return s.ownerUserId === currentUser.id || s.uploadedByName === currentUser.name || !s.ownerUserId;
+    }
+    return true;
+  });
+
+  const hiddenPrivateCount = studies.filter(
+    s => s.patientId === activePatient.id && s.isPrivate && s.ownerUserId !== currentUser.id && s.uploadedByName !== currentUser.name
+  ).length;
+
   const filteredStudies = activeCategory === 'all'
     ? patientStudies
     : patientStudies.filter(s => s.category === activeCategory);
@@ -92,7 +107,10 @@ export const StudiesView: React.FC = () => {
       reportUrl: reportUrl.trim() || undefined,
       accessCredentials: accessCredentials.trim() || undefined,
       fileUrl,
-      fileType
+      fileType,
+      isPrivate,
+      ownerUserId: currentUser.id,
+      uploadedByName: currentUser.name
     });
 
     setTitle('');
@@ -102,6 +120,7 @@ export const StudiesView: React.FC = () => {
     setAccessCredentials('');
     setFileUrl(undefined);
     setFileType(undefined);
+    setIsPrivate(false);
     setIsModalOpen(false);
   };
 
@@ -193,6 +212,30 @@ export const StudiesView: React.FC = () => {
         </button>
       </div>
 
+      {/* Hidden Private Studies Notice */}
+      {hiddenPrivateCount > 0 && (
+        <div
+          style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.625rem 0.875rem',
+            fontSize: '0.78rem',
+            color: '#475569',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          <Lock size={14} color="#64748b" />
+          <span>
+            {language === 'es'
+              ? `Hay ${hiddenPrivateCount} estudio(s) médico(s) de este perfil protegidos con candado de privacidad individual.`
+              : `${hiddenPrivateCount} medical study(ies) are marked as confidential and hidden by personal privacy.`}
+          </span>
+        </div>
+      )}
+
       {/* Studies List */}
       {filteredStudies.length === 0 ? (
         <div className="card text-center" style={{ padding: '3rem 1.5rem' }}>
@@ -241,6 +284,12 @@ export const StudiesView: React.FC = () => {
                     <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>
                       {study.title}
                     </h4>
+                    {study.isPrivate && (
+                      <span className="badge badge-red" style={{ fontSize: '0.6875rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <Lock size={10} />
+                        <span>{language === 'es' ? 'Privado (Solo tú)' : 'Private (Only you)'}</span>
+                      </span>
+                    )}
                     {study.viewerUrl && (
                       <span className="badge badge-green" style={{ fontSize: '0.6875rem' }}>
                         🌐 Visor PACS 3D
@@ -678,6 +727,43 @@ export const StudiesView: React.FC = () => {
                     ? '💡 Puedes tomarle foto directa con la cámara de tu celular a la hoja física que te entregaron o subir el archivo PDF.'
                     : '💡 Take a direct photo of the physical paper report using your phone camera or upload a scanned PDF.'}
                 </span>
+              </div>
+
+              {/* Privacy & Confidentiality Toggle */}
+              <div
+                style={{
+                  backgroundColor: isPrivate ? '#fef2f2' : '#f0fdf4',
+                  border: `1.5px solid ${isPrivate ? '#f87171' : '#86efac'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem',
+                  marginBottom: '1rem',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setIsPrivate(!isPrivate)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {isPrivate ? <Lock size={18} color="#dc2626" /> : <Users size={18} color="#16a34a" />}
+                    <div>
+                      <strong style={{ fontSize: '0.8125rem', color: isPrivate ? '#991b1b' : '#166534' }}>
+                        {isPrivate
+                          ? (language === 'es' ? '🔒 Estudio Privado / Confidencial (Solo visible para mí)' : '🔒 Private / Confidential (Only visible to me)')
+                          : (language === 'es' ? '👥 Compartido con el Círculo Familiar' : '👥 Shared with Family Circle')}
+                      </strong>
+                      <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                        {isPrivate
+                          ? (language === 'es' ? 'Solo tú podrás ver este estudio con tu cuenta. Queda oculto para tu cónyuge o familiares.' : 'Only you will see this study. Hidden from other circle members.')
+                          : (language === 'es' ? 'Todos los miembros del hogar podrán consultarlo en consultas médicas o emergencias.' : 'Visible to family members for medical care and emergencies.')}
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={() => {}}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>

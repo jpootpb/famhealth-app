@@ -264,6 +264,9 @@ export interface MedicalStudy {
   viewerUrl?: string; // Web PACS / DICOM / 3D CT/MRI Viewer URL (e.g. Eva Center, Cedir, PACS)
   reportUrl?: string; // Online Laboratory / Radiology Interpretation Portal URL
   accessCredentials?: string; // User/Pass/PIN instructions if requested by the radiology center
+  isPrivate?: boolean; // True if this study is confidential and only visible to the owner/uploader
+  ownerUserId?: string; // User ID who owns or uploaded the confidential study
+  uploadedByName?: string; // Name of the uploader for accountability
 }
 
 export interface FutureBookingReminder {
