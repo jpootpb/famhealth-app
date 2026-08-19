@@ -107,10 +107,11 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
 
   useEffect(() => {
     if (medicationToEdit) {
-      const isTemp = medicationToEdit.treatmentType === 'temporary' || medicationToEdit.frequency.type === 'temporary_hourly';
+      const isTemp = medicationToEdit.treatmentType === 'temporary' || medicationToEdit.frequency?.type === 'temporary_hourly';
       setTreatmentType(isTemp ? 'temporary' : 'chronic');
-      setName(medicationToEdit.name);
-      setPresentation(medicationToEdit.presentation);
+      setAssignedPatientId(medicationToEdit.patientId || activePatient?.id || '');
+      setName(medicationToEdit.name || '');
+      setPresentation(medicationToEdit.presentation || 'tablet');
       setIndication(medicationToEdit.indication || '');
       setLaboratory(medicationToEdit.laboratory || '');
       setImageUrl(medicationToEdit.imageUrl || '');
@@ -120,19 +121,19 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
       setPackageUnits(medicationToEdit.packageUnits || 30);
       setIsMedicalSample(Boolean(medicationToEdit.isMedicalSample));
       setSampleNotes(medicationToEdit.sampleNotes || '');
-      setCurrentStock(medicationToEdit.currentStock);
-      setMinimumStockAlert(isTemp ? 0 : medicationToEdit.minimumStockAlert);
+      setCurrentStock(medicationToEdit.currentStock !== undefined ? medicationToEdit.currentStock : 30);
+      setMinimumStockAlert(isTemp ? 0 : (medicationToEdit.minimumStockAlert !== undefined ? medicationToEdit.minimumStockAlert : 5));
       setUnitCost(medicationToEdit.unitCost !== undefined ? medicationToEdit.unitCost : '');
       setExpirationDate(medicationToEdit.expirationDate || '');
       setIsImssCovered(Boolean(medicationToEdit.isImssCovered || medicationToEdit.source === 'imss'));
       setPreferredStore(medicationToEdit.preferredStore || '');
       setPurchaseNotes(medicationToEdit.purchaseNotes || '');
       if (medicationToEdit.loyaltyPromo) {
-        setLoyaltyEnabled(medicationToEdit.loyaltyPromo.enabled);
-        setLoyaltyStore(medicationToEdit.loyaltyPromo.storeName);
-        setLoyaltyRequired(medicationToEdit.loyaltyPromo.requiredPurchases);
-        setLoyaltyPurchased(medicationToEdit.loyaltyPromo.currentPurchased);
-        setLoyaltyReward(medicationToEdit.loyaltyPromo.rewardDescription);
+        setLoyaltyEnabled(Boolean(medicationToEdit.loyaltyPromo.enabled));
+        setLoyaltyStore(medicationToEdit.loyaltyPromo.storeName || 'Farmacia');
+        setLoyaltyRequired(medicationToEdit.loyaltyPromo.requiredPurchases || 3);
+        setLoyaltyPurchased(medicationToEdit.loyaltyPromo.currentPurchased || 0);
+        setLoyaltyReward(medicationToEdit.loyaltyPromo.rewardDescription || '1 Frasco Gratis');
       } else {
         setLoyaltyEnabled(false);
         setLoyaltyStore('Farmacias Value');
@@ -140,17 +141,21 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
         setLoyaltyPurchased(0);
         setLoyaltyReward('1 Frasco / Caja Gratis');
       }
-      setFrequencyType(medicationToEdit.frequency.type);
-      setStartDate(medicationToEdit.frequency.startDate);
-      setEndDate(medicationToEdit.frequency.endDate || '');
-      setIntervalDays(medicationToEdit.frequency.intervalDays || 2);
-      setIntervalHours(medicationToEdit.frequency.intervalHours || 8);
-      const editDoseSlots = medicationToEdit.frequency.doseSlots.length > 0 ? medicationToEdit.frequency.doseSlots : [{ time: '08:00', dose: 1 }];
+      const freq = medicationToEdit.frequency || ({} as any);
+      setFrequencyType(freq.type || (isTemp ? 'temporary_hourly' : 'daily_fixed'));
+      setStartDate(freq.startDate || formatDateIso(new Date()));
+      setEndDate(freq.endDate || '');
+      setDurationDays(freq.durationDays || 7);
+      setIntervalDays(freq.intervalDays || 2);
+      setIntervalHours(freq.intervalHours || 8);
+      const editDoseSlots = Array.isArray(freq.doseSlots) && freq.doseSlots.length > 0
+        ? freq.doseSlots
+        : [{ time: '08:00', dose: 1, instruction: language === 'es' ? 'Con el desayuno' : 'With breakfast' }];
       setDoseSlots(editDoseSlots);
-      setStartFirstDoseTime(medicationToEdit.frequency.startFirstDoseTime || editDoseSlots[0]?.time || '08:00');
-      setFirstDoseTiming(medicationToEdit.frequency.firstDoseTiming || 'breakfast');
-      setEndDoseTime(medicationToEdit.frequency.endDoseTime || '20:00');
-      setTotalPrescribedDoses(medicationToEdit.frequency.totalPrescribedDoses || (editDoseSlots.length * (medicationToEdit.frequency.durationDays || 7)));
+      setStartFirstDoseTime(freq.startFirstDoseTime || editDoseSlots[0]?.time || '08:00');
+      setFirstDoseTiming(freq.firstDoseTiming || 'breakfast');
+      setEndDoseTime(freq.endDoseTime || editDoseSlots[editDoseSlots.length - 1]?.time || '20:00');
+      setTotalPrescribedDoses(freq.totalPrescribedDoses || (editDoseSlots.length * (freq.durationDays || 7)));
     } else {
       const isPatientTemp = activePatient?.type === 'temporary';
       setTreatmentType(isPatientTemp ? 'temporary' : 'chronic');
@@ -1165,71 +1170,49 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                 <label className="form-label" style={{ fontWeight: 800, color: '#92400e', margin: 0, fontSize: '0.8125rem' }}>
-                  🕒 {language === 'es' ? '¿A qué hora o comida inicia la 1ra toma hoy (Día 1)?' : 'First dose timing on Day 1:'}
+                  🕒 {language === 'es' ? '¿En cuál de tus horarios inicia la 1ra toma hoy (Día 1)?' : 'First dose timing on Day 1:'}
                 </label>
               </div>
               <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.72rem', color: '#78350f' }}>
                 {language === 'es'
-                  ? 'Si compraste la medicina después de la consulta médica (ej. 11:00 AM), inicia en la Comida o Cena para no marcar como atrasada la mañana.'
+                  ? 'Selecciona la toma con la que vas a empezar hoy para no marcar como atrasadas las horas anteriores.'
                   : 'Select first meal/time so prior morning doses are not marked overdue.'}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.35rem', marginBottom: '0.5rem' }}>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${firstDoseTiming === 'breakfast' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => {
-                    setFirstDoseTiming('breakfast');
-                    const morningSlot = doseSlots[0]?.time || '08:00';
-                    setStartFirstDoseTime(morningSlot);
-                  }}
-                  style={{ fontSize: '0.72rem', fontWeight: 700, justifyContent: 'center' }}
-                >
-                  🌅 {language === 'es' ? 'Desayuno (Día Completo)' : 'Breakfast (Full Day)'}
-                </button>
-
-                <button
-                  type="button"
-                  className={`btn btn-sm ${firstDoseTiming === 'lunch' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => {
-                    setFirstDoseTiming('lunch');
-                    const midSlot = doseSlots.length > 1 ? doseSlots[1]?.time : '14:00';
-                    setStartFirstDoseTime(midSlot);
-                  }}
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    justifyContent: 'center',
-                    backgroundColor: firstDoseTiming === 'lunch' ? '#d97706' : undefined,
-                    borderColor: firstDoseTiming === 'lunch' ? '#d97706' : undefined
-                  }}
-                >
-                  ☀️ {language === 'es' ? 'Comida / Almuerzo' : 'Lunch / Mid-day'}
-                </button>
-
-                <button
-                  type="button"
-                  className={`btn btn-sm ${firstDoseTiming === 'dinner' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => {
-                    setFirstDoseTiming('dinner');
-                    const lastSlot = doseSlots[doseSlots.length - 1]?.time || '20:00';
-                    setStartFirstDoseTime(lastSlot);
-                  }}
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    justifyContent: 'center',
-                    backgroundColor: firstDoseTiming === 'dinner' ? '#9333ea' : undefined,
-                    borderColor: firstDoseTiming === 'dinner' ? '#9333ea' : undefined
-                  }}
-                >
-                  🌙 {language === 'es' ? 'Cena / Noche' : 'Dinner / Night'}
-                </button>
+              {/* Dynamic Buttons for configured dose slots */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                {doseSlots.map((slot, sIdx) => {
+                  const [h] = slot.time.split(':').map(Number);
+                  const icon = h < 12 ? '🌅' : h < 18 ? '☀️' : '🌙';
+                  const label = slot.instruction ? `${slot.time} • ${slot.instruction}` : slot.time;
+                  const isSelected = startFirstDoseTime === slot.time;
+                  return (
+                    <button
+                      key={sIdx}
+                      type="button"
+                      className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => {
+                        setStartFirstDoseTime(slot.time);
+                        setFirstDoseTiming(h < 12 ? 'breakfast' : h < 18 ? 'lunch' : 'dinner');
+                      }}
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: isSelected ? undefined : '#fef9c3',
+                        borderColor: isSelected ? undefined : '#fde047',
+                        color: isSelected ? undefined : '#854d0e'
+                      }}
+                    >
+                      {icon} {label} {sIdx === 0 ? (language === 'es' ? ' (1ra del Día)' : ' (1st)') : ''}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e' }}>
-                  {language === 'es' ? 'Hora exacta de 1ra toma:' : 'Exact 1st dose time:'}
+                  {language === 'es' ? 'O especifica una hora exacta de 1ra toma:' : 'Or exact 1st dose time:'}
                 </label>
                 <input
                   type="time"
@@ -1242,6 +1225,25 @@ export const MedicationModal: React.FC<MedicationModalProps> = ({
                   }}
                 />
               </div>
+
+              {/* Notice if the custom hour is not in dose slots */}
+              {startFirstDoseTime && !doseSlots.some(s => s.time === startFirstDoseTime) && (
+                <div style={{ margin: '0.35rem 0 0.5rem 0', padding: '0.45rem 0.65rem', backgroundColor: '#f0fdf4', borderRadius: 'var(--radius-sm)', border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#166534' }}>
+                    💡 {language === 'es' ? `¿Deseas que ${startFirstDoseTime} sea un horario fijo de toma diario?` : `Make ${startFirstDoseTime} a daily scheduled dose?`}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setDoseSlots(prev => [...prev, { time: startFirstDoseTime, dose: 1, instruction: 'Toma programada' }].sort((a, b) => a.time.localeCompare(b.time)));
+                    }}
+                    style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', backgroundColor: '#dcfce7', borderColor: '#86efac', color: '#15803d', fontWeight: 700 }}
+                  >
+                    ➕ {language === 'es' ? `Agregar ${startFirstDoseTime} a los Horarios de Toma` : `Add ${startFirstDoseTime} to slots`}
+                  </button>
+                </div>
+              )}
 
               {/* Live Intelligent Schedule Summary */}
               <div style={{ padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: 'var(--radius-sm)', fontSize: '0.72rem', color: '#92400e', fontWeight: 600 }}>
