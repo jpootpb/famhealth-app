@@ -193,9 +193,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.saveStudies(allStudies); }, [allStudies]);
   useEffect(() => { LocalStore.saveCustomPharmacies(customPharmacies); }, [customPharmacies]);
 
-  // Auto-heal current user if joinedFamilyIds is empty
+  // Auto-heal current user & reconcile default family circles across devices
   useEffect(() => {
-    if (currentUser && currentUser.id !== 'guest' && (!currentUser.joinedFamilyIds || currentUser.joinedFamilyIds.length === 0)) {
+    // 1. Ensure circle-poot-ibarra is in allFamilyCircles
+    const hasPootIbarra = allFamilyCircles.some(c => c.id === 'circle-poot-ibarra');
+    if (!hasPootIbarra) {
+      const ibarraCircle: FamilyCircle = {
+        id: 'circle-poot-ibarra',
+        name: 'Familia Poot Ibarra',
+        inviteCode: 'IBARRA-2026',
+        createdAt: '2026-08-18'
+      };
+      setAllFamilyCircles(prev => [ibarraCircle, ...prev]);
+    }
+
+    // 2. If current user is jpoot@outlook.com or jose@famhealth.app, ensure circle-poot-ibarra is linked
+    if (currentUser && currentUser.id !== 'guest' && (currentUser.email === 'jpoot@outlook.com' || currentUser.email === 'jose@famhealth.app')) {
+      const needsIbarra = !currentUser.joinedFamilyIds?.includes('circle-poot-ibarra');
+      if (needsIbarra) {
+        const updatedIds = ['circle-poot-ibarra', ...(currentUser.joinedFamilyIds || ['circle-poot'])];
+        const updatedUser: UserAccount = {
+          ...currentUser,
+          activeFamilyId: 'circle-poot-ibarra',
+          joinedFamilyIds: updatedIds
+        };
+        setCurrentUser(updatedUser);
+        setActiveFamilyIdState('circle-poot-ibarra');
+        setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+      }
+    } else if (currentUser && currentUser.id !== 'guest' && (!currentUser.joinedFamilyIds || currentUser.joinedFamilyIds.length === 0)) {
       const defaultFamIds = allFamilyCircles.map(c => c.id);
       const healedUser: UserAccount = {
         ...currentUser,
@@ -205,7 +231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentUser(healedUser);
       setAllUsers(prev => prev.map(u => u.id === currentUser.id ? healedUser : u));
     }
-  }, [currentUser, allFamilyCircles]);
+  }, [allFamilyCircles, currentUser]);
 
   // Family circles visible to current logged-in user (with fallback to allFamilyCircles if empty)
   const userCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);

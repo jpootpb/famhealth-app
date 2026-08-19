@@ -158,9 +158,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFam
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{currentUser.name}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{currentUser.email}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.15rem' }}>
-                    🔑 {language === 'es' ? `Clave: ${currentUser.password || '123'}` : `Password: ${currentUser.password || '123'}`}
-                  </div>
                 </div>
               </div>
 

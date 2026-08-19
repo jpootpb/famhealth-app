@@ -264,51 +264,6 @@ export const AuthScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick 1-Click Saved Accounts */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
-                  fontWeight: 800,
-                  display: 'block',
-                  marginBottom: '0.5rem'
-                }}
-              >
-                {language === 'es' ? '👤 O toca tu perfil directo (Contraseña: 123):' : '👤 Or tap your profile (Password: 123):'}
-              </span>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {allUsers.map(user => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => switchUser(user.id)}
-                    className="btn btn-secondary"
-                    style={{
-                      justifyContent: 'space-between',
-                      textAlign: 'left',
-                      padding: '0.65rem 0.875rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)'
-                    }}
-                  >
-                    <div>
-                      <strong style={{ fontSize: '0.8125rem', display: 'block', color: 'var(--text-primary)' }}>
-                        {user.name}
-                      </strong>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                        {user.email} (Clave: {user.password || '123'})
-                      </span>
-                    </div>
-                    <ArrowRight size={15} color="var(--primary)" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div
               style={{
                 display: 'flex',
