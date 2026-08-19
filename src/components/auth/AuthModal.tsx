@@ -19,9 +19,10 @@ import {
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenFamilyManager?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onOpenFamilyManager }) => {
   const { currentUser, allUsers, switchUser, loginUser, registerUser, logoutUser } = useApp();
   const { t, language } = useLanguage();
 
@@ -144,6 +145,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <LogOut size={14} /> {language === 'es' ? 'Salir' : 'Logout'}
               </button>
             </div>
+
+            {/* Direct Family Circles Manager Button */}
+            {onOpenFamilyManager && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    onClose();
+                    onOpenFamilyManager();
+                  }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#16a34a', borderColor: '#16a34a', padding: '0.625rem 1rem' }}
+                >
+                  <Users size={16} />
+                  <span>{language === 'es' ? '🏡 Crear o Cambiar Círculo Familiar (Mi Hogar, Papás, etc.)' : '🏡 Manage / Create Family Circles'}</span>
+                </button>
+              </div>
+            )}
 
             {/* Quick Demo Accounts Switcher */}
             <div style={{ marginBottom: '1.25rem' }}>

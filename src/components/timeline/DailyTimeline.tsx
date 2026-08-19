@@ -45,6 +45,7 @@ import { getCurrentShiftCaregiver, buildDoseTakenWhatsAppMessage, shareViaWhatsA
 import { PatientSelector } from '../layout/PatientSelector';
 import { DailyRoutineModal } from '../routines/DailyRoutineModal';
 import { CaregiverTeamModal } from '../caregivers/CaregiverTeamModal';
+import { FamilyManagerModal } from '../auth/FamilyManagerModal';
 import { getActiveBatch } from '../../utils/medicationBatchEngine';
 
 interface DailyTimelineProps {
@@ -60,7 +61,8 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
     routineLogs,
     toggleDoseTaken,
     toggleRoutineCompleted,
-    families
+    families,
+    activeFamilyCircle
   } = useApp();
   const { t, language } = useLanguage();
 
@@ -69,6 +71,7 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
   const [isCaregiverTeamModalOpen, setIsCaregiverTeamModalOpen] = useState(false);
+  const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   // Determine current on-duty caregiver
@@ -548,6 +551,16 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               className="btn btn-secondary btn-sm"
+              onClick={() => setIsFamilyModalOpen(true)}
+              style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#166534', borderColor: '#86efac', backgroundColor: '#f0fdf4' }}
+              title={language === 'es' ? 'Crear o cambiar de familia (Mi Hogar, Papás, etc.)' : 'Manage Family Circles'}
+            >
+              <Users size={14} color="#16a34a" />
+              <span>{language === 'es' ? `🏡 ${activeFamilyCircle?.name || 'Círculos Familiares'}` : '🏡 Family Circles'}</span>
+            </button>
+
+            <button
+              className="btn btn-secondary btn-sm"
               onClick={() => setIsCaregiverTeamModalOpen(true)}
               style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
@@ -892,6 +905,12 @@ export const DailyTimeline: React.FC<DailyTimelineProps> = ({ onOpenAddMedicatio
       <CaregiverTeamModal
         isOpen={isCaregiverTeamModalOpen}
         onClose={() => setIsCaregiverTeamModalOpen(false)}
+      />
+
+      {/* Family Circle Manager & Multi-Circle Modal */}
+      <FamilyManagerModal
+        isOpen={isFamilyModalOpen}
+        onClose={() => setIsFamilyModalOpen(false)}
       />
     </div>
   );

@@ -317,6 +317,7 @@ export const Header: React.FC<{ onPrintReport?: () => void }> = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        onOpenFamilyManager={() => setIsFamilyModalOpen(true)}
       />
 
       <PatientSelector

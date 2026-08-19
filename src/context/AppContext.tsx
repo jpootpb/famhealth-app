@@ -186,6 +186,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => { LocalStore.saveStudies(allStudies); }, [allStudies]);
   useEffect(() => { LocalStore.saveCustomPharmacies(customPharmacies); }, [customPharmacies]);
 
+  // Auto-heal current user if joinedFamilyIds is empty
+  useEffect(() => {
+    if (currentUser && currentUser.id !== 'guest' && (!currentUser.joinedFamilyIds || currentUser.joinedFamilyIds.length === 0)) {
+      const defaultFamIds = allFamilyCircles.map(c => c.id);
+      const healedUser: UserAccount = {
+        ...currentUser,
+        activeFamilyId: currentUser.activeFamilyId || allFamilyCircles[0]?.id || '',
+        joinedFamilyIds: defaultFamIds
+      };
+      setCurrentUser(healedUser);
+      setAllUsers(prev => prev.map(u => u.id === currentUser.id ? healedUser : u));
+    }
+  }, [currentUser, allFamilyCircles]);
+
   // Family circles visible to current logged-in user (with fallback to allFamilyCircles if empty)
   const userCircles = getUserVisibleFamilyCircles(currentUser, allFamilyCircles);
   const familyCircles = userCircles.length > 0 ? userCircles : allFamilyCircles;
